@@ -1,8 +1,9 @@
 import graphene
 import graphql_jwt
+from accounts.schema import Query as AccountsQuery
 
 
-class Query(graphene.ObjectType):
+class Query(AccountsQuery, graphene.ObjectType):
     hello = graphene.String(default_value="Hi!")
 
 
