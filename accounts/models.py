@@ -71,6 +71,7 @@ class DomainModel(BaseDomainModel):
 class Authority(DomainModel):
     class Meta:
         ordering = ("name",)
+        verbose_name_plural = "Authorities"
 
     code = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=512)
@@ -99,6 +100,9 @@ class DomainUserManager(UserManager, DomainManager):
 
 
 class AuthorityUser(User, DomainModel):
+    class Meta:
+        verbose_name = "Authority User"
+
     objects = DomainUserManager()
     avatar_url = models.URLField(max_length=300, blank=True, null=True)
     thumbnail_avatar_url = models.URLField(max_length=300, blank=True, null=True)
