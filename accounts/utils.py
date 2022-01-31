@@ -5,6 +5,8 @@ from django.conf import settings
 
 import threading
 
+from graphql_jwt.utils import jwt_payload
+
 thread_local = threading.local()
 
 
@@ -37,3 +39,11 @@ def get_current_domain_id():
             return settings.CURRENT_DOMAIN_ID
 
     return None
+
+
+def custom_jwt_payload(user, context=None):
+    payload = jwt_payload(user, context)
+    if hasattr(user, "authorityuser"):
+        authority_user = user.authorityuser
+        payload["authority_id"] = authority_user.authority_id
+    return payload
