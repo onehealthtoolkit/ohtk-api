@@ -1,38 +1,10 @@
 import graphene
 from django.utils.timezone import now
-from graphene_django import DjangoObjectType
 from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
 
-from accounts.models import InvitationCode, Authority
-
-
-class AuthorityType(DjangoObjectType):
-    class Meta:
-        model = Authority
-        fields = (
-            "code",
-            "name",
-        )
-
-
-class UserProfileType(graphene.ObjectType):
-    id = graphene.Int(required=True)
-    username = graphene.String(required=True)
-    first_name = graphene.String(required=True)
-    last_name = graphene.String(required=True)
-    authority_name = graphene.String(required=False)
-
-    def resolve_authority_name(parent, info):
-        if hasattr(parent, "authority"):
-            return parent.authority.name
-        return ""
-
-
-class CheckInvitationCodeType(DjangoObjectType):
-    class Meta:
-        model = InvitationCode
-        fields = ("code", "authority")
+from accounts.models import InvitationCode
+from accounts.types import UserProfileType, CheckInvitationCodeType
 
 
 class Query(graphene.ObjectType):
