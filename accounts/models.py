@@ -1,3 +1,6 @@
+from random import randint
+from dateutil.relativedelta import *
+
 from django.contrib.auth.models import UserManager, AbstractUser
 from django.db import models
 from django.db.models import Q
@@ -113,3 +116,33 @@ class AuthorityUser(User, DomainModel):
 
     def __str__(self):
         return self.username
+
+
+class InvitationCode(DomainModel):
+    authority = models.ForeignKey(
+        Authority, related_name="inviations", on_delete=models.CASCADE
+    )
+    code = models.CharField(max_length=10, unique=True)
+    from_date = models.DateTimeField()
+    through_date = models.DateTimeField()
+
+    def __str__(self):
+        return f"{self.code} {self.authority.name}"
+
+    def save(self, *args, **kwargs):
+        if not self.id:
+            if self.code is None:
+                self.code = self.generate_code()
+            if self.from_date is None:
+                self.from_date = now()
+            if self.through_date is None:
+                self.through_date = self.from_date + relativedelta(years=1)
+        super(InvitationCode, self).save(*args, **kwargs)
+
+    @staticmethod
+    def generate_code():
+        for i in range(10):
+            code = "{0:07d}".format(randint(0, 9999999))
+            if InvitationCode.objects.filter(code=code).count() == 0:
+                return code
+        raise Exception("could not generate code")
