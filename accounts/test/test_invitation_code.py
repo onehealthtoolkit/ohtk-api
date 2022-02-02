@@ -27,6 +27,17 @@ class InvitationCodeTestCase(GraphQLTestCase):
               }
             }
             """
+        self.register_mutation = """
+            mutation authorityUserRegister($username: String!, $invitationCode: String!, $firstName: String!, $lastName: String!, $email: String!) {
+                authorityUserRegister(username: $username, invitationCode: $invitationCode, firstName: $firstName, lastName: $lastName, email: $email) {
+                    me {
+                        id
+                        username
+                    }
+                }
+            
+            }
+        """
 
     def test_create(self):
         with domain(self.domain.id):
@@ -41,7 +52,6 @@ class InvitationCodeTestCase(GraphQLTestCase):
 
     def test_check_query_success(self):
         with domain(self.domain.id):
-
             response = self.query(
                 self.check_query,
                 variables={"code": self.invitationCode.code},
@@ -55,3 +65,17 @@ class InvitationCodeTestCase(GraphQLTestCase):
                 self.authority.code,
                 content["data"]["checkInvitationCode"]["authority"]["code"],
             )
+
+    def test_user_registration_via_code(self):
+        with domain(self.domain.id):
+            response = self.query(
+                self.register_mutation,
+                variables={
+                    "username": "pphetra",
+                    "invitationCode": "1234",
+                    "firstName": "john",
+                    "lastName": "Doe",
+                    "email": "pphetra@gmail.com",
+                },
+            )
+            self.assertResponseNoErrors(response)
