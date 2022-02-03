@@ -1,6 +1,6 @@
 import json
 
-from django.test import TestCase
+from django.conf import settings
 from graphene_django.utils import GraphQLTestCase
 
 from accounts.models import Authority, InvitationCode, Domain
@@ -34,6 +34,8 @@ class InvitationCodeTestCase(GraphQLTestCase):
                         id
                         username
                     }
+                    token
+                    refreshToken
                 }
             
             }
@@ -67,6 +69,7 @@ class InvitationCodeTestCase(GraphQLTestCase):
             )
 
     def test_user_registration_via_code(self):
+        settings.AUTO_LOGIN_AFTER_REGISTER = False
         with domain(self.domain.id):
             response = self.query(
                 self.register_mutation,
@@ -79,3 +82,24 @@ class InvitationCodeTestCase(GraphQLTestCase):
                 },
             )
             self.assertResponseNoErrors(response)
+
+    def test_user_registration_via_code_and_auto_login(self):
+        settings.AUTO_LOGIN_AFTER_REGISTER = True
+        with domain(self.domain.id):
+            response = self.query(
+                self.register_mutation,
+                variables={
+                    "username": "pphetra",
+                    "invitationCode": "1234",
+                    "firstName": "john",
+                    "lastName": "Doe",
+                    "email": "pphetra@gmail.com",
+                },
+            )
+            self.assertResponseNoErrors(response)
+            print(response)
+            content = json.loads(response.content)
+            payload = content["data"]["authorityUserRegister"]
+            print(payload)
+            self.assertIsNotNone(payload["token"])
+            self.assertIsNotNone(payload["refreshToken"])

@@ -151,3 +151,6 @@ GRAPHQL_JWT = {
     "JWT_REFRESH_EXPIRATION_DELTA": timedelta(days=14),
     "JWT_PAYLOAD_HANDLER": "accounts.utils.custom_jwt_payload",
 }
+
+
+AUTO_LOGIN_AFTER_REGISTER = True

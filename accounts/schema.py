@@ -1,7 +1,10 @@
 import graphene
+from django.conf import settings
 from django.utils.timezone import now
 from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
+from graphql_jwt.refresh_token.shortcuts import create_refresh_token
+from graphql_jwt.shortcuts import get_token
 
 from accounts.models import InvitationCode, AuthorityUser
 from accounts.types import UserProfileType, CheckInvitationCodeType
@@ -41,6 +44,9 @@ class AuthorityUserRegisterMutation(graphene.Mutation):
         email = graphene.String(required=True)
 
     me = graphene.Field(UserProfileType)
+    # return only when enable FEATURES.AUTO_LOGIN_AFTER_REGISTER
+    token = graphene.String(required=False)
+    refresh_token = graphene.String(required=False)
 
     @staticmethod
     def mutate(
@@ -65,7 +71,16 @@ class AuthorityUserRegisterMutation(graphene.Mutation):
                 email=email,
                 authority=invitation.authority,
             )
-            return AuthorityUserRegisterMutation(me=authority_user)
+
+            token = None
+            refresh_token = None
+            if settings.AUTO_LOGIN_AFTER_REGISTER:
+                token = get_token(authority_user)
+                refresh_token = create_refresh_token(authority_user)
+
+            return AuthorityUserRegisterMutation(
+                me=authority_user, token=token, refresh_token=refresh_token
+            )
         else:
             raise GraphQLError(f"invitation code {invitation_code} does not exist")
 
