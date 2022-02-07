@@ -3,7 +3,7 @@ import json
 from django.conf import settings
 from graphene_django.utils import GraphQLTestCase
 
-from accounts.models import Authority, InvitationCode, Domain
+from accounts.models import Authority, InvitationCode, Domain, User
 from accounts.utils import domain
 
 
@@ -15,6 +15,12 @@ class InvitationCodeTestCase(GraphQLTestCase):
         )
         self.invitationCode = InvitationCode.objects.create(
             code="1234", authority=self.authority, domain=self.domain
+        )
+        self.existingUser = User.objects.create(
+            username="polawat",
+            first_name="polawat",
+            last_name="phetra",
+            email="pphetra@mail.com",
         )
         self.check_query = """
             query checkInvitationCode($code: String!) {
@@ -100,6 +106,20 @@ class InvitationCodeTestCase(GraphQLTestCase):
             print(response)
             content = json.loads(response.content)
             payload = content["data"]["authorityUserRegister"]
-            print(payload)
             self.assertIsNotNone(payload["token"])
             self.assertIsNotNone(payload["refreshToken"])
+
+    def test_user_registration_with_duplicate_username(self):
+        settings.AUTO_LOGIN_AFTER_REGISTER = False
+        with domain(self.domain.id):
+            response = self.query(
+                self.register_mutation,
+                variables={
+                    "username": "polawat",
+                    "invitationCode": "1234",
+                    "firstName": "john",
+                    "lastName": "Doe",
+                    "email": "pphetra@gmail.com",
+                },
+            )
+            self.assertResponseHasErrors(response)
