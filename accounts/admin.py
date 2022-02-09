@@ -1,16 +1,11 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from accounts.models import AuthorityUser, User, Authority, Domain, InvitationCode
+from accounts.models import AuthorityUser, User, Authority, InvitationCode
 
 
 class BasModelAdmin(admin.ModelAdmin):
     exclude = ("deleted_at",)
-
-
-@admin.register(Domain)
-class DomainAdmin(BasModelAdmin):
-    list_display = ("name",)
 
 
 @admin.register(User)

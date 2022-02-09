@@ -1,17 +1,17 @@
 from django.db import models
 import uuid
 
-from accounts.models import DomainModel, Authority
+from accounts.models import BaseModel, Authority
 
 
-class Category(DomainModel):
+class Category(BaseModel):
     class Meta:
         verbose_name_plural = "categories"
 
     name = models.CharField(max_length=255, unique=True)
 
 
-class ReportType(DomainModel):
+class ReportType(BaseModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255, unique=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
