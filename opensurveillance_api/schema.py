@@ -2,9 +2,10 @@ import graphene
 import graphql_jwt
 from accounts.schema import Query as AccountsQuery
 from accounts.schema import Mutation as AccountsMutation
+from reports.schema import Query as ReportsQuery
 
 
-class Query(AccountsQuery, graphene.ObjectType):
+class Query(AccountsQuery, ReportsQuery, graphene.ObjectType):
     hello = graphene.String(default_value="Hi!")
 
 
