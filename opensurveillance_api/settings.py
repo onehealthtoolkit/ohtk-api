@@ -25,12 +25,14 @@ SECRET_KEY = "django-insecure-n1)2=u0#ol2=8v&wer-gg+w66y^=8bq2lr4+*0pt_5*1!&ca!o
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [".opensur.test"]
 
 
 # Application definition
-
-INSTALLED_APPS = [
+SHARED_APPS = (
+    "accounts",
+    "django_tenants",
+    "tenants",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -39,11 +41,21 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "graphene_django",
     "graphql_jwt.refresh_token.apps.RefreshTokenConfig",
-    "accounts",
     "reports",
+)
+
+TENANT_APPS = ("django.contrib.contenttypes", "accounts", "reports")
+
+INSTALLED_APPS = list(SHARED_APPS) + [
+    app for app in TENANT_APPS if app not in SHARED_APPS
 ]
 
+TENANT_MODEL = "tenants.Client"  # app.Model
+
+TENANT_DOMAIN_MODEL = "tenants.Domain"  # app.Model
+
 MIDDLEWARE = [
+    "django_tenants.middleware.main.TenantMainMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -80,7 +92,7 @@ WSGI_APPLICATION = "opensurveillance_api.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
+        "ENGINE": "django_tenants.postgresql_backend",
         "NAME": "open_surveillance",
         "USER": "pphetra",
         "PASSWORD": "1234",
@@ -89,6 +101,7 @@ DATABASES = {
     }
 }
 
+DATABASE_ROUTERS = ("django_tenants.routers.TenantSyncRouter",)
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
@@ -155,3 +168,9 @@ GRAPHQL_JWT = {
 
 
 AUTO_LOGIN_AFTER_REGISTER = True
+
+TENANT_MODEL = "tenants.Client"  # app.Model
+TENANT_DOMAIN_MODEL = "tenants.Domain"  # app.Model
+
+SHOW_PUBLIC_IF_NO_TENANT_FOUND = True
+
