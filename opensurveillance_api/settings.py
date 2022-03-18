@@ -174,3 +174,4 @@ TENANT_DOMAIN_MODEL = "tenants.Domain"  # app.Model
 
 SHOW_PUBLIC_IF_NO_TENANT_FOUND = True
 
+MEDIA_ROOT = BASE_DIR / "medias"
