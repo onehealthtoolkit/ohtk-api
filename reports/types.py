@@ -2,7 +2,7 @@ import graphene
 from graphene.types.generic import GenericScalar
 from graphene_django import DjangoObjectType
 
-from reports.models import ReportType
+from reports.models import ReportType, Category
 
 
 class ReportTypeType(DjangoObjectType):
@@ -10,6 +10,11 @@ class ReportTypeType(DjangoObjectType):
 
     class Meta:
         model = ReportType
+
+
+class CategoryType(DjangoObjectType):
+    class Meta:
+        model = Category
 
 
 class ReportTypeSyncInputType(graphene.InputObjectType):
@@ -25,3 +30,4 @@ class ReportTypeSyncInputType(graphene.InputObjectType):
 class ReportTypeSyncOutputType(graphene.ObjectType):
     updated_list = graphene.List(ReportTypeType, required=True)
     removed_list = graphene.List(ReportTypeType, required=True)
+    category_list = graphene.List(CategoryType, required=False)

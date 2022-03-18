@@ -3,7 +3,7 @@ from typing import List
 import graphene
 from graphql_jwt.decorators import login_required
 
-from reports.models import ReportType
+from reports.models import ReportType, Category
 from reports.types import (
     ReportTypeType,
     ReportTypeSyncInputType,
@@ -41,4 +41,5 @@ class Query(graphene.ObjectType):
         return ReportTypeSyncOutputType(
             updated_list=result["updated_list"],
             removed_list=result["removed_list"],
+            category_list=Category.objects.all(),
         )
