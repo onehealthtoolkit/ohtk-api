@@ -39,6 +39,7 @@ SHARED_APPS = (
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.gis",
     "graphene_django",
     "graphql_jwt.refresh_token.apps.RefreshTokenConfig",
     "reports",
@@ -100,6 +101,8 @@ DATABASES = {
         "PORT": "5432",
     }
 }
+
+ORIGINAL_BACKEND = "django.contrib.gis.db.backends.postgis"
 
 DATABASE_ROUTERS = ("django_tenants.routers.TenantSyncRouter",)
 

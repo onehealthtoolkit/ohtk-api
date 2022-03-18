@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import List
 
-from django.db import models
+from django.contrib.gis.db import models
 import uuid
 
-from accounts.models import BaseModel, Authority
+from accounts.models import BaseModel, Authority, User
 
 
 class Category(BaseModel):
@@ -70,3 +70,46 @@ class ReportType(BaseModel):
 
     def to_data(self):
         return ReportType.ReportTypeData(id=self.id, updated_at=self.updated_at)
+
+
+class BaseReport(BaseModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    platform = models.CharField(max_length=20, blank=True, null=True)
+    reported_by = models.ForeignKey(
+        User,
+        blank=True,
+        null=True,
+        related_name="%(class)s",
+        on_delete=models.PROTECT,
+    )
+
+    class Meta:
+        abstract = True
+
+
+class IncidentReport(BaseReport):
+    incident_date = models.DateField()
+    report_type = models.ForeignKey(
+        ReportType, on_delete=models.PROTECT, related_name="incidents"
+    )
+    data = models.JSONField()
+    rendered_data = models.TextField(blank=True, default="")
+    origin_data = models.JSONField()
+    origin_rendered_data = models.TextField(blank=True, default="")
+    gps_location = models.PointField(null=True, blank=True)
+    test_flag = models.BooleanField(default=False, blank=True)
+
+
+class ZeroReport(BaseReport):
+    pass
+
+
+class FollowUpReport(BaseReport):
+    incident = models.ForeignKey(
+        IncidentReport, on_delete=models.CASCADE, related_name="followups"
+    )
+    data = models.JSONField()
+    rendered_data = models.TextField(blank=True, default="")
+    report_type = models.ForeignKey(
+        ReportType, on_delete=models.PROTECT, related_name="followups"
+    )
