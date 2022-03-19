@@ -1,3 +1,5 @@
+import uuid
+
 from django.utils.timezone import now
 
 from reports.models import IncidentReport
@@ -22,3 +24,17 @@ class IncidentReportTestCase(BaseTestCase):
         )
         self.assertIsNotNone(report.id)
         self.assertEqual("found 1 with symptom: cough", report.renderer_data)
+
+    def test_create_report_with_passing_uuid_from_client(self):
+        passing_uuid = uuid.uuid4()
+        report = IncidentReport.objects.create(
+            id=passing_uuid,
+            data={
+                "symptom": "cough",
+                "number_of_sick": 1,
+            },
+            reported_by=self.user,
+            incident_date=now(),
+            report_type=self.mers_report_type,
+        )
+        self.assertEqual(passing_uuid, report.id)
