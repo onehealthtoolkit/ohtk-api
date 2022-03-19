@@ -1,14 +1,16 @@
 import uuid
 
-from django.utils.timezone import now
 from django.core.files.uploadedfile import SimpleUploadedFile
-import tempfile
+from django.utils.timezone import now
+from graphql_jwt.testcases import JSONWebTokenClient
 
 from reports.models import IncidentReport, Image
 from reports.test.base_testcase import BaseTestCase
 
 
 class ReportImageTestCase(BaseTestCase):
+    client_class = JSONWebTokenClient
+
     def setUp(self):
         super(ReportImageTestCase, self).setUp()
         self.report = IncidentReport.objects.create(
@@ -45,3 +47,54 @@ class ReportImageTestCase(BaseTestCase):
         img2 = Image.objects.create(file=self.file, report=self.report)
         imgs = Image.objects.filter(report_id=self.report.id)
         self.assertEqual(2, len(imgs))
+
+    def test_mutation(self):
+        self.client.authenticate(self.user)
+        query = """
+            mutation submitImage($reportId: UUID!, 
+                                $image: Upload!) {
+                submitImage(reportId: $reportId, 
+                            image: $image) {
+                    id
+                    url
+                }
+            }
+        """
+        result = self.client.execute(
+            query,
+            {
+                "reportId": str(self.report.id),
+                "image": self.file,
+            },
+        )
+        self.assertIsNone(result.errors, msg=result.errors)
+        imgs = Image.objects.filter(report_id=self.report.id)
+        self.assertEqual(1, len(imgs))
+
+    def test_mutation_with_client_assigned_id(self):
+        self.client.authenticate(self.user)
+        image_id = uuid.uuid4()
+        query = """
+            mutation submitImage($reportId: UUID!, 
+                                $image: Upload!,
+                                $imageId: UUID) {
+                submitImage(reportId: $reportId, 
+                            image: $image,
+                            imageId: $imageId) {
+                    id
+                    url
+                }
+            }
+        """
+        result = self.client.execute(
+            query,
+            {
+                "reportId": str(self.report.id),
+                "image": self.file,
+                "imageId": str(image_id),
+            },
+        )
+        self.assertIsNone(result.errors, msg=result.errors)
+        imgs = Image.objects.filter(report_id=self.report.id)
+        self.assertEqual(1, len(imgs))
+        self.assertEqual(str(image_id), str(imgs[0].id))
