@@ -72,6 +72,20 @@ class ReportType(BaseModel):
         return ReportType.ReportTypeData(id=self.id, updated_at=self.updated_at)
 
 
+"""
+                         ┌────────────┐         ┌────────────┐  
+                         │ BaseReport │───────○┼│    User    │  
+                         └────────────┘         └────────────┘  
+                                △                               
+         ┌──────────────────────┼─────────────────────┐         
+         │                      │                     │         
+         │                      │                     │         
+┌─────────────────┐   ┌─────────────────┐    ┌─────────────────┐
+│   Zero Report   │   │ Incident Report │┼┼──│ FollowUp Report │
+└─────────────────┘   └─────────────────┘    └─────────────────┘
+"""
+
+
 class BaseReport(BaseModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     platform = models.CharField(max_length=20, blank=True, null=True)

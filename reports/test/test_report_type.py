@@ -1,5 +1,4 @@
-from accounts.models import Authority
-from reports.models import ReportType, Category
+from reports.models import ReportType
 from reports.test.base_testcase import BaseTestCase
 
 

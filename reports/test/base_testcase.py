@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from accounts.models import Authority
+from accounts.models import Authority, AuthorityUser
 from reports.models import Category, ReportType
 
 
@@ -69,3 +69,7 @@ class BaseTestCase(TestCase):
             self.animal_sick_death_report_type.to_data(),
             self.wildfire_report_type.to_data(),
         ]
+
+        self.user = AuthorityUser.objects.create(
+            username="test", authority=self.thailand
+        )

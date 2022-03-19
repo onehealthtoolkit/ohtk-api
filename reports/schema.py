@@ -3,7 +3,7 @@ from typing import List
 import graphene
 from graphql_jwt.decorators import login_required
 
-from reports.models import ReportType, Category
+from reports.models import ReportType, Category, ZeroReport
 from reports.types import (
     ReportTypeType,
     ReportTypeSyncInputType,
@@ -43,3 +43,18 @@ class Query(graphene.ObjectType):
             removed_list=result["removed_list"],
             category_list=Category.objects.all(),
         )
+
+
+class SubmitZeroReportMutation(graphene.Mutation):
+    id = graphene.UUID()
+
+    @staticmethod
+    @login_required
+    def mutate(root, info):
+        user = info.context.user
+        report = ZeroReport.objects.create(reported_by=user)
+        return SubmitZeroReportMutation(id=report.id)
+
+
+class Mutation(graphene.ObjectType):
+    submit_zero_report = SubmitZeroReportMutation.Field()

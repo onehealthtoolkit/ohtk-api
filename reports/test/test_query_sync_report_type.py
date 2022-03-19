@@ -1,10 +1,5 @@
-import uuid
+from graphql_jwt.testcases import JSONWebTokenClient
 
-from django.contrib.auth import get_user_model
-
-from graphql_jwt.testcases import JSONWebTokenTestCase, JSONWebTokenClient
-
-from accounts.models import AuthorityUser
 from reports.test.base_testcase import BaseTestCase
 
 query = """
@@ -39,9 +34,6 @@ class QuerySyncReportTestCase(BaseTestCase):
             )
         }
 
-        self.user = AuthorityUser.objects.create(
-            username="test", authority=self.thailand
-        )
         self.client.authenticate(self.user)
 
     def test_sync_report_for_first_time(self):
