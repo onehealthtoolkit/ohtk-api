@@ -1,5 +1,7 @@
 import uuid
 
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
 
 from accounts.models import BaseModel, User
@@ -34,17 +36,45 @@ class BaseReport(BaseModel):
         abstract = True
 
 
-class IncidentReport(BaseReport):
-    incident_date = models.DateField()
+class Image(BaseModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    file = models.ImageField(upload_to="reports")
     report_type = models.ForeignKey(
-        ReportType, on_delete=models.PROTECT, related_name="incidents"
+        ContentType,
+        limit_choices_to={
+            "model__in": [c.__name__ for c in BaseReport.__subclasses__()]
+        },
+        on_delete=models.CASCADE,
+    )
+    report_id = models.UUIDField()
+    report = GenericForeignKey("report_type", "report_id")
+
+
+class AbstractIncidentReport(BaseReport):
+    class Meta:
+        abstract = True
+
+    report_type = models.ForeignKey(
+        ReportType, on_delete=models.PROTECT, related_name="%(class)ss"
     )
     data = models.JSONField()
     renderer_data = models.TextField(blank=True, default="")
+    test_flag = models.BooleanField(default=False, blank=True)
+    images = GenericRelation(
+        Image,
+        content_type_field="report_type",
+        object_id_field="report_id",
+    )
+    cover_image = models.ForeignKey(
+        Image, blank=True, null=True, on_delete=models.SET_NULL
+    )
+
+
+class IncidentReport(AbstractIncidentReport):
+    incident_date = models.DateField()
     origin_data = models.JSONField()
     origin_renderer_data = models.TextField(blank=True, default="")
     gps_location = models.PointField(null=True, blank=True)
-    test_flag = models.BooleanField(default=False, blank=True)
 
     def save(self, *args, **kwargs):
         self.renderer_data = self.report_type.render_data(self.data)
@@ -58,14 +88,9 @@ class ZeroReport(BaseReport):
     pass
 
 
-class FollowUpReport(BaseReport):
+class FollowUpReport(AbstractIncidentReport):
     incident = models.ForeignKey(
         IncidentReport, on_delete=models.CASCADE, related_name="followups"
-    )
-    data = models.JSONField()
-    renderer_data = models.TextField(blank=True, default="")
-    report_type = models.ForeignKey(
-        ReportType, on_delete=models.PROTECT, related_name="followups"
     )
 
     def save(self, *args, **kwargs):
