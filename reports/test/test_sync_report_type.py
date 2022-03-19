@@ -1,30 +1,17 @@
 from accounts.models import Authority
 from reports.models import ReportType, Category
-from django.test import TestCase
+
+from reports.test.base_testcase import BaseTestCase
 
 
-class SyncReportTypeTestCase(TestCase):
+class SyncReportTypeTestCase(BaseTestCase):
     def setUp(self):
-        self.thailand = Authority.objects.create(code="TH", name="Thailand")
-        self.human_category = Category.objects.create(name="human")
-        self.dengue_report_type = ReportType.objects.create(
-            name="Dengue",
-            category=self.human_category,
-            definition={},
-        )
-        self.dengue_report_type.authorities.add(self.thailand)
-        self.mers_report_type = ReportType.objects.create(
-            name="Mers",
-            category=self.human_category,
-            definition={},
-        )
-        self.mers_report_type.authorities.add(self.thailand)
-        self.snapshot = list(map(lambda item: item.to_data(), ReportType.objects.all()))
+        super(SyncReportTypeTestCase, self).setUp()
 
     def test_no_change_found(self):
         result = ReportType.check_updated_report_types_by_authority(
             self.thailand,
-            self.snapshot,
+            self.thailand_reports,
         )
         self.assertEqual(0, len(result["updated_list"]))
         self.assertEqual(0, len(result["removed_list"]))
@@ -35,7 +22,7 @@ class SyncReportTypeTestCase(TestCase):
 
         result = ReportType.check_updated_report_types_by_authority(
             self.thailand,
-            self.snapshot,
+            self.thailand_reports,
         )
         self.assertEqual(1, len(result["updated_list"]))
         self.assertEqual(0, len(result["removed_list"]))
@@ -45,7 +32,7 @@ class SyncReportTypeTestCase(TestCase):
         self.mers_report_type.authorities.clear()
         result = ReportType.check_updated_report_types_by_authority(
             self.thailand,
-            self.snapshot,
+            self.thailand_reports,
         )
         self.assertEqual(0, len(result["updated_list"]))
         self.assertEqual(1, len(result["removed_list"]))
@@ -59,7 +46,7 @@ class SyncReportTypeTestCase(TestCase):
         flu_type.authorities.add(self.thailand)
         result = ReportType.check_updated_report_types_by_authority(
             self.thailand,
-            self.snapshot,
+            self.thailand_reports,
         )
         self.assertEqual(1, len(result["updated_list"]))
         self.assertEqual(0, len(result["removed_list"]))

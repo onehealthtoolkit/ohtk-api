@@ -2,10 +2,10 @@ import uuid
 
 from django.contrib.auth import get_user_model
 
-from graphql_jwt.testcases import JSONWebTokenTestCase
+from graphql_jwt.testcases import JSONWebTokenTestCase, JSONWebTokenClient
 
-from accounts.models import AuthorityUser, Authority
-from reports.models import Category, ReportType
+from accounts.models import AuthorityUser
+from reports.test.base_testcase import BaseTestCase
 
 query = """
         query sync($data: [ReportTypeSyncInputType!]!) {
@@ -22,25 +22,11 @@ query = """
         """
 
 
-class QuerySyncReportTestCase(JSONWebTokenTestCase):
+class QuerySyncReportTestCase(BaseTestCase):
+    client_class = JSONWebTokenClient
+
     def setUp(self):
-
-        self.thailand = Authority.objects.create(code="TH", name="Thailand")
-        self.human_category = Category.objects.create(name="human")
-        self.dengue_report_type = ReportType.objects.create(
-            name="Dengue",
-            category=self.human_category,
-            definition={},
-        )
-        self.dengue_report_type.authorities.add(self.thailand)
-        self.mers_report_type = ReportType.objects.create(
-            name="Mers",
-            category=self.human_category,
-            definition={},
-        )
-        self.mers_report_type.authorities.add(self.thailand)
-        self.snapshot = list(map(lambda item: item.to_data(), ReportType.objects.all()))
-
+        super(QuerySyncReportTestCase, self).setUp()
         self.query_params = {
             "data": list(
                 map(
@@ -48,7 +34,7 @@ class QuerySyncReportTestCase(JSONWebTokenTestCase):
                         "id": item.id.hex,
                         "updatedAt": item.updated_at,
                     },
-                    self.snapshot,
+                    self.thailand_reports,
                 )
             )
         }
@@ -61,7 +47,7 @@ class QuerySyncReportTestCase(JSONWebTokenTestCase):
     def test_sync_report_for_first_time(self):
         result = self.client.execute(query, {"data": []})
 
-        self.assertEqual(2, len(result.data["syncReportTypes"]["updatedList"]))
+        self.assertEqual(3, len(result.data["syncReportTypes"]["updatedList"]))
         self.assertEqual(0, len(result.data["syncReportTypes"]["removedList"]))
 
     def test_sync_report_for_no_changed(self):
