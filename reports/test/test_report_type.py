@@ -25,10 +25,12 @@ class ReportTypeTestCase(BaseTestCase):
         self.assertEqual(4, len(report_types))
 
     def test_render_data_template(self):
-        self.mers_report_type.renderer_data_template = """-{{ name }}-"""
-        renderer_text = self.mers_report_type.render_data({"name": "test"})
+        rt = ReportType()
+        rt.renderer_data_template = "-{{ name }}-"
+        renderer_text = rt.render_data({"name": "test"})
         self.assertEqual("-test-", renderer_text)
 
     def test_null_render_data_template(self):
-        renderer_text = self.mers_report_type.render_data({"name": "test"})
+        rt = ReportType()
+        renderer_text = rt.render_data({"name": "test"})
         self.assertEqual("", renderer_text)
