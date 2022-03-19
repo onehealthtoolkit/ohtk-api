@@ -107,9 +107,9 @@ class IncidentReport(BaseReport):
         ReportType, on_delete=models.PROTECT, related_name="incidents"
     )
     data = models.JSONField()
-    rendered_data = models.TextField(blank=True, default="")
+    renderer_data = models.TextField(blank=True, default="")
     origin_data = models.JSONField()
-    origin_rendered_data = models.TextField(blank=True, default="")
+    origin_renderer_data = models.TextField(blank=True, default="")
     gps_location = models.PointField(null=True, blank=True)
     test_flag = models.BooleanField(default=False, blank=True)
 
@@ -123,7 +123,7 @@ class FollowUpReport(BaseReport):
         IncidentReport, on_delete=models.CASCADE, related_name="followups"
     )
     data = models.JSONField()
-    rendered_data = models.TextField(blank=True, default="")
+    renderer_data = models.TextField(blank=True, default="")
     report_type = models.ForeignKey(
         ReportType, on_delete=models.PROTECT, related_name="followups"
     )
