@@ -6,8 +6,8 @@ from graphql_jwt.decorators import login_required
 from graphql_jwt.refresh_token.shortcuts import create_refresh_token
 from graphql_jwt.shortcuts import get_token
 
-from accounts.models import InvitationCode, AuthorityUser
-from accounts.types import UserProfileType, CheckInvitationCodeType
+from accounts.models import InvitationCode, AuthorityUser, Feature
+from accounts.types import UserProfileType, CheckInvitationCodeType, FeatureType
 
 
 class Query(graphene.ObjectType):
@@ -15,6 +15,7 @@ class Query(graphene.ObjectType):
     check_invitation_code = graphene.Field(
         CheckInvitationCodeType, code=graphene.String(required=True)
     )
+    features = graphene.List(FeatureType)
 
     @staticmethod
     @login_required
@@ -32,6 +33,10 @@ class Query(graphene.ObjectType):
         if invitation:
             return invitation
         raise GraphQLError(f"code {code} not found!")
+
+    @staticmethod
+    def resolve_features(root, info):
+        return Feature.objects.all()
 
 
 class AuthorityUserRegisterMutation(graphene.Mutation):

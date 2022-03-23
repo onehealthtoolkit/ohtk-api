@@ -1,7 +1,7 @@
 import graphene
 from graphene_django import DjangoObjectType
 
-from accounts.models import Authority, InvitationCode
+from accounts.models import Authority, InvitationCode, Feature
 
 
 class AuthorityType(DjangoObjectType):
@@ -30,3 +30,8 @@ class CheckInvitationCodeType(DjangoObjectType):
     class Meta:
         model = InvitationCode
         fields = ("code", "authority")
+
+
+class FeatureType(DjangoObjectType):
+    class Meta:
+        model = Feature

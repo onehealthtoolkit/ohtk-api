@@ -103,3 +103,8 @@ class InvitationCode(BaseModel):
             if InvitationCode.objects.filter(code=code).count() == 0:
                 return code
         raise Exception("could not generate code")
+
+
+class Feature(BaseModel):
+    key = models.CharField(max_length=100, primary_key=True)
+    value = models.CharField(max_length=100)
