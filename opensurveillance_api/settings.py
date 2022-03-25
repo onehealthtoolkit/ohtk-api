@@ -33,6 +33,8 @@ SHARED_APPS = (
     "accounts",
     "django_tenants",
     "tenants",
+    "django_filters",
+    "pagination",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

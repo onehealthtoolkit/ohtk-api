@@ -6,8 +6,14 @@ from graphql_jwt.decorators import login_required
 from graphql_jwt.refresh_token.shortcuts import create_refresh_token
 from graphql_jwt.shortcuts import get_token
 
-from accounts.models import InvitationCode, AuthorityUser, Feature
-from accounts.types import UserProfileType, CheckInvitationCodeType, FeatureType
+from accounts.models import InvitationCode, AuthorityUser, Feature, Authority
+from accounts.types import (
+    UserProfileType,
+    CheckInvitationCodeType,
+    FeatureType,
+    AuthorityType,
+)
+from pagination import DjangoPaginationConnectionField
 
 
 class Query(graphene.ObjectType):
@@ -16,6 +22,7 @@ class Query(graphene.ObjectType):
         CheckInvitationCodeType, code=graphene.String(required=True)
     )
     features = graphene.List(FeatureType)
+    authorities = DjangoPaginationConnectionField(AuthorityType)
 
     @staticmethod
     @login_required
@@ -37,6 +44,13 @@ class Query(graphene.ObjectType):
     @staticmethod
     def resolve_features(root, info):
         return Feature.objects.all()
+
+    @staticmethod
+    def resolve_authorities(root, info, **kwargs):
+        user = info.context.user
+        if not user.is_superuser:
+            raise GraphQLError("Permission denied.")
+        return Authority.objects.all()
 
 
 class AuthorityUserRegisterMutation(graphene.Mutation):

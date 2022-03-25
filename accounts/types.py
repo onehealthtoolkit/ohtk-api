@@ -8,9 +8,11 @@ class AuthorityType(DjangoObjectType):
     class Meta:
         model = Authority
         fields = (
+            "id",
             "code",
             "name",
         )
+        filter_fields = {"name": ["istartswith", "exact"]}
 
 
 class UserProfileType(graphene.ObjectType):

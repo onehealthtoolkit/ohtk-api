@@ -56,10 +56,6 @@ class User(AbstractUser):
     pass
 
 
-class DomainUserManager(UserManager):
-    pass
-
-
 class AuthorityUser(User):
     class Meta:
         verbose_name = "Authority User"
