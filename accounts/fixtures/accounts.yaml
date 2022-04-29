@@ -1,0 +1,56 @@
+- model: accounts.authority
+  pk: 1
+  fields:
+    created_at: 2022-02-10 04:17:38.288580+00:00
+    updated_at: 2022-02-10 04:17:38.288599+00:00
+    deleted_at: null
+    code: "01"
+    name: Test01
+    inherits: []
+- model: accounts.user
+  pk: 1
+  fields:
+    password: pbkdf2_sha256$320000$0kggAnbGK5ZEDlPSgs2VNu$+woCWbLUsIk+hybsfT0FSUZvTKXK4+xSXWhFBySCEe8=
+    last_login: 2022-03-17 08:28:55.582262+00:00
+    is_superuser: true
+    username: admin
+    first_name: ""
+    last_name: ""
+    email: wchaidee@gmail.com
+    is_staff: true
+    is_active: true
+    date_joined: 2022-02-01 08:17:22.040821+00:00
+    groups: []
+    user_permissions: []
+- model: accounts.user
+  pk: 2
+  fields:
+    password: pbkdf2_sha256$260000$wYeAH4STKAWyKRigVk1E7p$ZYQRAYYd5LjNS1AVQNpr/jNzcRKjsOGqOvput3AVBBA=
+    last_login: 2022-04-29 06:25:45.127959+00:00
+    is_superuser: true
+    username: Wat
+    first_name: Wat
+    last_name: Wat
+    email: wchaixxx@gamil.com
+    is_staff: true
+    is_active: true
+    date_joined: 2022-02-10 15:05:40+00:00
+    groups: []
+    user_permissions: []
+- model: accounts.authorityuser
+  pk: 2
+  fields:
+    avatar_url: null
+    thumbnail_avatar_url: null
+    telephone: ""
+    authority: 1
+- model: accounts.invitationcode
+  pk: 1
+  fields:
+    created_at: 2022-02-10 04:18:06.060963+00:00
+    updated_at: 2022-02-10 04:18:06.060995+00:00
+    deleted_at: null
+    authority: 1
+    code: "1111"
+    from_date: 2022-02-01 04:18:02+00:00
+    through_date: 2022-02-28 04:18:04+00:00
