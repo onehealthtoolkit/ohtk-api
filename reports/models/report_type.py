@@ -26,6 +26,7 @@ class ReportType(BaseModel):
         related_name="reportTypes",
     )
     renderer_data_template = models.TextField(blank=True, null=True)
+    ordering = models.IntegerField(default=0)
 
     @staticmethod
     def filter_by_authority(authority: Authority):
