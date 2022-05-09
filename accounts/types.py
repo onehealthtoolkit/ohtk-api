@@ -21,11 +21,17 @@ class UserProfileType(graphene.ObjectType):
     first_name = graphene.String(required=True)
     last_name = graphene.String(required=True)
     authority_name = graphene.String(required=False)
+    authority_id = graphene.Int(required=False)
 
     def resolve_authority_name(parent, info):
         if hasattr(parent, "authority"):
             return parent.authority.name
         return ""
+
+    def resolve_authority_id(parent, info):
+        if hasattr(parent, "authority"):
+            return parent.authority.id
+        return 0
 
 
 class CheckInvitationCodeType(DjangoObjectType):
