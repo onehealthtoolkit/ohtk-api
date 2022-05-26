@@ -8,12 +8,15 @@ from graphql_jwt.refresh_token.shortcuts import create_refresh_token
 from graphql_jwt.shortcuts import get_token
 from pkg_resources import require
 
-from accounts.models import InvitationCode, AuthorityUser, Feature, Authority
+from accounts.models import InvitationCode, AuthorityUser, Feature, Authority, User
 from accounts.types import (
     AdminAuthorityCreateProblem,
     AdminAuthorityCreateResult,
     AdminAuthorityQueryType,
     AdminFieldValidationProblem,
+    AdminAuthorityUserCreateProblem,
+    AdminAuthorityUserCreateResult,
+    AdminAuthorityUserQueryType,
     UserProfileType,
     CheckInvitationCodeType,
     FeatureType,
@@ -30,6 +33,9 @@ class Query(graphene.ObjectType):
     features = graphene.List(FeatureType)
     authorities = DjangoPaginationConnectionField(AuthorityType)
     adminAuthorityQuery = DjangoPaginationConnectionField(AdminAuthorityQueryType)
+    adminAuthorityUserQuery = DjangoPaginationConnectionField(
+        AdminAuthorityUserQueryType
+    )
 
     @staticmethod
     @login_required
@@ -95,6 +101,54 @@ class AdminAuthorityCreateMutation(graphene.Mutation):
         return AdminAuthorityCreateMutation(result=authority)
 
 
+class AdminAuthorityUserCreateMutation(graphene.Mutation):
+    class Arguments:
+        authority_id = graphene.Int(required=True)
+        username = graphene.String(required=True)
+        first_name = graphene.String(required=True)
+        last_name = graphene.String(required=True)
+        email = graphene.String(required=True)
+        telephone = graphene.String(required=False)
+
+    result = graphene.Field(AdminAuthorityUserCreateResult)
+
+    @staticmethod
+    def mutate(
+        root, info, authority_id, username, first_name, last_name, email, telephone
+    ):
+        if User.objects.filter(username=username).exists():
+            return AdminAuthorityUserCreateMutation(
+                result=AdminAuthorityUserCreateProblem(
+                    fields=[
+                        AdminFieldValidationProblem(
+                            name="username", message="duplicate username"
+                        )
+                    ]
+                )
+            )
+
+        if not first_name:
+            return AdminAuthorityUserCreateMutation(
+                result=AdminAuthorityUserCreateProblem(
+                    fields=[
+                        AdminFieldValidationProblem(
+                            name="first_name", message="username must not be empty"
+                        )
+                    ]
+                )
+            )
+
+        user = AuthorityUser.objects.create(
+            authority=Authority.objects.get(pk=authority_id),
+            username=username,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            telephone=telephone,
+        )
+        return AdminAuthorityUserCreateMutation(result=user)
+
+
 class AuthorityUserRegisterMutation(graphene.Mutation):
     class Arguments:
         invitation_code = graphene.String(required=True)
@@ -149,3 +203,4 @@ class AuthorityUserRegisterMutation(graphene.Mutation):
 class Mutation(graphene.ObjectType):
     authority_user_register = AuthorityUserRegisterMutation.Field()
     admin_authority_create = AdminAuthorityCreateMutation.Field()
+    admin_authority_user_create = AdminAuthorityUserCreateMutation.Field()

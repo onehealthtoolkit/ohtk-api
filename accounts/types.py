@@ -1,7 +1,7 @@
 import graphene
 from graphene_django import DjangoObjectType
 
-from accounts.models import Authority, InvitationCode, Feature, User
+from accounts.models import Authority, AuthorityUser, InvitationCode, Feature, User
 
 
 class AuthorityType(DjangoObjectType):
@@ -24,6 +24,18 @@ class AdminAuthorityQueryType(DjangoObjectType):
             "name",
         )
         filter_fields = {"name": ["istartswith", "exact"]}
+
+
+class AdminAuthorityUserQueryType(DjangoObjectType):
+    class Meta:
+        model = AuthorityUser
+        fields = ("id", "username", "first_name", "last_name", "email")
+        filter_fields = {
+            "username": ["istartswith", "exact"],
+            "first_name": ["istartswith", "exact"],
+            "last_name": ["istartswith", "exact"],
+            "email": ["istartswith", "exact"],
+        }
 
 
 class UserType(DjangoObjectType):
@@ -68,7 +80,9 @@ class AdminFieldValidationProblem(graphene.ObjectType):
 
 
 class AdminValidationProblem(graphene.ObjectType):
-    fields = graphene.List(AdminFieldValidationProblem, required=False)
+    fields = graphene.List(
+        graphene.NonNull(AdminFieldValidationProblem), required=False
+    )
     message = graphene.String(required=False)
 
 
@@ -86,4 +100,21 @@ class AdminAuthorityCreateResult(graphene.Union):
         types = (
             AdminAuthorityCreateSuccess,
             AdminAuthorityCreateProblem,
+        )
+
+
+class AdminAuthorityUserCreateSuccess(DjangoObjectType):
+    class Meta:
+        model = AuthorityUser
+
+
+class AdminAuthorityUserCreateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminAuthorityUserCreateResult(graphene.Union):
+    class Meta:
+        types = (
+            AdminAuthorityUserCreateSuccess,
+            AdminAuthorityUserCreateProblem,
         )
