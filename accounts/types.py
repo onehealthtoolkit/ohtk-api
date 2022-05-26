@@ -1,7 +1,7 @@
 import graphene
 from graphene_django import DjangoObjectType
 
-from accounts.models import Authority, InvitationCode, Feature
+from accounts.models import Authority, InvitationCode, Feature, User
 
 
 class AuthorityType(DjangoObjectType):
@@ -13,6 +13,23 @@ class AuthorityType(DjangoObjectType):
             "name",
         )
         filter_fields = {"name": ["istartswith", "exact"]}
+
+
+class AdminAuthorityQueryType(DjangoObjectType):
+    class Meta:
+        model = Authority
+        fields = (
+            "id",
+            "code",
+            "name",
+        )
+        filter_fields = {"name": ["istartswith", "exact"]}
+
+
+class UserType(DjangoObjectType):
+    class Meta:
+        model = User
+        fields = ("id", "username", "first_name", "last_name")
 
 
 class UserProfileType(graphene.ObjectType):
@@ -43,3 +60,18 @@ class CheckInvitationCodeType(DjangoObjectType):
 class FeatureType(DjangoObjectType):
     class Meta:
         model = Feature
+
+
+class AdminAuthorityCreateResult(DjangoObjectType):
+    class Meta:
+        model = Authority
+
+
+class AdminFieldValidationError(graphene.ObjectType):
+    name = graphene.String(required=True)
+    message = graphene.String(required=True)
+
+
+class AdminValidationError(graphene.ObjectType):
+    fields = graphene.List(AdminFieldValidationError, required=False)
+    message = graphene.String(required=False)

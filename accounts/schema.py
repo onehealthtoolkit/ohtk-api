@@ -1,3 +1,4 @@
+from attr import fields
 import graphene
 from django.conf import settings
 from django.utils.timezone import now
@@ -5,9 +6,14 @@ from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
 from graphql_jwt.refresh_token.shortcuts import create_refresh_token
 from graphql_jwt.shortcuts import get_token
+from pkg_resources import require
 
 from accounts.models import InvitationCode, AuthorityUser, Feature, Authority
 from accounts.types import (
+    AdminAuthorityCreateResult,
+    AdminAuthorityQueryType,
+    AdminFieldValidationError,
+    AdminValidationError,
     UserProfileType,
     CheckInvitationCodeType,
     FeatureType,
@@ -23,6 +29,7 @@ class Query(graphene.ObjectType):
     )
     features = graphene.List(FeatureType)
     authorities = DjangoPaginationConnectionField(AuthorityType)
+    adminAuthorityQuery = DjangoPaginationConnectionField(AdminAuthorityQueryType)
 
     @staticmethod
     @login_required
@@ -51,6 +58,42 @@ class Query(graphene.ObjectType):
         if not user.is_superuser:
             raise GraphQLError("Permission denied.")
         return Authority.objects.all()
+
+
+class AdminAuthorityCreateMutation(graphene.Mutation):
+    class Arguments:
+        code = graphene.String(required=True)
+        name = graphene.String(required=True)
+
+    result = graphene.Field(AdminAuthorityCreateResult)
+    error = graphene.Field(AdminValidationError)
+
+    @staticmethod
+    def mutate(root, info, code, name):
+        if Authority.objects.filter(code=code).exists():
+            return AdminAuthorityCreateMutation(
+                result=None,
+                error=AdminValidationError(
+                    fields=[
+                        AdminFieldValidationError(name="code", message="duplicate code")
+                    ]
+                ),
+            )
+
+        if not name:
+            return AdminAuthorityCreateMutation(
+                result=None,
+                error=AdminValidationError(
+                    fields=[
+                        AdminFieldValidationError(
+                            name="name", message="name must not be empty"
+                        )
+                    ]
+                ),
+            )
+
+        authority = Authority.objects.create(code=code, name=name)
+        return AdminAuthorityCreateMutation(result=authority, error=None)
 
 
 class AuthorityUserRegisterMutation(graphene.Mutation):
@@ -106,3 +149,4 @@ class AuthorityUserRegisterMutation(graphene.Mutation):
 
 class Mutation(graphene.ObjectType):
     authority_user_register = AuthorityUserRegisterMutation.Field()
+    admin_authority_create = AdminAuthorityCreateMutation.Field()
