@@ -44,24 +44,29 @@ class AdminAuthorityTests(JSONWebTokenTestCase):
         mutation adminAuthorityCreate($code: String!, $name: String!) {
             adminAuthorityCreate(code: $code, name: $name) {
                 result {
+                  __typename
+                  ... on AdminAuthorityCreateSuccess {
+                    name
                     id
-                }
-                error {
+                    createdAt
+                  }
+                  ... on AdminAuthorityCreateProblem {
+                    message
                     fields {
-                        name
-                        message
+                      name
+                      message
                     }
-                    message 
+                  }
                 }
             }
         }
         """
         result = self.client.execute(mutation, {"code": "1", "name": "one"})
         print(result)
-        self.assertIsNotNone(result.data["adminAuthorityCreate"]["error"])
-        self.assertIsNotNone(result.data["adminAuthorityCreate"]["error"]["fields"])
+        self.assertIsNotNone(result.data["adminAuthorityCreate"]["result"])
+        self.assertIsNotNone(result.data["adminAuthorityCreate"]["result"]["fields"])
         self.assertEqual(
-            result.data["adminAuthorityCreate"]["error"]["fields"][0]["name"], "code"
+            result.data["adminAuthorityCreate"]["result"]["fields"][0]["name"], "code"
         )
 
     def test_create_success(self):
@@ -69,15 +74,20 @@ class AdminAuthorityTests(JSONWebTokenTestCase):
         mutation adminAuthorityCreate($code: String!, $name: String!) {
             adminAuthorityCreate(code: $code, name: $name) {
                 result {
+                  __typename
+                  ... on AdminAuthorityCreateSuccess {
+                    name
                     id
                     code
-                }
-                error {
+                    createdAt
+                  }
+                  ... on AdminAuthorityCreateProblem {
+                    message
                     fields {
-                        name
-                        message
+                      name
+                      message
                     }
-                    message 
+                  }
                 }
             }
         }

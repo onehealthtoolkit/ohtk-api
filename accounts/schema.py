@@ -10,10 +10,10 @@ from pkg_resources import require
 
 from accounts.models import InvitationCode, AuthorityUser, Feature, Authority
 from accounts.types import (
+    AdminAuthorityCreateProblem,
     AdminAuthorityCreateResult,
     AdminAuthorityQueryType,
-    AdminFieldValidationError,
-    AdminValidationError,
+    AdminFieldValidationProblem,
     UserProfileType,
     CheckInvitationCodeType,
     FeatureType,
@@ -66,34 +66,33 @@ class AdminAuthorityCreateMutation(graphene.Mutation):
         name = graphene.String(required=True)
 
     result = graphene.Field(AdminAuthorityCreateResult)
-    error = graphene.Field(AdminValidationError)
 
     @staticmethod
     def mutate(root, info, code, name):
         if Authority.objects.filter(code=code).exists():
             return AdminAuthorityCreateMutation(
-                result=None,
-                error=AdminValidationError(
+                result=AdminAuthorityCreateProblem(
                     fields=[
-                        AdminFieldValidationError(name="code", message="duplicate code")
+                        AdminFieldValidationProblem(
+                            name="code", message="duplicate code"
+                        )
                     ]
-                ),
+                )
             )
 
         if not name:
             return AdminAuthorityCreateMutation(
-                result=None,
-                error=AdminValidationError(
+                result=AdminAuthorityCreateProblem(
                     fields=[
-                        AdminFieldValidationError(
+                        AdminFieldValidationProblem(
                             name="name", message="name must not be empty"
                         )
                     ]
-                ),
+                )
             )
 
         authority = Authority.objects.create(code=code, name=name)
-        return AdminAuthorityCreateMutation(result=authority, error=None)
+        return AdminAuthorityCreateMutation(result=authority)
 
 
 class AuthorityUserRegisterMutation(graphene.Mutation):

@@ -62,16 +62,28 @@ class FeatureType(DjangoObjectType):
         model = Feature
 
 
-class AdminAuthorityCreateResult(DjangoObjectType):
-    class Meta:
-        model = Authority
-
-
-class AdminFieldValidationError(graphene.ObjectType):
+class AdminFieldValidationProblem(graphene.ObjectType):
     name = graphene.String(required=True)
     message = graphene.String(required=True)
 
 
-class AdminValidationError(graphene.ObjectType):
-    fields = graphene.List(AdminFieldValidationError, required=False)
+class AdminValidationProblem(graphene.ObjectType):
+    fields = graphene.List(AdminFieldValidationProblem, required=False)
     message = graphene.String(required=False)
+
+
+class AdminAuthorityCreateSuccess(DjangoObjectType):
+    class Meta:
+        model = Authority
+
+
+class AdminAuthorityCreateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminAuthorityCreateResult(graphene.Union):
+    class Meta:
+        types = (
+            AdminAuthorityCreateSuccess,
+            AdminAuthorityCreateProblem,
+        )
