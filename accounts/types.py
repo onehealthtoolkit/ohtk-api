@@ -103,6 +103,23 @@ class AdminAuthorityCreateResult(graphene.Union):
         )
 
 
+class AdminAuthorityUpdateSuccess(DjangoObjectType):
+    class Meta:
+        model = Authority
+
+
+class AdminAuthorityUpdateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminAuthorityUpdateResult(graphene.Union):
+    class Meta:
+        types = (
+            AdminAuthorityUpdateSuccess,
+            AdminAuthorityUpdateProblem,
+        )
+
+
 class AdminAuthorityUserCreateSuccess(DjangoObjectType):
     class Meta:
         model = AuthorityUser

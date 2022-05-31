@@ -1,3 +1,4 @@
+from email import message
 from attr import fields
 import graphene
 from django.conf import settings
@@ -13,6 +14,9 @@ from accounts.types import (
     AdminAuthorityCreateProblem,
     AdminAuthorityCreateResult,
     AdminAuthorityQueryType,
+    AdminAuthorityUpdateProblem,
+    AdminAuthorityUpdateResult,
+    AdminAuthorityUpdateSuccess,
     AdminFieldValidationProblem,
     AdminAuthorityUserCreateProblem,
     AdminAuthorityUserCreateResult,
@@ -107,6 +111,54 @@ class AdminAuthorityCreateMutation(graphene.Mutation):
 
         authority = Authority.objects.create(code=code, name=name)
         return AdminAuthorityCreateMutation(result=authority)
+
+
+class AdminAuthorityUpdateMutation(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+        code = graphene.String(required=True)
+        name = graphene.String(required=True)
+
+    result = graphene.Field(AdminAuthorityUpdateResult)
+
+    @staticmethod
+    def mutate(root, info, id, code, name):
+        authority = Authority.objects.get(pk=id)
+
+        if not authority:
+            return AdminAuthorityUpdateMutation(
+                result=AdminAuthorityUpdateProblem(
+                    fields=[], message="Object not found"
+                )
+            )
+
+        if Authority.objects.filter(code=code).exists():
+            return AdminAuthorityUpdateMutation(
+                result=AdminAuthorityUpdateProblem(
+                    fields=[
+                        AdminFieldValidationProblem(
+                            name="code", message="duplicate code"
+                        )
+                    ]
+                )
+            )
+
+        if not name:
+            return AdminAuthorityUpdateMutation(
+                result=AdminAuthorityUpdateProblem(
+                    fields=[
+                        AdminFieldValidationProblem(
+                            name="name", message="name must not be empty"
+                        )
+                    ]
+                )
+            )
+
+        authority.code = code
+        authority.name = name
+        authority.save()
+
+        return AdminAuthorityUpdateMutation(result=authority)
 
 
 class AdminAuthorityUserCreateMutation(graphene.Mutation):
@@ -211,4 +263,5 @@ class AuthorityUserRegisterMutation(graphene.Mutation):
 class Mutation(graphene.ObjectType):
     authority_user_register = AuthorityUserRegisterMutation.Field()
     admin_authority_create = AdminAuthorityCreateMutation.Field()
+    admin_authority_update = AdminAuthorityUpdateMutation.Field()
     admin_authority_user_create = AdminAuthorityUserCreateMutation.Field()

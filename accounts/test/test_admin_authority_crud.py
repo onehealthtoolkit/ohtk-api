@@ -97,3 +97,66 @@ class AdminAuthorityTests(JSONWebTokenTestCase):
         self.assertIsNotNone(result.data["adminAuthorityCreate"]["result"])
         self.assertIsNotNone(result.data["adminAuthorityCreate"]["result"]["id"])
         self.assertEqual(result.data["adminAuthorityCreate"]["result"]["code"], "99")
+
+    def test_update_with_error(self):
+        mutation = """
+        mutation adminAuthorityUpdate($id: ID!, $code: String!, $name: String!) {
+            adminAuthorityUpdate(id: $id, code: $code, name: $name) {
+                result {
+                  __typename
+                  ... on AdminAuthorityUpdateSuccess {
+                    name
+                    id
+                    createdAt
+                  }
+                  ... on AdminAuthorityUpdateProblem {
+                    message
+                    fields {
+                      name
+                      message
+                    }
+                  }
+                }
+            }
+        }
+        """
+        result = self.client.execute(
+            mutation, {"id": self.authority1.id, "code": "1", "name": "one"}
+        )
+        print(result)
+        self.assertIsNotNone(result.data["adminAuthorityUpdate"]["result"])
+        self.assertIsNotNone(result.data["adminAuthorityUpdate"]["result"]["fields"])
+        self.assertEqual(
+            result.data["adminAuthorityUpdate"]["result"]["fields"][0]["name"], "code"
+        )
+
+    def test_update_success(self):
+        mutation = """
+        mutation adminAuthorityUpdate($id: ID!, $code: String!, $name: String!) {
+            adminAuthorityUpdate(id: $id, code: $code, name: $name) {
+                result {
+                  __typename
+                  ... on AdminAuthorityUpdateSuccess {
+                    name
+                    id
+                    code
+                    createdAt
+                  }
+                  ... on AdminAuthorityUpdateProblem {
+                    message
+                    fields {
+                      name
+                      message
+                    }
+                  }
+                }
+            }
+        }
+        """
+        result = self.client.execute(
+            mutation, {"id": self.authority1.id, "code": "99", "name": "any thing"}
+        )
+        print(result)
+        self.assertIsNotNone(result.data["adminAuthorityUpdate"]["result"])
+        self.assertIsNotNone(result.data["adminAuthorityUpdate"]["result"]["id"])
+        self.assertEqual(result.data["adminAuthorityUpdate"]["result"]["code"], "99")
