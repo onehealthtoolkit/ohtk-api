@@ -4,6 +4,8 @@ import graphene
 from graphene.types.generic import GenericScalar
 from graphene_file_upload.scalars import Upload
 from graphql_jwt.decorators import login_required
+from accounts.types import AdminFieldValidationProblem
+from pagination.connection_field import DjangoPaginationConnectionField
 
 from reports.models import (
     ReportType,
@@ -14,6 +16,11 @@ from reports.models import (
     Image,
 )
 from reports.types import (
+    AdminCategoryCreateProblem,
+    AdminCategoryCreateResult,
+    AdminCategoryQueryType,
+    AdminCategoryUpdateProblem,
+    AdminCategoryUpdateResult,
     ReportTypeType,
     ReportTypeSyncInputType,
     ReportTypeSyncOutputType,
@@ -52,6 +59,8 @@ class Query(graphene.ObjectType):
             removed_list=result["removed_list"],
             category_list=Category.objects.all(),
         )
+
+    adminCategoryQuery = DjangoPaginationConnectionField(AdminCategoryQueryType)
 
 
 class SubmitZeroReportMutation(graphene.Mutation):
@@ -125,7 +134,86 @@ class SubmitImage(graphene.Mutation):
         return SubmitImage(id=image.id, url=image.file.url)
 
 
+class AdminCategoryCreateMutation(graphene.Mutation):
+    class Arguments:
+        name = graphene.String(required=True)
+        ordering = graphene.Int(required=True)
+
+    result = graphene.Field(AdminCategoryCreateResult)
+
+    @staticmethod
+    def mutate(
+        root,
+        info,
+        name,
+        ordering,
+    ):
+        if Category.objects.filter(name=name).exists():
+            return AdminCategoryCreateMutation(
+                result=AdminCategoryCreateProblem(
+                    fields=[
+                        AdminFieldValidationProblem(
+                            name="name", message="duplicate name"
+                        )
+                    ]
+                )
+            )
+
+        if not name:
+            return AdminCategoryCreateMutation(
+                result=AdminCategoryCreateProblem(
+                    fields=[
+                        AdminFieldValidationProblem(
+                            name="name", message="name must not be empty"
+                        )
+                    ]
+                )
+            )
+
+        category = Category.objects.create(
+            name=name,
+            ordering=ordering,
+        )
+        return AdminCategoryCreateMutation(result=category)
+
+
+class AdminCategoryUpdateMutation(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+        name = graphene.String(required=True)
+        ordering = graphene.Int(required=True)
+
+    result = graphene.Field(AdminCategoryUpdateResult)
+
+    @staticmethod
+    def mutate(root, info, id, name, ordering):
+        category = Category.objects.get(pk=id)
+
+        if not category:
+            return AdminCategoryUpdateMutation(
+                result=AdminCategoryUpdateProblem(fields=[], message="Object not found")
+            )
+
+        if category.name != name and Category.objects.filter(name=name).exists():
+            return AdminCategoryUpdateMutation(
+                result=AdminCategoryUpdateProblem(
+                    fields=[
+                        AdminFieldValidationProblem(
+                            name="name", message="duplicate name"
+                        )
+                    ]
+                )
+            )
+
+        category.name = name
+        category.ordering = ordering
+        category.save()
+        return AdminCategoryUpdateMutation(result=category)
+
+
 class Mutation(graphene.ObjectType):
     submit_zero_report = SubmitZeroReportMutation.Field()
     submit_incident_report = SubmitIncidentReport.Field()
     submit_image = SubmitImage.Field()
+    admin_category_create = AdminCategoryCreateMutation.Field()
+    admin_category_update = AdminCategoryUpdateMutation.Field()

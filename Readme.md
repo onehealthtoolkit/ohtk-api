@@ -61,3 +61,10 @@ valet proxy opensur http://127.0.0.1:8000
 ```
 valet unproxy opensur
 ```
+
+# Example Test command
+
+```
+./manage.py test accounts.test.test_admin_authority_user_crud.AdminAuthorityUserTests.test_update_with_error
+./manage.py test reports.test.test_admin_category_crud.AdminCategoryTests.test_simple_query
+```

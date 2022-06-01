@@ -1,6 +1,7 @@
 import graphene
 from graphene.types.generic import GenericScalar
 from graphene_django import DjangoObjectType
+from accounts.types import AdminValidationProblem
 
 from reports.models import ReportType, Category
 
@@ -31,3 +32,46 @@ class ReportTypeSyncOutputType(graphene.ObjectType):
     updated_list = graphene.List(ReportTypeType, required=True)
     removed_list = graphene.List(ReportTypeType, required=True)
     category_list = graphene.List(CategoryType, required=False)
+
+
+class AdminCategoryQueryType(DjangoObjectType):
+    class Meta:
+        model = Category
+        fields = ("id", "name", "icon", "ordering")
+        filter_fields = {
+            "name": ["istartswith", "exact"],
+        }
+
+
+class AdminCategoryCreateSuccess(DjangoObjectType):
+    class Meta:
+        model = Category
+
+
+class AdminCategoryCreateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminCategoryCreateResult(graphene.Union):
+    class Meta:
+        types = (
+            AdminCategoryCreateSuccess,
+            AdminCategoryCreateProblem,
+        )
+
+
+class AdminCategoryUpdateSuccess(DjangoObjectType):
+    class Meta:
+        model = Category
+
+
+class AdminCategoryUpdateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminCategoryUpdateResult(graphene.Union):
+    class Meta:
+        types = (
+            AdminCategoryUpdateSuccess,
+            AdminCategoryUpdateProblem,
+        )
