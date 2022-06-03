@@ -62,7 +62,6 @@ class AdminAuthorityTests(JSONWebTokenTestCase):
         }
         """
         result = self.client.execute(mutation, {"code": "1", "name": "one"})
-        print(result)
         self.assertIsNotNone(result.data["adminAuthorityCreate"]["result"])
         self.assertIsNotNone(result.data["adminAuthorityCreate"]["result"]["fields"])
         self.assertEqual(
@@ -93,7 +92,6 @@ class AdminAuthorityTests(JSONWebTokenTestCase):
         }
         """
         result = self.client.execute(mutation, {"code": "99", "name": "any thing"})
-        print(result)
         self.assertIsNotNone(result.data["adminAuthorityCreate"]["result"])
         self.assertIsNotNone(result.data["adminAuthorityCreate"]["result"]["id"])
         self.assertEqual(result.data["adminAuthorityCreate"]["result"]["code"], "99")
@@ -121,9 +119,8 @@ class AdminAuthorityTests(JSONWebTokenTestCase):
         }
         """
         result = self.client.execute(
-            mutation, {"id": self.authority1.id, "code": "1", "name": "one"}
+            mutation, {"id": self.authority1.id, "code": "2", "name": "one"}
         )
-        print(result)
         self.assertIsNotNone(result.data["adminAuthorityUpdate"]["result"])
         self.assertIsNotNone(result.data["adminAuthorityUpdate"]["result"]["fields"])
         self.assertEqual(
@@ -156,7 +153,6 @@ class AdminAuthorityTests(JSONWebTokenTestCase):
         result = self.client.execute(
             mutation, {"id": self.authority1.id, "code": "99", "name": "any thing"}
         )
-        print(result)
         self.assertIsNotNone(result.data["adminAuthorityUpdate"]["result"])
         self.assertIsNotNone(result.data["adminAuthorityUpdate"]["result"]["id"])
         self.assertEqual(result.data["adminAuthorityUpdate"]["result"]["code"], "99")

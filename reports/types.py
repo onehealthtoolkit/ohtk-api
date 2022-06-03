@@ -1,7 +1,7 @@
 import graphene
 from graphene.types.generic import GenericScalar
 from graphene_django import DjangoObjectType
-from accounts.types import AdminValidationProblem
+from accounts.schema.types import AdminValidationProblem
 
 from reports.models import ReportType, Category
 

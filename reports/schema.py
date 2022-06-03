@@ -4,7 +4,7 @@ import graphene
 from graphene.types.generic import GenericScalar
 from graphene_file_upload.scalars import Upload
 from graphql_jwt.decorators import login_required
-from accounts.types import AdminFieldValidationProblem
+from accounts.schema.types import AdminFieldValidationProblem
 from pagination.connection_field import DjangoPaginationConnectionField
 
 from reports.models import (
