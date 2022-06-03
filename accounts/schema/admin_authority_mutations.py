@@ -3,11 +3,11 @@ import graphene
 from accounts.models import Authority
 from accounts.schema.types import (
     AdminAuthorityCreateResult,
-    AdminFieldValidationProblem,
     AdminAuthorityUpdateResult,
     AdminAuthorityUpdateProblem,
     AdminAuthorityCreateProblem,
 )
+from common.types import AdminFieldValidationProblem
 
 
 class AdminAuthorityCreateMutation(graphene.Mutation):

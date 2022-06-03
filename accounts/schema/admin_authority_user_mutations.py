@@ -6,8 +6,8 @@ from accounts.schema.types import (
     AdminAuthorityUserUpdateResult,
     AdminAuthorityUserCreateProblem,
     AdminAuthorityUserCreateResult,
-    AdminFieldValidationProblem,
 )
+from common.types import AdminFieldValidationProblem
 
 
 class AdminAuthorityUserCreateMutation(graphene.Mutation):

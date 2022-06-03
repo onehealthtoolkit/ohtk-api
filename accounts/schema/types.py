@@ -2,6 +2,7 @@ import graphene
 from graphene_django import DjangoObjectType
 
 from accounts.models import Authority, AuthorityUser, InvitationCode, Feature, User
+from common.types import AdminValidationProblem
 
 
 class AuthorityType(DjangoObjectType):
@@ -72,18 +73,6 @@ class CheckInvitationCodeType(DjangoObjectType):
 class FeatureType(DjangoObjectType):
     class Meta:
         model = Feature
-
-
-class AdminFieldValidationProblem(graphene.ObjectType):
-    name = graphene.String(required=True)
-    message = graphene.String(required=True)
-
-
-class AdminValidationProblem(graphene.ObjectType):
-    fields = graphene.List(
-        graphene.NonNull(AdminFieldValidationProblem), required=False
-    )
-    message = graphene.String(required=False)
 
 
 class AdminAuthorityCreateSuccess(DjangoObjectType):
