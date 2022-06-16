@@ -5,7 +5,7 @@ from django.utils.timezone import now
 from graphql_jwt.testcases import JSONWebTokenClient
 
 from reports.models import IncidentReport, Image
-from reports.test.base_testcase import BaseTestCase
+from reports.tests.base_testcase import BaseTestCase
 
 
 class ReportImageTestCase(BaseTestCase):

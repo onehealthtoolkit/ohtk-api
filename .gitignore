@@ -1,3 +1,7 @@
+# app
+medias/reports
+medias/icons
+
 # Django #
 *.log
 *.pot

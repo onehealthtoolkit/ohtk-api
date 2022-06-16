@@ -1,6 +1,6 @@
 from graphql_jwt.testcases import JSONWebTokenClient
 
-from reports.test.base_testcase import BaseTestCase
+from reports.tests.base_testcase import BaseTestCase
 
 query = """
         query sync($data: [ReportTypeSyncInputType!]!) {

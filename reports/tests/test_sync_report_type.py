@@ -1,6 +1,6 @@
 from reports.models import ReportType
 
-from reports.test.base_testcase import BaseTestCase
+from reports.tests.base_testcase import BaseTestCase
 
 
 class SyncReportTypeTestCase(BaseTestCase):
