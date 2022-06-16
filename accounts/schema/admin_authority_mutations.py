@@ -7,6 +7,7 @@ from accounts.schema.types import (
     AdminAuthorityUpdateProblem,
     AdminAuthorityCreateProblem,
 )
+from accounts.schema.utils import isDupliate, isNotEmpty
 from common.types import AdminFieldValidationProblem
 
 
@@ -14,31 +15,27 @@ class AdminAuthorityCreateMutation(graphene.Mutation):
     class Arguments:
         code = graphene.String(required=True)
         name = graphene.String(required=True)
+        inherits = graphene.List(graphene.Int)
 
     result = graphene.Field(AdminAuthorityCreateResult)
 
     @staticmethod
-    def mutate(root, info, code, name):
+    def mutate(root, info, code, name, inherits):
+        problems = []
+        if codeProblem := isNotEmpty("code", "Code must not be empty"):
+            problems.append(codeProblem)
+
+        if nameProblem := isNotEmpty("name", "Name must not be empty"):
+            problems.append(nameProblem)
+
         if Authority.objects.filter(code=code).exists():
-            return AdminAuthorityCreateMutation(
-                result=AdminAuthorityCreateProblem(
-                    fields=[
-                        AdminFieldValidationProblem(
-                            name="code", message="duplicate code"
-                        )
-                    ]
-                )
+            problems.append(
+                AdminFieldValidationProblem(name="code", message="duplicate code")
             )
 
-        if not name:
+        if len(problems) > 0:
             return AdminAuthorityCreateMutation(
-                result=AdminAuthorityCreateProblem(
-                    fields=[
-                        AdminFieldValidationProblem(
-                            name="name", message="name must not be empty"
-                        )
-                    ]
-                )
+                result=AdminAuthorityCreateProblem(fields=problems)
             )
 
         authority = Authority.objects.create(code=code, name=name)
@@ -55,35 +52,29 @@ class AdminAuthorityUpdateMutation(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, id, code, name):
-        authority = Authority.objects.get(pk=id)
-
-        if not authority:
+        try:
+            authority = Authority.objects.get(pk=id)
+        except Authority.DoesNotExist:
             return AdminAuthorityUpdateMutation(
                 result=AdminAuthorityUpdateProblem(
                     fields=[], message="Object not found"
                 )
             )
 
-        if authority.code != code and Authority.objects.filter(code=code).exists():
-            return AdminAuthorityUpdateMutation(
-                result=AdminAuthorityUpdateProblem(
-                    fields=[
-                        AdminFieldValidationProblem(
-                            name="code", message="duplicate code"
-                        )
-                    ]
-                )
-            )
+        problems = []
+        if authority.code != code:
+            if duplicateProblem := isDupliate("code", code, Authority):
+                problems.append(duplicateProblem)
 
-        if not name:
+        if codeProblem := isNotEmpty("code", "Code must not be empty"):
+            problems.append(codeProblem)
+
+        if nameProblem := isNotEmpty("name", "Name must not be empty"):
+            problems.append(nameProblem)
+
+        if len(problems) > 0:
             return AdminAuthorityUpdateMutation(
-                result=AdminAuthorityUpdateProblem(
-                    fields=[
-                        AdminFieldValidationProblem(
-                            name="name", message="name must not be empty"
-                        )
-                    ]
-                )
+                result=AdminAuthorityUpdateProblem(fields=problems)
             )
 
         authority.code = code
