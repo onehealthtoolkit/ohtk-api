@@ -1,11 +1,15 @@
 from typing import List
+from unicodedata import category
 import graphene
+from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
 from pagination.connection_field import DjangoPaginationConnectionField
 from reports.models import ReportType, Category
 
 from .types import (
     AdminCategoryQueryType,
+    AdminReportTypeQueryType,
+    CategoryType,
     ReportTypeSyncInputType,
     ReportTypeSyncOutputType,
     ReportTypeType,
@@ -22,6 +26,11 @@ class Query(graphene.ObjectType):
             )
         },
     )
+    category = graphene.Field(CategoryType, id=graphene.ID(required=True))
+    report_type = graphene.Field(ReportTypeType, id=graphene.ID(required=True))
+
+    adminCategoryQuery = DjangoPaginationConnectionField(AdminCategoryQueryType)
+    adminReportTypeQuery = DjangoPaginationConnectionField(AdminReportTypeQueryType)
 
     @staticmethod
     @login_required
@@ -45,4 +54,16 @@ class Query(graphene.ObjectType):
             category_list=Category.objects.all(),
         )
 
-    adminCategoryQuery = DjangoPaginationConnectionField(AdminCategoryQueryType)
+    @staticmethod
+    def resolve_category(root, info, id):
+        user = info.context.user
+        if not user.is_superuser:
+            raise GraphQLError("Permission denied.")
+        return Category.objects.get(id=id)
+
+    @staticmethod
+    def resolve_report_type(root, info, id):
+        user = info.context.user
+        if not user.is_superuser:
+            raise GraphQLError("Permission denied.")
+        return ReportType.objects.get(id=id)

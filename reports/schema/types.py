@@ -75,3 +75,55 @@ class AdminCategoryUpdateResult(graphene.Union):
             AdminCategoryUpdateSuccess,
             AdminCategoryUpdateProblem,
         )
+
+
+## Report type
+class AdminReportTypeQueryType(DjangoObjectType):
+    class Meta:
+        model = ReportType
+        fields = (
+            "id",
+            "name",
+            "category",
+            "definition",
+            "authorities",
+            "renderer_data_template",
+            "ordering",
+        )
+        filter_fields = {
+            "name": ["istartswith", "exact"],
+        }
+
+
+class AdminReportTypeCreateSuccess(DjangoObjectType):
+    class Meta:
+        model = ReportType
+
+
+class AdminReportTypeCreateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminReportTypeCreateResult(graphene.Union):
+    class Meta:
+        types = (
+            AdminReportTypeCreateSuccess,
+            AdminReportTypeCreateProblem,
+        )
+
+
+class AdminReportTypeUpdateSuccess(DjangoObjectType):
+    class Meta:
+        model = ReportType
+
+
+class AdminReportTypeUpdateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminReportTypeUpdateResult(graphene.Union):
+    class Meta:
+        types = (
+            AdminReportTypeUpdateSuccess,
+            AdminReportTypeUpdateProblem,
+        )

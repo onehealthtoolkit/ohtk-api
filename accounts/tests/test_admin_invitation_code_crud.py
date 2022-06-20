@@ -1,0 +1,175 @@
+from graphql_jwt.testcases import JSONWebTokenTestCase
+
+from accounts.models import Authority, InvitationCode
+
+
+class AdminInvitationCodeTests(JSONWebTokenTestCase):
+    def setUp(self):
+        self.authority = Authority.objects.create(name="test", code="1")
+        self.InvitationCode1 = InvitationCode(
+            authority=self.authority, code="11112"
+        ).save()
+        self.InvitationCode2 = InvitationCode(authority=self.authority)
+        self.InvitationCode2.save()
+
+    def test_simple_query(self):
+        query = """
+        query adminInvitationCodeQuery {
+            adminInvitationCodeQuery {
+                results {
+                    id
+                    code
+                }
+            }
+        }
+        """
+        result = self.client.execute(query, {})
+        self.assertEqual(len(result.data["adminInvitationCodeQuery"]["results"]), 2)
+
+    def test_query_with_code(self):
+        query = """
+        query adminInvitationCodeQuery($code: String) {
+            adminInvitationCodeQuery(code: $code) {
+                results {
+                    id
+                    code
+                }
+            }
+        }
+        """
+        result = self.client.execute(query, {"code": "11112"})
+        self.assertEqual(len(result.data["adminInvitationCodeQuery"]["results"]), 1)
+
+    def test_create_with_error(self):
+        mutation = """
+        mutation adminInvitationCodeCreate($code: String!, $authorityId: Int!) {
+            adminInvitationCodeCreate(code: $code, authorityId: $authorityId) {
+                result {
+                  __typename
+                  ... on AdminInvitationCodeCreateSuccess {
+                    id
+                    code
+                  }
+                  ... on AdminInvitationCodeCreateProblem {
+                    message
+                    fields {
+                      name
+                      message
+                    }
+                  }
+                }
+            }
+        }
+        """
+        result = self.client.execute(
+            mutation,
+            {
+                "code": "11112",
+                "authorityId": self.authority.id,
+            },
+        )
+        self.assertIsNotNone(result.data["adminInvitationCodeCreate"]["result"])
+        self.assertIsNotNone(
+            result.data["adminInvitationCodeCreate"]["result"]["fields"]
+        )
+        self.assertEqual(
+            result.data["adminInvitationCodeCreate"]["result"]["fields"][0]["name"],
+            "code",
+        )
+
+    def test_create_success(self):
+        mutation = """
+        mutation adminInvitationCodeCreate($code: String!, $authorityId: Int!) {
+            adminInvitationCodeCreate(code: $code, authorityId: $authorityId) {
+                result {
+                  __typename
+                  ... on AdminInvitationCodeCreateSuccess {
+                    id
+                    code
+                  }
+                  ... on AdminInvitationCodeCreateProblem {
+                    message
+                    fields {
+                      name
+                      message
+                    }
+                  }
+                }
+            }
+        }
+        """
+        result = self.client.execute(
+            mutation,
+            {
+                "code": "11113",
+                "authorityId": self.authority.id,
+            },
+        )
+        self.assertIsNotNone(result.data["adminInvitationCodeCreate"]["result"])
+        self.assertIsNotNone(result.data["adminInvitationCodeCreate"]["result"]["id"])
+        self.assertEqual(
+            result.data["adminInvitationCodeCreate"]["result"]["code"], "11113"
+        )
+
+    def test_update_with_error(self):
+        mutation = """
+        mutation adminInvitationCodeUpdate($id: ID!, $code: String!) {
+            adminInvitationCodeUpdate(id: $id, code: $code) {
+                result {
+                  __typename
+                  ... on AdminInvitationCodeUpdateSuccess {
+                    code
+                    id
+                  }
+                  ... on AdminInvitationCodeUpdateProblem {
+                    message
+                    fields {
+                      name
+                      message
+                    }
+                  }
+                }
+            }
+        }
+        """
+        result = self.client.execute(
+            mutation, {"id": self.InvitationCode2.id, "code": "11112"}
+        )
+        self.assertIsNotNone(result.data["adminInvitationCodeUpdate"]["result"])
+        self.assertIsNotNone(
+            result.data["adminInvitationCodeUpdate"]["result"]["fields"]
+        )
+        self.assertEqual(
+            result.data["adminInvitationCodeUpdate"]["result"]["fields"][0]["name"],
+            "code",
+        )
+
+    def test_update_success(self):
+        mutation = """
+        mutation adminInvitationCodeUpdate($id: ID!, $code: String!) {
+            adminInvitationCodeUpdate(id: $id, code: $code) {
+                result {
+                  __typename
+                  ... on AdminInvitationCodeUpdateSuccess {
+                    code
+                    id
+                  }
+                  ... on AdminInvitationCodeUpdateProblem {
+                    message
+                    fields {
+                      name
+                      message
+                    }
+                  }
+                }
+            }
+        }
+        """
+        result = self.client.execute(
+            mutation, {"id": self.InvitationCode2.id, "code": "11113"}
+        )
+        self.assertIsNotNone(result.data["adminInvitationCodeUpdate"]["result"])
+        self.assertIsNotNone(result.data["adminInvitationCodeUpdate"]["result"]["id"])
+        self.assertEqual(
+            result.data["adminInvitationCodeUpdate"]["result"]["code"], "11113"
+        )

@@ -39,10 +39,31 @@ class AdminAuthorityUserQueryType(DjangoObjectType):
         }
 
 
+class AdminInvitationCodeQueryType(DjangoObjectType):
+    class Meta:
+        model = InvitationCode
+        fields = ("id", "code", "authority", "from_date", "through_date")
+        filter_fields = {
+            "code": ["istartswith", "exact"],
+        }
+
+
+class InvitationCodeType(DjangoObjectType):
+    class Meta:
+        model = InvitationCode
+        fields = ("id", "authority", "code", "from_date", "through_date")
+
+
 class UserType(DjangoObjectType):
     class Meta:
         model = User
         fields = ("id", "username", "first_name", "last_name")
+
+
+class AuthorityUserType(DjangoObjectType):
+    class Meta:
+        model = AuthorityUser
+        fields = ("id", "authority", "username", "first_name", "last_name")
 
 
 class UserProfileType(graphene.ObjectType):
@@ -140,4 +161,39 @@ class AdminAuthorityUserUpdateResult(graphene.Union):
         types = (
             AdminAuthorityUserUpdateSuccess,
             AdminAuthorityUserUpdateProblem,
+        )
+
+
+## Invitation Code
+class AdminInvitationCodeCreateSuccess(DjangoObjectType):
+    class Meta:
+        model = InvitationCode
+
+
+class AdminInvitationCodeCreateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminInvitationCodeCreateResult(graphene.Union):
+    class Meta:
+        types = (
+            AdminInvitationCodeCreateSuccess,
+            AdminInvitationCodeCreateProblem,
+        )
+
+
+class AdminInvitationCodeUpdateSuccess(DjangoObjectType):
+    class Meta:
+        model = InvitationCode
+
+
+class AdminInvitationCodeUpdateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminInvitationCodeUpdateResult(graphene.Union):
+    class Meta:
+        types = (
+            AdminInvitationCodeUpdateSuccess,
+            AdminInvitationCodeUpdateProblem,
         )
