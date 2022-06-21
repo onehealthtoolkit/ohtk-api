@@ -79,13 +79,15 @@ class AdminInvitationCodeTests(JSONWebTokenTestCase):
 
     def test_create_success(self):
         mutation = """
-        mutation adminInvitationCodeCreate($code: String!, $authorityId: Int!) {
-            adminInvitationCodeCreate(code: $code, authorityId: $authorityId) {
+        mutation adminInvitationCodeCreate($code: String!, $authorityId: Int!, $fromDate: DateTime!, $throughDate: DateTime!) {
+            adminInvitationCodeCreate(code: $code, authorityId: $authorityId, fromDate: $fromDate, throughDate: $throughDate) {
                 result {
                   __typename
                   ... on AdminInvitationCodeCreateSuccess {
                     id
                     code
+                    fromDate
+                    throughDate
                   }
                   ... on AdminInvitationCodeCreateProblem {
                     message
@@ -103,6 +105,8 @@ class AdminInvitationCodeTests(JSONWebTokenTestCase):
             {
                 "code": "11113",
                 "authorityId": self.authority.id,
+                "fromDate": "2022-06-21T00:00:00.000Z",
+                "throughDate": "2022-06-22T00:00:00.000Z",
             },
         )
         self.assertIsNotNone(result.data["adminInvitationCodeCreate"]["result"])

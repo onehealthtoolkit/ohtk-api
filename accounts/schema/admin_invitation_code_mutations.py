@@ -15,12 +15,14 @@ class AdminInvitationCodeCreateMutation(graphene.Mutation):
     class Arguments:
         code = graphene.String(required=True)
         authority_id = graphene.Int(required=True)
+        from_date = graphene.DateTime(required=True)
+        through_date = graphene.DateTime(required=True)
         inherits = graphene.List(graphene.Int)
 
     result = graphene.Field(AdminInvitationCodeCreateResult)
 
     @staticmethod
-    def mutate(root, info, code, authority_id, inherits):
+    def mutate(root, info, code, authority_id, from_date, through_date, inherits):
         problems = []
         if codeProblem := isNotEmpty("code", "Code must not be empty"):
             problems.append(codeProblem)
@@ -36,7 +38,10 @@ class AdminInvitationCodeCreateMutation(graphene.Mutation):
             )
 
         invitationCode = InvitationCode.objects.create(
-            code=code, authority=Authority.objects.get(pk=authority_id)
+            code=code,
+            authority=Authority.objects.get(pk=authority_id),
+            from_date=from_date,
+            through_date=through_date,
         )
         return AdminInvitationCodeCreateMutation(result=invitationCode)
 
@@ -45,11 +50,13 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True)
         code = graphene.String(required=True)
+        from_date = graphene.DateTime(required=None)
+        through_date = graphene.DateTime(required=None)
 
     result = graphene.Field(AdminInvitationCodeUpdateResult)
 
     @staticmethod
-    def mutate(root, info, id, code):
+    def mutate(root, info, id, code, from_date, through_date):
         try:
             invitationCode = InvitationCode.objects.get(pk=id)
         except InvitationCode.DoesNotExist:
@@ -73,6 +80,11 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
             )
 
         invitationCode.code = code
+        if from_date != None:
+            invitationCode.from_date = from_date
+        if through_date != None:
+            invitationCode.through_date = through_date
+
         invitationCode.save()
 
         return {"result": invitationCode}

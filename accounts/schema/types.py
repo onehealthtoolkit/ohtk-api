@@ -63,7 +63,15 @@ class UserType(DjangoObjectType):
 class AuthorityUserType(DjangoObjectType):
     class Meta:
         model = AuthorityUser
-        fields = ("id", "authority", "username", "first_name", "last_name")
+        fields = (
+            "id",
+            "authority",
+            "username",
+            "first_name",
+            "last_name",
+            "email",
+            "telephone",
+        )
 
 
 class UserProfileType(graphene.ObjectType):

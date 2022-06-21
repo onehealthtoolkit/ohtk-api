@@ -52,7 +52,7 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
 
         reportType = ReportType.objects.create(
             name=name,
-            categoryId=Category.objects.get(pk=category_id),
+            category=Category.objects.get(pk=category_id),
             definition=json.loads(definition),
             ordering=ordering,
         )
