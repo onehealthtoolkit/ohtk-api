@@ -36,10 +36,13 @@ class AdminInvitationCodeCreateMutation(graphene.Mutation):
             return AdminInvitationCodeCreateMutation(
                 result=AdminInvitationCodeCreateProblem(fields=problems)
             )
+        authority = info.context.user.authorityuser.authority
+        if authority_id != 0:
+            authority = Authority.objects.get(pk=authority_id)
 
         invitationCode = InvitationCode.objects.create(
             code=code,
-            authority=Authority.objects.get(pk=authority_id),
+            authority=authority,
             from_date=from_date,
             through_date=through_date,
         )
