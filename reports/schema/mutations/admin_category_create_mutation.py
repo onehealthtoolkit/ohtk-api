@@ -1,4 +1,5 @@
 import graphene
+from accounts.schema.utils import isNotEmpty
 from common.types import AdminFieldValidationProblem
 from reports.models.category import Category
 
@@ -13,32 +14,19 @@ class AdminCategoryCreateMutation(graphene.Mutation):
     result = graphene.Field(AdminCategoryCreateResult)
 
     @staticmethod
-    def mutate(
-        root,
-        info,
-        name,
-        ordering,
-    ):
+    def mutate(root, info, name, ordering):
+        problems = []
+        if nameProblem := isNotEmpty("name", "Name must not be empty"):
+            problems.append(nameProblem)
+
         if Category.objects.filter(name=name).exists():
-            return AdminCategoryCreateMutation(
-                result=AdminCategoryCreateProblem(
-                    fields=[
-                        AdminFieldValidationProblem(
-                            name="name", message="duplicate name"
-                        )
-                    ]
-                )
+            problems.append(
+                AdminFieldValidationProblem(name="name", message="duplicate name")
             )
 
-        if not name:
+        if len(problems) > 0:
             return AdminCategoryCreateMutation(
-                result=AdminCategoryCreateProblem(
-                    fields=[
-                        AdminFieldValidationProblem(
-                            name="name", message="name must not be empty"
-                        )
-                    ]
-                )
+                result=AdminCategoryCreateProblem(fields=problems)
             )
 
         category = Category.objects.create(

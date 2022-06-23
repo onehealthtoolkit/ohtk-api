@@ -3,8 +3,11 @@ from django.utils.timezone import now
 from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
 
-from accounts.models import InvitationCode, Feature, Authority
+from accounts.models import AuthorityUser, InvitationCode, Feature, Authority
 from accounts.schema.types import (
+    AdminInvitationCodeQueryType,
+    AuthorityUserType,
+    InvitationCodeType,
     UserProfileType,
     FeatureType,
     AuthorityType,
@@ -27,6 +30,11 @@ class Query(graphene.ObjectType):
     adminAuthorityUserQuery = DjangoPaginationConnectionField(
         AdminAuthorityUserQueryType
     )
+    adminInvitationCodeQuery = DjangoPaginationConnectionField(
+        AdminInvitationCodeQueryType
+    )
+    invitationCode = graphene.Field(InvitationCodeType, id=graphene.ID(required=True))
+    authorityUser = graphene.Field(AuthorityUserType, id=graphene.ID(required=True))
 
     @staticmethod
     @login_required
@@ -62,3 +70,17 @@ class Query(graphene.ObjectType):
         if not user.is_superuser:
             raise GraphQLError("Permission denied.")
         return Authority.objects.get(id=id)
+
+    @staticmethod
+    def resolve_authorityUser(root, info, id):
+        user = info.context.user
+        if not user.is_superuser:
+            raise GraphQLError("Permission denied.")
+        return AuthorityUser.objects.get(id=id)
+
+    @staticmethod
+    def resolve_invitationCode(root, info, id):
+        user = info.context.user
+        if not user.is_superuser:
+            raise GraphQLError("Permission denied.")
+        return InvitationCode.objects.get(id=id)
