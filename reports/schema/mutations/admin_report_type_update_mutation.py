@@ -1,5 +1,6 @@
 import json
 import graphene
+from accounts.schema.utils import isDupliate, isNotEmpty
 from common.types import AdminFieldValidationProblem
 from reports.models.category import Category
 from reports.models.report_type import ReportType
@@ -22,24 +23,26 @@ class AdminReportTypeUpdateMutation(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, id, name, category_id, definition, ordering):
-        reportType = ReportType.objects.get(pk=id)
-
-        if not reportType:
+        try:
+            reportType = ReportType.objects.get(pk=id)
+        except ReportType.DoesNotExist:
             return AdminReportTypeUpdateMutation(
                 result=AdminReportTypeUpdateProblem(
                     fields=[], message="Object not found"
                 )
             )
 
-        if reportType.name != name and ReportType.objects.filter(name=name).exists():
+        problems = []
+        if nameProblem := isNotEmpty("name", "Name must not be empty"):
+            problems.append(nameProblem)
+
+        if reportType.name != name:
+            if duplicateProblem := isDupliate("name", name, ReportType):
+                problems.append(duplicateProblem)
+
+        if len(problems) > 0:
             return AdminReportTypeUpdateMutation(
-                result=AdminReportTypeUpdateProblem(
-                    fields=[
-                        AdminFieldValidationProblem(
-                            name="name", message="duplicate name"
-                        )
-                    ]
-                )
+                result=AdminReportTypeUpdateProblem(fields=problems)
             )
 
         reportType.name = name
