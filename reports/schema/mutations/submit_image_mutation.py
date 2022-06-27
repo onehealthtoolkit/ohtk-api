@@ -15,7 +15,7 @@ class SubmitImage(graphene.Mutation):
         image_id = graphene.UUID(required=False)
 
     id = graphene.UUID()
-    url = graphene.String()
+    file = graphene.String()
 
     @staticmethod
     @login_required
@@ -34,4 +34,4 @@ class SubmitImage(graphene.Mutation):
         if is_cover:
             report.cover_image_id = image.id
             report.save(update_fields=("cover_image_id"))
-        return SubmitImage(id=image.id, url=image.file.url)
+        return SubmitImage(id=image.id, file=image.file.url)

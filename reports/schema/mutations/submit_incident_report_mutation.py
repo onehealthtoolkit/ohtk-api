@@ -1,9 +1,11 @@
+from unittest import result
 import graphene
 from graphql_jwt.decorators import login_required
 from graphene.types.generic import GenericScalar
 from reports.models.report import IncidentReport
 from django.contrib.gis.geos import Point
 from reports.models.report_type import ReportType
+from reports.schema.types import IncidentReportType
 
 
 class SubmitIncidentReport(graphene.Mutation):
@@ -16,8 +18,7 @@ class SubmitIncidentReport(graphene.Mutation):
             required=False
         )  # comma separated string eg. 13.234343,100.23434343
 
-    id = graphene.UUID()
-    renderer_data = graphene.String()
+    result = graphene.Field(IncidentReportType)
 
     @staticmethod
     @login_required
@@ -38,7 +39,4 @@ class SubmitIncidentReport(graphene.Mutation):
             incident_date=incident_date,
             gps_location=location,
         )
-        return SubmitIncidentReport(
-            id=report.id,
-            renderer_data=report.renderer_data,
-        )
+        return SubmitIncidentReport(result=report)

@@ -31,7 +31,10 @@ class IncidentReportType(DjangoObjectType):
         filter_fields = {}
 
     def resolve_gps_location(self, info):
-        return f"{self.gps_location.x},{self.gps_location.y}"
+        if self.gps_location:
+            return f"{self.gps_location.x},{self.gps_location.y}"
+        else:
+            return ""
 
     def resolve_images(self, info):
         return self.images.all()
