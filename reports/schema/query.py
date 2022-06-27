@@ -5,11 +5,13 @@ from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
 from pagination.connection_field import DjangoPaginationConnectionField
 from reports.models import ReportType, Category
+from reports.models.report import IncidentReport
 
 from .types import (
     AdminCategoryQueryType,
     AdminReportTypeQueryType,
     CategoryType,
+    IncidentReportType,
     ReportTypeSyncInputType,
     ReportTypeSyncOutputType,
     ReportTypeType,
@@ -28,6 +30,7 @@ class Query(graphene.ObjectType):
     )
     category = graphene.Field(CategoryType, id=graphene.ID(required=True))
     report_type = graphene.Field(ReportTypeType, id=graphene.ID(required=True))
+    incident_reports = DjangoPaginationConnectionField(IncidentReportType)
 
     admin_category_query = DjangoPaginationConnectionField(AdminCategoryQueryType)
     admin_report_type_query = DjangoPaginationConnectionField(AdminReportTypeQueryType)
@@ -67,3 +70,18 @@ class Query(graphene.ObjectType):
         if not user.is_superuser:
             raise GraphQLError("Permission denied.")
         return ReportType.objects.get(id=id)
+
+    @staticmethod
+    def resolve_incident_reports(root, info, **kwargs):
+        query = (
+            IncidentReport.objects.all()
+            .order_by("-created_at")
+            .prefetch_related("images", "reported_by", "report_type")
+        )
+        user = info.context.user
+        if hasattr(user, "authorityuser"):
+            authority = info.context.user.authorityuser.authority
+            child_authorities = authority.all_inherits_down()
+            query = query.filter(authority__in=child_authorities)
+
+        return query

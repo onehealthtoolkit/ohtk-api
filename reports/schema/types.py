@@ -3,7 +3,8 @@ from graphene.types.generic import GenericScalar
 from graphene_django import DjangoObjectType
 from common.types import AdminValidationProblem
 
-from reports.models import ReportType, Category
+from reports.models import ReportType, Category, IncidentReport
+from reports.models.report import Image
 
 
 class ReportTypeType(DjangoObjectType):
@@ -11,6 +12,29 @@ class ReportTypeType(DjangoObjectType):
 
     class Meta:
         model = ReportType
+
+
+class ImageType(DjangoObjectType):
+    class Meta:
+        model = Image
+
+
+class IncidentReportType(DjangoObjectType):
+    data = GenericScalar()
+    original_data = GenericScalar()
+    gps_location = graphene.String()
+    images = graphene.List(ImageType)
+
+    class Meta:
+        model = IncidentReport
+        exclude = ("gps_location",)
+        filter_fields = {}
+
+    def resolve_gps_location(self, info):
+        return f"{self.gps_location.x},{self.gps_location.y}"
+
+    def resolve_images(self, info):
+        return self.images.all()
 
 
 class CategoryType(DjangoObjectType):

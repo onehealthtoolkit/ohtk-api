@@ -35,7 +35,7 @@ class ReportTypeAdmin(BaseModelAdmin):
 
 
 @admin.register(IncidentReport)
-class IncidentReport(BaseModelAdmin):
+class IncidentReportAdmin(BaseModelAdmin):
     list_display = (
         "incident_date",
         "report_type",
