@@ -84,11 +84,9 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
     def mutate(
         root, info, id, authority_id, username, first_name, last_name, email, telephone
     ):
-        print(id)
-        print(authority_id)
-        authorityUser = AuthorityUser.objects.get(pk=id)
+        authority_user = AuthorityUser.objects.get(pk=id)
 
-        if not authorityUser:
+        if not authority_user:
             return AdminAuthorityUserUpdateMutation(
                 result=AdminAuthorityUserUpdateProblem(
                     fields=[], message="Object not found"
@@ -96,7 +94,7 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
             )
 
         if (
-            authorityUser.username != username
+            authority_user.username != username
             and User.objects.filter(username=username).exists()
         ):
             return AdminAuthorityUserUpdateMutation(
@@ -120,11 +118,11 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
                 )
             )
 
-        authorityUser.authority = Authority.objects.get(pk=authority_id)
-        authorityUser.username = username
-        authorityUser.first_name = first_name
-        authorityUser.last_name = last_name
-        authorityUser.email = email
-        authorityUser.telephone = telephone
-        authorityUser.save()
-        return AdminAuthorityUserUpdateMutation(result=authorityUser)
+        authority_user.authority = Authority.objects.get(pk=authority_id)
+        authority_user.username = username
+        authority_user.first_name = first_name
+        authority_user.last_name = last_name
+        authority_user.email = email
+        authority_user.telephone = telephone
+        authority_user.save()
+        return AdminAuthorityUserUpdateMutation(result=authority_user)

@@ -22,11 +22,11 @@ class AdminAuthorityCreateMutation(graphene.Mutation):
     @staticmethod
     def mutate(root, info, code, name, inherits):
         problems = []
-        if codeProblem := isNotEmpty("code", "Code must not be empty"):
-            problems.append(codeProblem)
+        if code_problem := isNotEmpty("code", "Code must not be empty"):
+            problems.append(code_problem)
 
-        if nameProblem := isNotEmpty("name", "Name must not be empty"):
-            problems.append(nameProblem)
+        if name_problem := isNotEmpty("name", "Name must not be empty"):
+            problems.append(name_problem)
 
         if Authority.objects.filter(code=code).exists():
             problems.append(
@@ -66,11 +66,11 @@ class AdminAuthorityUpdateMutation(graphene.Mutation):
             if duplicateProblem := isDupliate("code", code, Authority):
                 problems.append(duplicateProblem)
 
-        if codeProblem := isNotEmpty("code", "Code must not be empty"):
-            problems.append(codeProblem)
+        if code_problem := isNotEmpty("code", "Code must not be empty"):
+            problems.append(code_problem)
 
-        if nameProblem := isNotEmpty("name", "Name must not be empty"):
-            problems.append(nameProblem)
+        if name_problem := isNotEmpty("name", "Name must not be empty"):
+            problems.append(name_problem)
 
         if len(problems) > 0:
             return AdminAuthorityUpdateMutation(

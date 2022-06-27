@@ -24,8 +24,8 @@ class AdminInvitationCodeCreateMutation(graphene.Mutation):
     @staticmethod
     def mutate(root, info, code, authority_id, from_date, through_date, inherits):
         problems = []
-        if codeProblem := isNotEmpty("code", "Code must not be empty"):
-            problems.append(codeProblem)
+        if code_problem := isNotEmpty("code", "Code must not be empty"):
+            problems.append(code_problem)
 
         if InvitationCode.objects.filter(code=code).exists():
             problems.append(
@@ -63,7 +63,7 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
     @staticmethod
     def mutate(root, info, id, code, from_date, through_date):
         try:
-            invitationCode = InvitationCode.objects.get(pk=id)
+            invitation_code = InvitationCode.objects.get(pk=id)
         except InvitationCode.DoesNotExist:
             return AdminInvitationCodeUpdateMutation(
                 result=AdminInvitationCodeUpdateProblem(
@@ -72,24 +72,24 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
             )
 
         problems = []
-        if invitationCode.code != code:
+        if invitation_code.code != code:
             if duplicateProblem := isDupliate("code", code, InvitationCode):
                 problems.append(duplicateProblem)
 
-        if codeProblem := isNotEmpty("code", "Code must not be empty"):
-            problems.append(codeProblem)
+        if code_problem := isNotEmpty("code", "Code must not be empty"):
+            problems.append(code_problem)
 
         if len(problems) > 0:
             return AdminInvitationCodeUpdateMutation(
                 result=AdminInvitationCodeUpdateProblem(fields=problems)
             )
 
-        invitationCode.code = code
+        invitation_code.code = code
         if from_date != None:
-            invitationCode.from_date = from_date
+            invitation_code.from_date = from_date
         if through_date != None:
-            invitationCode.through_date = through_date
+            invitation_code.through_date = through_date
 
-        invitationCode.save()
+        invitation_code.save()
 
-        return {"result": invitationCode}
+        return {"result": invitation_code}

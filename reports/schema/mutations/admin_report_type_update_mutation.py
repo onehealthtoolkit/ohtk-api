@@ -24,7 +24,7 @@ class AdminReportTypeUpdateMutation(graphene.Mutation):
     @staticmethod
     def mutate(root, info, id, name, category_id, definition, ordering):
         try:
-            reportType = ReportType.objects.get(pk=id)
+            report_type = ReportType.objects.get(pk=id)
         except ReportType.DoesNotExist:
             return AdminReportTypeUpdateMutation(
                 result=AdminReportTypeUpdateProblem(
@@ -33,21 +33,21 @@ class AdminReportTypeUpdateMutation(graphene.Mutation):
             )
 
         problems = []
-        if nameProblem := isNotEmpty("name", "Name must not be empty"):
-            problems.append(nameProblem)
+        if name_problem := isNotEmpty("name", "Name must not be empty"):
+            problems.append(name_problem)
 
-        if reportType.name != name:
-            if duplicateProblem := isDupliate("name", name, ReportType):
-                problems.append(duplicateProblem)
+        if report_type.name != name:
+            if dumplicate_problem := isDupliate("name", name, ReportType):
+                problems.append(dumplicate_problem)
 
         if len(problems) > 0:
             return AdminReportTypeUpdateMutation(
                 result=AdminReportTypeUpdateProblem(fields=problems)
             )
 
-        reportType.name = name
-        reportType.category = Category.objects.get(pk=category_id)
-        reportType.definition = json.loads(definition)
-        reportType.ordering = ordering
-        reportType.save()
-        return AdminReportTypeUpdateMutation(result=reportType)
+        report_type.name = name
+        report_type.category = Category.objects.get(pk=category_id)
+        report_type.definition = json.loads(definition)
+        report_type.ordering = ordering
+        report_type.save()
+        return AdminReportTypeUpdateMutation(result=report_type)

@@ -16,8 +16,8 @@ class AdminCategoryCreateMutation(graphene.Mutation):
     @staticmethod
     def mutate(root, info, name, ordering):
         problems = []
-        if nameProblem := isNotEmpty("name", "Name must not be empty"):
-            problems.append(nameProblem)
+        if name_problem := isNotEmpty("name", "Name must not be empty"):
+            problems.append(name_problem)
 
         if Category.objects.filter(name=name).exists():
             problems.append(

@@ -25,8 +25,8 @@ class AdminCategoryUpdateMutation(graphene.Mutation):
 
         problems = []
 
-        if nameProblem := isNotEmpty("name", "Name must not be empty"):
-            problems.append(nameProblem)
+        if name_problem := isNotEmpty("name", "Name must not be empty"):
+            problems.append(name_problem)
 
         if category.name != name:
             if duplicateProblem := isDupliate("name", name, Category):

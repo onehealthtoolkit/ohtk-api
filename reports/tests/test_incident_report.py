@@ -12,7 +12,7 @@ class IncidentReportTestCase(BaseTestCase):
 
     def test_create_report(self):
         self.mers_report_type.renderer_data_template = (
-            """found {{ number_of_sick }} with symptom: {{ symptom }}"""
+            """found {{ data.number_of_sick }} with symptom: {{ data.symptom }}"""
         )
         self.mers_report_type.save()
 
@@ -44,7 +44,7 @@ class IncidentReportTestCase(BaseTestCase):
 
     def test_mutation_create_report(self):
         self.client.authenticate(self.user)
-        query = """
+        mutation = """
             mutation submit($data: GenericScalar!, $reportTypeId: UUID!, $incidentDate: Date!, $reportId: UUID) {
                 submitIncidentReport(data: $data,
                                      reportTypeId: $reportTypeId,
@@ -57,7 +57,7 @@ class IncidentReportTestCase(BaseTestCase):
         """
         report_id = uuid.uuid4()
         result = self.client.execute(
-            query,
+            mutation,
             {
                 "data": {
                     "symptom": "cough",

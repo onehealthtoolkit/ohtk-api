@@ -68,7 +68,6 @@ class AdminCategoryTests(JSONWebTokenTestCase):
                 "ordering": 1,
             },
         )
-        print(result)
         self.assertIsNotNone(result.data["adminCategoryCreate"]["result"])
         self.assertIsNotNone(result.data["adminCategoryCreate"]["result"]["fields"])
         self.assertEqual(
@@ -105,7 +104,6 @@ class AdminCategoryTests(JSONWebTokenTestCase):
                 "ordering": 3,
             },
         )
-        print(result)
         self.assertIsNotNone(result.data["adminCategoryCreate"]["result"])
         self.assertIsNotNone(result.data["adminCategoryCreate"]["result"]["id"])
         self.assertEqual(result.data["adminCategoryCreate"]["result"]["name"], "cat3")
@@ -140,7 +138,6 @@ class AdminCategoryTests(JSONWebTokenTestCase):
                 "ordering": 1,
             },
         )
-        print(result)
         self.assertIsNotNone(result.data["adminCategoryUpdate"]["result"])
         self.assertIsNotNone(result.data["adminCategoryUpdate"]["result"]["fields"])
         self.assertEqual(
@@ -178,7 +175,6 @@ class AdminCategoryTests(JSONWebTokenTestCase):
                 "ordering": 1,
             },
         )
-        print(result)
 
         self.assertIsNotNone(result.data["adminCategoryUpdate"]["result"])
         self.assertIsNotNone(result.data["adminCategoryUpdate"]["result"]["id"])

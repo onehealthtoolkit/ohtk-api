@@ -78,7 +78,6 @@ class AdminAuthorityUserTests(JSONWebTokenTestCase):
                 "telephone": "22222",
             },
         )
-        print(result)
         self.assertIsNotNone(result.data["adminAuthorityUserCreate"]["result"])
         self.assertIsNotNone(
             result.data["adminAuthorityUserCreate"]["result"]["fields"]
@@ -123,7 +122,6 @@ class AdminAuthorityUserTests(JSONWebTokenTestCase):
                 "telephone": "22222",
             },
         )
-        print(result)
         self.assertIsNotNone(result.data["adminAuthorityUserCreate"]["result"])
         self.assertIsNotNone(result.data["adminAuthorityUserCreate"]["result"]["id"])
         self.assertEqual(
@@ -164,7 +162,6 @@ class AdminAuthorityUserTests(JSONWebTokenTestCase):
                 "telephone": "22222",
             },
         )
-        print(result)
         self.assertIsNotNone(result.data["adminAuthorityUserUpdate"]["result"])
         self.assertIsNotNone(
             result.data["adminAuthorityUserUpdate"]["result"]["fields"]
@@ -208,7 +205,6 @@ class AdminAuthorityUserTests(JSONWebTokenTestCase):
                 "telephone": "22222",
             },
         )
-        print(result)
 
         self.assertIsNotNone(result.data["adminAuthorityUserUpdate"]["result"])
         self.assertIsNotNone(result.data["adminAuthorityUserUpdate"]["result"]["id"])

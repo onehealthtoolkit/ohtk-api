@@ -23,8 +23,8 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
     @staticmethod
     def mutate(root, info, name, category_id, definition, ordering):
         problems = []
-        if nameProblem := isNotEmpty("name", "Name must not be empty"):
-            problems.append(nameProblem)
+        if name_problem := isNotEmpty("name", "Name must not be empty"):
+            problems.append(name_problem)
 
         if definitionProblem := isNotEmpty(
             "definition", "Definition must not be empty"

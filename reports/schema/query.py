@@ -29,8 +29,8 @@ class Query(graphene.ObjectType):
     category = graphene.Field(CategoryType, id=graphene.ID(required=True))
     report_type = graphene.Field(ReportTypeType, id=graphene.ID(required=True))
 
-    adminCategoryQuery = DjangoPaginationConnectionField(AdminCategoryQueryType)
-    adminReportTypeQuery = DjangoPaginationConnectionField(AdminReportTypeQueryType)
+    admin_category_query = DjangoPaginationConnectionField(AdminCategoryQueryType)
+    admin_report_type_query = DjangoPaginationConnectionField(AdminReportTypeQueryType)
 
     @staticmethod
     @login_required

@@ -38,7 +38,7 @@ class BaseTestCase(TestCase):
             name="Mers",
             category=self.human_category,
             definition={},
-            renderer_data_template="number of sick {{ number_of_sick }} with symptom {{ symptom }}",
+            renderer_data_template="number of sick {{ data.number_of_sick }} with symptom {{ data.symptom }}",
         )
         self.mers_report_type.authorities.add(self.thailand)
 
