@@ -4,8 +4,9 @@ from django.contrib import admin
 from django.db.models import JSONField
 from django.forms import widgets
 
-from accounts.admin import BasModelAdmin
+from accounts.admin import BaseModelAdmin
 from reports.models import Category, ReportType
+from reports.models.report import IncidentReport
 
 
 class PrettyJSONWidget(widgets.Textarea):
@@ -22,12 +23,26 @@ class PrettyJSONWidget(widgets.Textarea):
 
 
 @admin.register(Category)
-class CategoryAdmin(BasModelAdmin):
+class CategoryAdmin(BaseModelAdmin):
     list_display = ("name",)
     exclude = ("deleted_at",)
 
 
 @admin.register(ReportType)
-class ReportTypeAdmin(BasModelAdmin):
+class ReportTypeAdmin(BaseModelAdmin):
     list_display = ("name",)
+    formfield_overrides = {JSONField: {"widget": PrettyJSONWidget}}
+
+
+@admin.register(IncidentReport)
+class IncidentReport(BaseModelAdmin):
+    list_display = (
+        "incident_date",
+        "report_type",
+        "renderer_data",
+        "test_flag",
+        "updated_at",
+    )
+    list_filter = ("updated_at", "report_type", "test_flag")
+
     formfield_overrides = {JSONField: {"widget": PrettyJSONWidget}}

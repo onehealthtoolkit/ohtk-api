@@ -62,6 +62,9 @@ class ReportType(BaseModel):
             "removed_list": removed_list,
         }
 
+    def __str__(self) -> str:
+        return self.name
+
     def to_data(self):
         return ReportType.ReportTypeData(id=self.id, updated_at=self.updated_at)
 

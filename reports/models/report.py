@@ -77,7 +77,13 @@ class IncidentReport(AbstractIncidentReport):
     gps_location = models.PointField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
-        self.renderer_data = self.report_type.render_data(self.data)
+        self.renderer_data = self.report_type.render_data(
+            {
+                "data": self.data,
+                "id": self.id,
+                "incident_date": self.incident_date,
+            }
+        )
         if not self.origin_data:
             self.origin_data = self.data
             self.origin_renderer_data = self.renderer_data
@@ -94,7 +100,13 @@ class FollowUpReport(AbstractIncidentReport):
     )
 
     def save(self, *args, **kwargs):
-        renderer_data = self.report_type.render_data(self.data)
+        renderer_data = self.report_type.render_data(
+            {
+                "data": self.data,
+                "id": self.id,
+                "incident_date": self.incident_date,
+            }
+        )
         if self.renderer_data != renderer_data:
             self.renderer_data = renderer_data
         super(FollowUpReport, self).save(*args, **kwargs)
