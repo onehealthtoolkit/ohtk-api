@@ -17,6 +17,11 @@ class CategoryType(DjangoObjectType):
     class Meta:
         model = Category
 
+    def resolve_icon(self, info, **kwargs):
+        if self.icon:
+            self.icon = info.context.build_absolute_uri(self.icon.url)
+        return self.icon
+
 
 class ReportTypeSyncInputType(graphene.InputObjectType):
     id = graphene.UUID(required=True)
