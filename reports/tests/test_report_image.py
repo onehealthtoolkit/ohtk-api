@@ -56,7 +56,7 @@ class ReportImageTestCase(BaseTestCase):
                 submitImage(reportId: $reportId, 
                             image: $image) {
                     id
-                    url
+                    file
                 }
             }
         """
@@ -82,7 +82,7 @@ class ReportImageTestCase(BaseTestCase):
                             image: $image,
                             imageId: $imageId) {
                     id
-                    url
+                    file
                 }
             }
         """
