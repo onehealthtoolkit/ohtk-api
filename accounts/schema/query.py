@@ -26,6 +26,9 @@ class Query(graphene.ObjectType):
     features = graphene.List(FeatureType)
     authorities = DjangoPaginationConnectionField(AuthorityType)
     authority = graphene.Field(AuthorityType, id=graphene.ID(required=True))
+    admin_authority_get = graphene.Field(
+        AdminAuthorityQueryType, id=graphene.ID(required=True)
+    )
     admin_authority_query = DjangoPaginationConnectionField(AdminAuthorityQueryType)
     admin_authority_inherit_lookup = DjangoPaginationConnectionField(AuthorityType)
     admin_authority_user_query = DjangoPaginationConnectionField(
@@ -67,6 +70,13 @@ class Query(graphene.ObjectType):
 
     @staticmethod
     def resolve_authority(root, info, id):
+        user = info.context.user
+        if not user.is_superuser:
+            raise GraphQLError("Permission denied.")
+        return Authority.objects.get(id=id)
+
+    @staticmethod
+    def resolve_admin_authority_get(root, info, id):
         user = info.context.user
         if not user.is_superuser:
             raise GraphQLError("Permission denied.")

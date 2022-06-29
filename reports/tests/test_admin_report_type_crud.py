@@ -129,9 +129,11 @@ class AdminReportTypeTests(JSONWebTokenTestCase):
                 result {
                   __typename
                   ... on AdminReportTypeUpdateSuccess {
-                    id
-                    name
-                    ordering
+                    reportType {
+                        id
+                        name
+                        ordering
+                    }
                   }
                   ... on AdminReportTypeUpdateProblem {
                     message
@@ -167,9 +169,11 @@ class AdminReportTypeTests(JSONWebTokenTestCase):
                 result {
                   __typename
                   ... on AdminReportTypeUpdateSuccess {
-                    id
-                    name
-                    ordering
+                    reportType {
+                        id
+                        name
+                        ordering
+                    }
                   }
                   ... on AdminReportTypeUpdateProblem {
                     message
@@ -194,7 +198,10 @@ class AdminReportTypeTests(JSONWebTokenTestCase):
         )
 
         self.assertIsNotNone(result.data["adminReportTypeUpdate"]["result"])
-        self.assertIsNotNone(result.data["adminReportTypeUpdate"]["result"]["id"])
+        self.assertIsNotNone(
+            result.data["adminReportTypeUpdate"]["result"]["reportType"]["id"]
+        )
         self.assertEqual(
-            result.data["adminReportTypeUpdate"]["result"]["name"], "report type 3"
+            result.data["adminReportTypeUpdate"]["result"]["reportType"]["name"],
+            "report type 3",
         )

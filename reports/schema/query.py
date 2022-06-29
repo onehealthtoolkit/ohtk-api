@@ -31,6 +31,7 @@ class Query(graphene.ObjectType):
     category = graphene.Field(CategoryType, id=graphene.ID(required=True))
     report_type = graphene.Field(ReportTypeType, id=graphene.ID(required=True))
     incident_reports = DjangoPaginationConnectionField(IncidentReportType)
+    incident_report = graphene.Field(IncidentReportType, id=graphene.ID(required=True))
 
     admin_category_query = DjangoPaginationConnectionField(AdminCategoryQueryType)
     admin_report_type_query = DjangoPaginationConnectionField(AdminReportTypeQueryType)
@@ -70,6 +71,13 @@ class Query(graphene.ObjectType):
         if not user.is_superuser:
             raise GraphQLError("Permission denied.")
         return ReportType.objects.get(id=id)
+
+    @staticmethod
+    def resolve_incident_report(root, info, id):
+        user = info.context.user
+        if not user.is_superuser:
+            raise GraphQLError("Permission denied.")
+        return IncidentReport.objects.get(id=id)
 
     @staticmethod
     def resolve_incident_reports(root, info, **kwargs):
