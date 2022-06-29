@@ -3,7 +3,11 @@ from accounts.schema.utils import isDupliate, isNotEmpty
 from common.types import AdminFieldValidationProblem
 from reports.models.category import Category
 
-from reports.schema.types import AdminCategoryUpdateProblem, AdminCategoryUpdateResult
+from reports.schema.types import (
+    AdminCategoryUpdateProblem,
+    AdminCategoryUpdateResult,
+    AdminCategoryUpdateSuccess,
+)
 from graphene_file_upload.scalars import Upload
 
 
@@ -49,4 +53,6 @@ class AdminCategoryUpdateMutation(graphene.Mutation):
         category.name = name
         category.ordering = ordering
         category.save()
-        return AdminCategoryUpdateMutation(result=category)
+        return AdminCategoryUpdateMutation(
+            result=AdminCategoryUpdateSuccess(category=category)
+        )
