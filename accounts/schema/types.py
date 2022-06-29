@@ -5,6 +5,16 @@ from accounts.models import Authority, AuthorityUser, InvitationCode, Feature, U
 from common.types import AdminValidationProblem
 
 
+class AuthorityInheritType(DjangoObjectType):
+    class Meta:
+        model = Authority
+        fields = (
+            "id",
+            "code",
+            "name",
+        )
+
+
 class AuthorityType(DjangoObjectType):
     class Meta:
         model = Authority
@@ -14,6 +24,14 @@ class AuthorityType(DjangoObjectType):
             "name",
         )
         filter_fields = {"name": ["istartswith", "exact"]}
+
+    inherits = graphene.List(AuthorityInheritType, required=True)
+
+    def resolve_inherits(self, info, **kwargs):
+        results = []
+        for authority in self.inherits.all():
+            results.append(authority)
+        return results
 
 
 class AdminAuthorityQueryType(DjangoObjectType):
@@ -121,9 +139,8 @@ class AdminAuthorityCreateResult(graphene.Union):
         )
 
 
-class AdminAuthorityUpdateSuccess(DjangoObjectType):
-    class Meta:
-        model = Authority
+class AdminAuthorityUpdateSuccess(graphene.ObjectType):
+    authority = graphene.Field(AuthorityType)
 
 
 class AdminAuthorityUpdateProblem(AdminValidationProblem):
@@ -147,9 +164,8 @@ class AdminAuthorityUserCreateProblem(AdminValidationProblem):
     pass
 
 
-class AdminAuthorityUserUpdateSuccess(DjangoObjectType):
-    class Meta:
-        model = AuthorityUser
+class AdminAuthorityUserUpdateSuccess(graphene.ObjectType):
+    authority_user = graphene.Field(AuthorityUserType)
 
 
 class AdminAuthorityUserUpdateProblem(AdminValidationProblem):
@@ -190,9 +206,8 @@ class AdminInvitationCodeCreateResult(graphene.Union):
         )
 
 
-class AdminInvitationCodeUpdateSuccess(DjangoObjectType):
-    class Meta:
-        model = InvitationCode
+class AdminInvitationCodeUpdateSuccess(graphene.ObjectType):
+    invitation_code = graphene.Field(InvitationCodeType)
 
 
 class AdminInvitationCodeUpdateProblem(AdminValidationProblem):

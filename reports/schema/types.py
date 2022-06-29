@@ -3,7 +3,8 @@ from graphene.types.generic import GenericScalar
 from graphene_django import DjangoObjectType
 from common.types import AdminValidationProblem
 
-from reports.models import ReportType, Category
+from reports.models import ReportType, Category, IncidentReport
+from reports.models.report import Image
 
 
 class ReportTypeType(DjangoObjectType):
@@ -13,14 +14,35 @@ class ReportTypeType(DjangoObjectType):
         model = ReportType
 
 
+class ImageType(DjangoObjectType):
+    class Meta:
+        model = Image
+
+
+class IncidentReportType(DjangoObjectType):
+    data = GenericScalar()
+    original_data = GenericScalar()
+    gps_location = graphene.String()
+    images = graphene.List(ImageType)
+
+    class Meta:
+        model = IncidentReport
+        exclude = ("gps_location",)
+        filter_fields = {}
+
+    def resolve_gps_location(self, info):
+        if self.gps_location:
+            return f"{self.gps_location.x},{self.gps_location.y}"
+        else:
+            return ""
+
+    def resolve_images(self, info):
+        return self.images.all()
+
+
 class CategoryType(DjangoObjectType):
     class Meta:
         model = Category
-
-    def resolve_icon(self, info, **kwargs):
-        if self.icon:
-            self.icon = info.context.build_absolute_uri(self.icon.url)
-        return self.icon
 
 
 class ReportTypeSyncInputType(graphene.InputObjectType):
@@ -65,9 +87,8 @@ class AdminCategoryCreateResult(graphene.Union):
         )
 
 
-class AdminCategoryUpdateSuccess(DjangoObjectType):
-    class Meta:
-        model = Category
+class AdminCategoryUpdateSuccess(graphene.ObjectType):
+    category = graphene.Field(CategoryType)
 
 
 class AdminCategoryUpdateProblem(AdminValidationProblem):
@@ -117,9 +138,8 @@ class AdminReportTypeCreateResult(graphene.Union):
         )
 
 
-class AdminReportTypeUpdateSuccess(DjangoObjectType):
-    class Meta:
-        model = ReportType
+class AdminReportTypeUpdateSuccess(graphene.ObjectType):
+    report_type = graphene.Field(ReportTypeType)
 
 
 class AdminReportTypeUpdateProblem(AdminValidationProblem):

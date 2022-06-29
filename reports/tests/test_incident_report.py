@@ -50,8 +50,10 @@ class IncidentReportTestCase(BaseTestCase):
                                      reportTypeId: $reportTypeId,
                                      incidentDate: $incidentDate,
                                      reportId: $reportId) {                                     
-                    id
-                    rendererData                                
+                    result {
+                        id
+                        rendererData
+                    }                                
                 }
             }
         """
@@ -69,7 +71,7 @@ class IncidentReportTestCase(BaseTestCase):
             },
         )
         self.assertIsNone(result.errors, msg=result.errors)
-        result_data = result.data["submitIncidentReport"]
+        result_data = result.data["submitIncidentReport"]["result"]
         self.assertEqual(str(report_id), str(result_data["id"]))
         self.assertEqual(
             "number of sick 1 with symptom cough", result_data["rendererData"]

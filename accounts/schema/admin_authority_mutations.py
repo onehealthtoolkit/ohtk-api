@@ -6,6 +6,7 @@ from accounts.schema.types import (
     AdminAuthorityUpdateResult,
     AdminAuthorityUpdateProblem,
     AdminAuthorityCreateProblem,
+    AdminAuthorityUpdateSuccess,
 )
 from accounts.schema.utils import isDupliate, isNotEmpty
 from common.types import AdminFieldValidationProblem
@@ -15,7 +16,7 @@ class AdminAuthorityCreateMutation(graphene.Mutation):
     class Arguments:
         code = graphene.String(required=True)
         name = graphene.String(required=True)
-        inherits = graphene.List(graphene.Int)
+        inherits = graphene.List(graphene.String)
 
     result = graphene.Field(AdminAuthorityCreateResult)
 
@@ -39,6 +40,9 @@ class AdminAuthorityCreateMutation(graphene.Mutation):
             )
 
         authority = Authority.objects.create(code=code, name=name)
+        if inherits:
+            authority.inherits.set(Authority.objects.filter(pk__in=inherits))
+
         return AdminAuthorityCreateMutation(result=authority)
 
 
@@ -47,11 +51,12 @@ class AdminAuthorityUpdateMutation(graphene.Mutation):
         id = graphene.ID(required=True)
         code = graphene.String(required=True)
         name = graphene.String(required=True)
+        inherits = graphene.List(graphene.String)
 
     result = graphene.Field(AdminAuthorityUpdateResult)
 
     @staticmethod
-    def mutate(root, info, id, code, name):
+    def mutate(root, info, id, code, name, inherits):
         try:
             authority = Authority.objects.get(pk=id)
         except Authority.DoesNotExist:
@@ -63,8 +68,8 @@ class AdminAuthorityUpdateMutation(graphene.Mutation):
 
         problems = []
         if authority.code != code:
-            if duplicateProblem := isDupliate("code", code, Authority):
-                problems.append(duplicateProblem)
+            if duplicate_problem := isDupliate("code", code, Authority):
+                problems.append(duplicate_problem)
 
         if code_problem := isNotEmpty("code", "Code must not be empty"):
             problems.append(code_problem)
@@ -79,6 +84,11 @@ class AdminAuthorityUpdateMutation(graphene.Mutation):
 
         authority.code = code
         authority.name = name
+        if inherits:
+            authority.inherits.set(Authority.objects.filter(pk__in=inherits))
+
         authority.save()
 
-        return {"result": authority}
+        return AdminAuthorityUpdateMutation(
+            result=AdminAuthorityUpdateSuccess(authority=authority)
+        )

@@ -26,15 +26,19 @@ class Query(graphene.ObjectType):
     features = graphene.List(FeatureType)
     authorities = DjangoPaginationConnectionField(AuthorityType)
     authority = graphene.Field(AuthorityType, id=graphene.ID(required=True))
-    adminAuthorityQuery = DjangoPaginationConnectionField(AdminAuthorityQueryType)
-    adminAuthorityUserQuery = DjangoPaginationConnectionField(
+    admin_authority_get = graphene.Field(
+        AdminAuthorityQueryType, id=graphene.ID(required=True)
+    )
+    admin_authority_query = DjangoPaginationConnectionField(AdminAuthorityQueryType)
+    admin_authority_inherit_lookup = DjangoPaginationConnectionField(AuthorityType)
+    admin_authority_user_query = DjangoPaginationConnectionField(
         AdminAuthorityUserQueryType
     )
-    adminInvitationCodeQuery = DjangoPaginationConnectionField(
+    admin_invitation_code_query = DjangoPaginationConnectionField(
         AdminInvitationCodeQueryType
     )
-    invitationCode = graphene.Field(InvitationCodeType, id=graphene.ID(required=True))
-    authorityUser = graphene.Field(AuthorityUserType, id=graphene.ID(required=True))
+    invitation_code = graphene.Field(InvitationCodeType, id=graphene.ID(required=True))
+    authority_user = graphene.Field(AuthorityUserType, id=graphene.ID(required=True))
 
     @staticmethod
     @login_required
@@ -72,14 +76,21 @@ class Query(graphene.ObjectType):
         return Authority.objects.get(id=id)
 
     @staticmethod
-    def resolve_authorityUser(root, info, id):
+    def resolve_admin_authority_get(root, info, id):
+        user = info.context.user
+        if not user.is_superuser:
+            raise GraphQLError("Permission denied.")
+        return Authority.objects.get(id=id)
+
+    @staticmethod
+    def resolve_authority_user(root, info, id):
         user = info.context.user
         if not user.is_superuser:
             raise GraphQLError("Permission denied.")
         return AuthorityUser.objects.get(id=id)
 
     @staticmethod
-    def resolve_invitationCode(root, info, id):
+    def resolve_invitation_code(root, info, id):
         user = info.context.user
         if not user.is_superuser:
             raise GraphQLError("Permission denied.")
