@@ -68,8 +68,8 @@ class AdminAuthorityUpdateMutation(graphene.Mutation):
 
         problems = []
         if authority.code != code:
-            if duplicateProblem := isDupliate("code", code, Authority):
-                problems.append(duplicateProblem)
+            if duplicate_problem := isDupliate("code", code, Authority):
+                problems.append(duplicate_problem)
 
         if code_problem := isNotEmpty("code", "Code must not be empty"):
             problems.append(code_problem)

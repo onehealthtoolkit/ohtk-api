@@ -87,9 +87,8 @@ class AdminCategoryCreateResult(graphene.Union):
         )
 
 
-class AdminCategoryUpdateSuccess(DjangoObjectType):
-    class Meta:
-        model = Category
+class AdminCategoryUpdateSuccess(graphene.ObjectType):
+    category = graphene.Field(CategoryType)
 
 
 class AdminCategoryUpdateProblem(AdminValidationProblem):
@@ -139,9 +138,8 @@ class AdminReportTypeCreateResult(graphene.Union):
         )
 
 
-class AdminReportTypeUpdateSuccess(DjangoObjectType):
-    class Meta:
-        model = ReportType
+class AdminReportTypeUpdateSuccess(graphene.ObjectType):
+    report_type = graphene.Field(ReportTypeType)
 
 
 class AdminReportTypeUpdateProblem(AdminValidationProblem):

@@ -164,9 +164,8 @@ class AdminAuthorityUserCreateProblem(AdminValidationProblem):
     pass
 
 
-class AdminAuthorityUserUpdateSuccess(DjangoObjectType):
-    class Meta:
-        model = AuthorityUser
+class AdminAuthorityUserUpdateSuccess(graphene.ObjectType):
+    authority_user = graphene.Field(AuthorityUserType)
 
 
 class AdminAuthorityUserUpdateProblem(AdminValidationProblem):
@@ -207,9 +206,8 @@ class AdminInvitationCodeCreateResult(graphene.Union):
         )
 
 
-class AdminInvitationCodeUpdateSuccess(DjangoObjectType):
-    class Meta:
-        model = InvitationCode
+class AdminInvitationCodeUpdateSuccess(graphene.ObjectType):
+    invitation_code = graphene.Field(InvitationCodeType)
 
 
 class AdminInvitationCodeUpdateProblem(AdminValidationProblem):

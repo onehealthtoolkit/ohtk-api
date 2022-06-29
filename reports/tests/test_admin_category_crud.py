@@ -115,9 +115,11 @@ class AdminCategoryTests(JSONWebTokenTestCase):
                 result {
                   __typename
                   ... on AdminCategoryUpdateSuccess {
-                    id
-                    name
-                    ordering
+                    category {
+                      id
+                      name
+                      ordering
+                    }
                   }
                   ... on AdminCategoryUpdateProblem {
                     message
@@ -152,9 +154,11 @@ class AdminCategoryTests(JSONWebTokenTestCase):
                 result {
                   __typename
                   ... on AdminCategoryUpdateSuccess {
-                    id
-                    name
-                    ordering
+                    category {
+                      id
+                      name
+                      ordering
+                    }
                   }
                   ... on AdminCategoryUpdateProblem {
                     message
@@ -177,5 +181,9 @@ class AdminCategoryTests(JSONWebTokenTestCase):
         )
 
         self.assertIsNotNone(result.data["adminCategoryUpdate"]["result"])
-        self.assertIsNotNone(result.data["adminCategoryUpdate"]["result"]["id"])
-        self.assertEqual(result.data["adminCategoryUpdate"]["result"]["name"], "cat3")
+        self.assertIsNotNone(
+            result.data["adminCategoryUpdate"]["result"]["category"]["id"]
+        )
+        self.assertEqual(
+            result.data["adminCategoryUpdate"]["result"]["category"]["name"], "cat3"
+        )

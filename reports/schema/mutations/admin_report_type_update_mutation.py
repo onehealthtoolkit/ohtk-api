@@ -8,6 +8,7 @@ from reports.models.report_type import ReportType
 from reports.schema.types import (
     AdminReportTypeUpdateProblem,
     AdminReportTypeUpdateResult,
+    AdminReportTypeUpdateSuccess,
 )
 
 
@@ -50,4 +51,6 @@ class AdminReportTypeUpdateMutation(graphene.Mutation):
         report_type.definition = json.loads(definition)
         report_type.ordering = ordering
         report_type.save()
-        return AdminReportTypeUpdateMutation(result=report_type)
+        return AdminReportTypeUpdateMutation(
+            result=AdminReportTypeUpdateSuccess(report_type=report_type)
+        )

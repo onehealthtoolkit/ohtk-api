@@ -135,9 +135,11 @@ class AdminAuthorityUserTests(JSONWebTokenTestCase):
                 result {
                   __typename
                   ... on AdminAuthorityUserUpdateSuccess {
-                    id
-                    username
-                    firstName
+                    authorityUser {
+                        id
+                        username
+                        firstName
+                    }
                   }
                   ... on AdminAuthorityUserUpdateProblem {
                     message
@@ -178,9 +180,11 @@ class AdminAuthorityUserTests(JSONWebTokenTestCase):
                 result {
                   __typename
                   ... on AdminAuthorityUserUpdateSuccess {
-                    id
-                    username
-                    firstName
+                    authorityUser {
+                        id
+                        username
+                        firstName
+                    }
                   }
                   ... on AdminAuthorityUserUpdateProblem {
                     message
@@ -207,7 +211,12 @@ class AdminAuthorityUserTests(JSONWebTokenTestCase):
         )
 
         self.assertIsNotNone(result.data["adminAuthorityUserUpdate"]["result"])
-        self.assertIsNotNone(result.data["adminAuthorityUserUpdate"]["result"]["id"])
+        self.assertIsNotNone(
+            result.data["adminAuthorityUserUpdate"]["result"]["authorityUser"]["id"]
+        )
         self.assertEqual(
-            result.data["adminAuthorityUserUpdate"]["result"]["username"], "another3"
+            result.data["adminAuthorityUserUpdate"]["result"]["authorityUser"][
+                "username"
+            ],
+            "another3",
         )

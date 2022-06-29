@@ -6,6 +6,7 @@ from accounts.schema.types import (
     AdminInvitationCodeUpdateResult,
     AdminInvitationCodeUpdateProblem,
     AdminInvitationCodeCreateProblem,
+    AdminInvitationCodeUpdateSuccess,
 )
 from accounts.schema.utils import isDupliate, isNotEmpty
 from common.types import AdminFieldValidationProblem
@@ -73,8 +74,8 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
 
         problems = []
         if invitation_code.code != code:
-            if duplicateProblem := isDupliate("code", code, InvitationCode):
-                problems.append(duplicateProblem)
+            if duplicate_problem := isDupliate("code", code, InvitationCode):
+                problems.append(duplicate_problem)
 
         if code_problem := isNotEmpty("code", "Code must not be empty"):
             problems.append(code_problem)
@@ -92,4 +93,6 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
 
         invitation_code.save()
 
-        return {"result": invitation_code}
+        return AdminInvitationCodeUpdateMutation(
+            result=AdminInvitationCodeUpdateSuccess(invitation_code=invitation_code)
+        )

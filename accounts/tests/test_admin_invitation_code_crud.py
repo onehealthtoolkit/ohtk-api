@@ -122,8 +122,10 @@ class AdminInvitationCodeTests(JSONWebTokenTestCase):
                 result {
                   __typename
                   ... on AdminInvitationCodeUpdateSuccess {
-                    code
-                    id
+                    invitationCode {
+                        code
+                        id
+                    }
                   }
                   ... on AdminInvitationCodeUpdateProblem {
                     message
@@ -155,8 +157,10 @@ class AdminInvitationCodeTests(JSONWebTokenTestCase):
                 result {
                   __typename
                   ... on AdminInvitationCodeUpdateSuccess {
-                    code
-                    id
+                    invitationCode {
+                        code
+                        id
+                    }
                   }
                   ... on AdminInvitationCodeUpdateProblem {
                     message
@@ -173,7 +177,12 @@ class AdminInvitationCodeTests(JSONWebTokenTestCase):
             mutation, {"id": self.InvitationCode2.id, "code": "11113"}
         )
         self.assertIsNotNone(result.data["adminInvitationCodeUpdate"]["result"])
-        self.assertIsNotNone(result.data["adminInvitationCodeUpdate"]["result"]["id"])
+        self.assertIsNotNone(
+            result.data["adminInvitationCodeUpdate"]["result"]["invitationCode"]["id"]
+        )
         self.assertEqual(
-            result.data["adminInvitationCodeUpdate"]["result"]["code"], "11113"
+            result.data["adminInvitationCodeUpdate"]["result"]["invitationCode"][
+                "code"
+            ],
+            "11113",
         )
