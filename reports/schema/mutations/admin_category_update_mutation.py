@@ -8,18 +8,23 @@ from reports.schema.types import (
     AdminCategoryUpdateResult,
     AdminCategoryUpdateSuccess,
 )
+from graphene_file_upload.scalars import Upload
 
 
 class AdminCategoryUpdateMutation(graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True)
         name = graphene.String(required=True)
+        icon = Upload(
+            required=False,
+        )
         ordering = graphene.Int(required=True)
+        clear_icon = graphene.Boolean(required=None)
 
     result = graphene.Field(AdminCategoryUpdateResult)
 
     @staticmethod
-    def mutate(root, info, id, name, ordering):
+    def mutate(root, info, id, name, ordering, icon, clear_icon):
         try:
             category = Category.objects.get(pk=id)
         except Category.DoesNotExist:
@@ -41,6 +46,10 @@ class AdminCategoryUpdateMutation(graphene.Mutation):
                 result=AdminCategoryUpdateProblem(fields=problems)
             )
 
+        if clear_icon:
+            category.icon = None
+        if icon != None:
+            category.icon = icon
         category.name = name
         category.ordering = ordering
         category.save()
