@@ -8,7 +8,7 @@ from accounts.schema.types import (
     AdminAuthorityCreateProblem,
     AdminAuthorityUpdateSuccess,
 )
-from accounts.schema.utils import isDupliate, isNotEmpty
+from accounts.schema.utils import is_duplicate, is_not_empty
 from common.types import AdminFieldValidationProblem
 
 
@@ -23,10 +23,10 @@ class AdminAuthorityCreateMutation(graphene.Mutation):
     @staticmethod
     def mutate(root, info, code, name, inherits):
         problems = []
-        if code_problem := isNotEmpty("code", "Code must not be empty"):
+        if code_problem := is_not_empty("code", "Code must not be empty"):
             problems.append(code_problem)
 
-        if name_problem := isNotEmpty("name", "Name must not be empty"):
+        if name_problem := is_not_empty("name", "Name must not be empty"):
             problems.append(name_problem)
 
         if Authority.objects.filter(code=code).exists():
@@ -68,13 +68,13 @@ class AdminAuthorityUpdateMutation(graphene.Mutation):
 
         problems = []
         if authority.code != code:
-            if duplicate_problem := isDupliate("code", code, Authority):
+            if duplicate_problem := is_duplicate("code", code, Authority):
                 problems.append(duplicate_problem)
 
-        if code_problem := isNotEmpty("code", "Code must not be empty"):
+        if code_problem := is_not_empty("code", "Code must not be empty"):
             problems.append(code_problem)
 
-        if name_problem := isNotEmpty("name", "Name must not be empty"):
+        if name_problem := is_not_empty("name", "Name must not be empty"):
             problems.append(name_problem)
 
         if len(problems) > 0:

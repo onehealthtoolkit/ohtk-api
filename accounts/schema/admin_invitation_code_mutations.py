@@ -8,7 +8,7 @@ from accounts.schema.types import (
     AdminInvitationCodeCreateProblem,
     AdminInvitationCodeUpdateSuccess,
 )
-from accounts.schema.utils import isDupliate, isNotEmpty
+from accounts.schema.utils import is_duplicate, is_not_empty
 from common.types import AdminFieldValidationProblem
 
 
@@ -25,7 +25,7 @@ class AdminInvitationCodeCreateMutation(graphene.Mutation):
     @staticmethod
     def mutate(root, info, code, authority_id, from_date, through_date, inherits):
         problems = []
-        if code_problem := isNotEmpty("code", "Code must not be empty"):
+        if code_problem := is_not_empty("code", "Code must not be empty"):
             problems.append(code_problem)
 
         if InvitationCode.objects.filter(code=code).exists():
@@ -43,13 +43,13 @@ class AdminInvitationCodeCreateMutation(graphene.Mutation):
         if authority_id != 0:
             authority = Authority.objects.get(pk=authority_id)
 
-        invitationCode = InvitationCode.objects.create(
+        invitation_code = InvitationCode.objects.create(
             code=code,
             authority=authority,
             from_date=from_date,
             through_date=through_date,
         )
-        return AdminInvitationCodeCreateMutation(result=invitationCode)
+        return AdminInvitationCodeCreateMutation(result=invitation_code)
 
 
 class AdminInvitationCodeUpdateMutation(graphene.Mutation):
@@ -74,10 +74,10 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
 
         problems = []
         if invitation_code.code != code:
-            if duplicate_problem := isDupliate("code", code, InvitationCode):
+            if duplicate_problem := is_duplicate("code", code, InvitationCode):
                 problems.append(duplicate_problem)
 
-        if code_problem := isNotEmpty("code", "Code must not be empty"):
+        if code_problem := is_not_empty("code", "Code must not be empty"):
             problems.append(code_problem)
 
         if len(problems) > 0:
@@ -86,9 +86,9 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
             )
 
         invitation_code.code = code
-        if from_date != None:
+        if from_date is not None:
             invitation_code.from_date = from_date
-        if through_date != None:
+        if through_date is not None:
             invitation_code.through_date = through_date
 
         invitation_code.save()
