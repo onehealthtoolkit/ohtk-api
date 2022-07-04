@@ -44,7 +44,7 @@ class Query(graphene.ObjectType):
     @login_required
     def resolve_me(root, info):
         user = info.context.user
-        if hasattr(user, "authorityuser"):
+        if user.is_authority_user():
             return user.authorityuser
         return user
 

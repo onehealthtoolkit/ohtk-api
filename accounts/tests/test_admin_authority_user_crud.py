@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from graphql_jwt.testcases import JSONWebTokenTestCase
 
 from accounts.models import Authority, AuthorityUser
@@ -12,6 +13,8 @@ class AdminAuthorityUserTests(JSONWebTokenTestCase):
         self.authorityUser2 = AuthorityUser.objects.create(
             username="another", authority=self.authority
         )
+        self.user = get_user_model().objects.create(username="admintest")
+        self.client.authenticate(self.user)
 
     def test_simple_query(self):
         query = """

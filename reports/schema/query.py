@@ -87,9 +87,9 @@ class Query(graphene.ObjectType):
             .prefetch_related("images", "reported_by", "report_type")
         )
         user = info.context.user
-        if hasattr(user, "authorityuser"):
+        if user.is_authority_user():
             authority = info.context.user.authorityuser.authority
             child_authorities = authority.all_inherits_down()
-            query = query.filter(authority__in=child_authorities)
+            query = query.filter(relevant_authorities__in=child_authorities)
 
         return query

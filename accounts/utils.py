@@ -43,7 +43,7 @@ def get_current_domain_id():
 
 def custom_jwt_payload(user, context=None):
     payload = jwt_payload(user, context)
-    if hasattr(user, "authorityuser"):
+    if user.is_authority_user():
         authority_user = user.authorityuser
         payload["authority_id"] = authority_user.authority_id
     return payload

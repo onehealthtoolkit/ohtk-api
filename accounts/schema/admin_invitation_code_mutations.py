@@ -38,7 +38,7 @@ class AdminInvitationCodeCreateMutation(graphene.Mutation):
                 result=AdminInvitationCodeCreateProblem(fields=problems)
             )
         user = info.context.user
-        if hasattr(user, "authorityuser"):
+        if user.is_authority_user():
             authority = info.context.user.authorityuser.authority
         if authority_id != 0:
             authority = Authority.objects.get(pk=authority_id)

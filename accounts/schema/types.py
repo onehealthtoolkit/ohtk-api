@@ -100,14 +100,14 @@ class UserProfileType(graphene.ObjectType):
     authority_name = graphene.String(required=False)
     authority_id = graphene.Int(required=False)
 
-    def resolve_authority_name(parent, info):
-        if hasattr(parent, "authority"):
-            return parent.authority.name
+    def resolve_authority_name(self, info):
+        if self.is_authority_user():
+            return self.authority.name
         return ""
 
-    def resolve_authority_id(parent, info):
-        if hasattr(parent, "authority"):
-            return parent.authority.id
+    def resolve_authority_id(self, info):
+        if hasattr(self, "authority"):
+            return self.authority.id
         return 0
 
 

@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from graphql_jwt.testcases import JSONWebTokenTestCase
 
 from accounts.models import Authority, InvitationCode
@@ -11,6 +12,9 @@ class AdminInvitationCodeTests(JSONWebTokenTestCase):
         ).save()
         self.InvitationCode2 = InvitationCode(authority=self.authority)
         self.InvitationCode2.save()
+
+        self.user = get_user_model().objects.create(username="test")
+        self.client.authenticate(self.user)
 
     def test_simple_query(self):
         query = """

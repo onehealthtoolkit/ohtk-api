@@ -4,7 +4,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
 
-from accounts.models import BaseModel, User
+from accounts.models import BaseModel, User, Authority
 from . import ReportType
 
 """
@@ -75,6 +75,8 @@ class IncidentReport(AbstractIncidentReport):
     origin_data = models.JSONField()
     origin_renderer_data = models.TextField(blank=True, default="")
     gps_location = models.PointField(null=True, blank=True)
+    relevant_authority_resolved = models.BooleanField(default=False, null=False)
+    relevant_authorities = models.ManyToManyField(Authority, related_name="incidents")
 
     def save(self, *args, **kwargs):
         self.renderer_data = self.report_type.render_data(

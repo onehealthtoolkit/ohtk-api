@@ -17,13 +17,21 @@ class SubmitIncidentReport(graphene.Mutation):
         gps_location = graphene.String(
             required=False
         )  # comma separated string eg. 13.234343,100.23434343
+        incident_in_authority = graphene.Boolean(required=False)
 
     result = graphene.Field(IncidentReportType)
 
     @staticmethod
     @login_required
     def mutate(
-        root, info, data, report_type_id, incident_date, report_id, gps_location
+        root,
+        info,
+        data,
+        report_type_id,
+        incident_date,
+        report_id,
+        gps_location,
+        incident_in_authority,
     ):
         user = info.context.user
         report_type = ReportType.objects.get(pk=report_type_id)
@@ -31,6 +39,9 @@ class SubmitIncidentReport(graphene.Mutation):
         if gps_location:
             [latitude, longitude] = gps_location.split(",")
             location = Point(float(latitude), float(longitude))
+        if incident_in_authority is None:
+            incident_in_authority = False
+
         report = IncidentReport.objects.create(
             reported_by=user,
             report_type=report_type,
@@ -38,5 +49,9 @@ class SubmitIncidentReport(graphene.Mutation):
             id=report_id,
             incident_date=incident_date,
             gps_location=location,
+            relevant_authority_resolved=incident_in_authority,
         )
+        if incident_in_authority:
+            report.relevant_authorities.add(user.authorityuser.authority)
+
         return SubmitIncidentReport(result=report)

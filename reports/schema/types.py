@@ -39,6 +39,16 @@ class IncidentReportType(DjangoObjectType):
     def resolve_images(self, info):
         return self.images.all()
 
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        user = info.context.user
+        if user.is_authority_user():
+            auth_set = []
+            for item in user.authorityuser.authority.all_inherits_down():
+                auth_set.append(item.id)
+            queryset = queryset.filter(relevant_authorities__in=auth_set)
+        return queryset
+
 
 class CategoryType(DjangoObjectType):
     class Meta:

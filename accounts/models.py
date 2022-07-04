@@ -53,7 +53,8 @@ class Authority(BaseModel):
 
 
 class User(AbstractUser):
-    pass
+    def is_authority_user(self):
+        return hasattr(self, "authorityuser")
 
 
 class AuthorityUser(User):
