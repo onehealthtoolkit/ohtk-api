@@ -73,9 +73,23 @@ class InvitationCodeType(DjangoObjectType):
 
 
 class UserType(DjangoObjectType):
+    telephone = graphene.String()
+
     class Meta:
         model = User
-        fields = ("id", "username", "first_name", "last_name")
+        fields = (
+            "id",
+            "username",
+            "first_name",
+            "last_name",
+            "telephone",
+        )
+
+    def resolve_telephone(self, info):
+        if self.is_authority_user():
+            return self.authorityuser.telephone
+        else:
+            return ""
 
 
 class AuthorityUserType(DjangoObjectType):
