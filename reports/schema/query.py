@@ -1,5 +1,4 @@
 from typing import List
-from unicodedata import category
 import graphene
 from graphql import GraphQLError
 from graphql_jwt.decorators import login_required

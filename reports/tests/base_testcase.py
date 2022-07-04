@@ -32,6 +32,7 @@ class BaseTestCase(TestCase):
             name="Dengue",
             category=self.human_category,
             definition={},
+            renderer_data_template="{{name}}",
         )
         self.dengue_report_type.authorities.add(self.thailand)
         self.mers_report_type = ReportType.objects.create(

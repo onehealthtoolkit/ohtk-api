@@ -45,9 +45,15 @@ SHARED_APPS = (
     "graphene_django",
     "graphql_jwt.refresh_token.apps.RefreshTokenConfig",
     "reports",
+    "cases",
 )
 
-TENANT_APPS = ("django.contrib.contenttypes", "accounts", "reports")
+TENANT_APPS = (
+    "django.contrib.contenttypes",
+    "accounts",
+    "reports",
+    "cases",
+)
 
 INSTALLED_APPS = list(SHARED_APPS) + [
     app for app in TENANT_APPS if app not in SHARED_APPS
