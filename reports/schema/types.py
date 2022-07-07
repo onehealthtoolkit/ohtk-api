@@ -28,7 +28,12 @@ class IncidentReportType(DjangoObjectType):
     class Meta:
         model = IncidentReport
         exclude = ("gps_location",)
-        filter_fields = {}
+        filter_fields = {
+            "created_at": ["lte", "gte"],
+            "incident_date": ["lte", "gte"],
+            "relevant_authorities__name": ["istartswith", "exact"],
+            "relevant_authorities__id": ["in"],
+        }
 
     def resolve_gps_location(self, info):
         if self.gps_location:
