@@ -113,6 +113,7 @@ class UserProfileType(graphene.ObjectType):
     last_name = graphene.String(required=True)
     authority_name = graphene.String(required=False)
     authority_id = graphene.Int(required=False)
+    avatar_url = graphene.String(required=False)
 
     def resolve_authority_name(self, info):
         if self.is_authority_user():
@@ -123,6 +124,9 @@ class UserProfileType(graphene.ObjectType):
         if hasattr(self, "authority"):
             return self.authority.id
         return 0
+
+    def resolve_avatar(self, info):
+        return self.avatar.url if self.avatar else None
 
 
 class CheckInvitationCodeType(DjangoObjectType):

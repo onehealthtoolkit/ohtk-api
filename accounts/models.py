@@ -53,6 +53,8 @@ class Authority(BaseModel):
 
 
 class User(AbstractUser):
+    avatar = models.ImageField(upload_to="avatars", null=True, blank=True)
+
     def is_authority_user(self):
         return hasattr(self, "authorityuser")
 
