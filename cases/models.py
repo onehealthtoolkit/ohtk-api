@@ -6,7 +6,6 @@ from reports.models import IncidentReport, ReportType
 
 
 class StatusTemplate(BaseModel):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.TextField()
     definition = models.JSONField()
     is_default = models.BooleanField(default=False)
@@ -57,7 +56,6 @@ class Case(BaseModel):
 
 
 class StatusHistory(BaseModel):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     case = models.ForeignKey(Case, on_delete=models.CASCADE)
     description = models.TextField(blank=True, default="")
     data = models.JSONField(blank=True, default=dict)
@@ -65,7 +63,6 @@ class StatusHistory(BaseModel):
 
 
 class CaseDefinition(BaseModel):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     report_type = models.ForeignKey(ReportType, on_delete=models.CASCADE)
     description = models.TextField(default="", blank=True)
     condition = models.TextField()

@@ -51,7 +51,6 @@ class QueryCasesTestCase(BaseTestCase):
         }
         """
         result = self.client.execute(query, {})
-        print(result)
         self.assertIsNotNone(result.data["casesQuery"])
         self.assertEqual(2, len(result.data["casesQuery"]["results"]))
         self.assertIsNotNone(result.data["casesQuery"]["results"][0]["id"])
@@ -80,7 +79,6 @@ class QueryCasesTestCase(BaseTestCase):
         }
         """
         result = self.client.execute(query, {"id": str(self.mere_case1.id)})
-        print(result)
         self.assertIsNotNone(result.data["caseGet"])
         self.assertIsNotNone(result.data["caseGet"]["id"])
         self.assertEqual(str(self.mere_case1.id), result.data["caseGet"]["id"])
