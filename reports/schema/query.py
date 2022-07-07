@@ -79,6 +79,7 @@ class Query(graphene.ObjectType):
         return IncidentReport.objects.get(id=id)
 
     @staticmethod
+    @login_required
     def resolve_incident_reports(root, info, **kwargs):
         query = (
             IncidentReport.objects.all()

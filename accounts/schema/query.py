@@ -62,6 +62,7 @@ class Query(graphene.ObjectType):
         return Feature.objects.all()
 
     @staticmethod
+    @login_required
     def resolve_authorities(root, info, **kwargs):
         user = info.context.user
         if not user.is_superuser:
@@ -69,6 +70,7 @@ class Query(graphene.ObjectType):
         return Authority.objects.all()
 
     @staticmethod
+    @login_required
     def resolve_authority(root, info, id):
         user = info.context.user
         if not user.is_superuser:
@@ -76,6 +78,7 @@ class Query(graphene.ObjectType):
         return Authority.objects.get(id=id)
 
     @staticmethod
+    @login_required
     def resolve_admin_authority_get(root, info, id):
         user = info.context.user
         if not user.is_superuser:
@@ -83,6 +86,7 @@ class Query(graphene.ObjectType):
         return Authority.objects.get(id=id)
 
     @staticmethod
+    @login_required
     def resolve_authority_user(root, info, id):
         user = info.context.user
         if not user.is_superuser:
@@ -90,6 +94,7 @@ class Query(graphene.ObjectType):
         return AuthorityUser.objects.get(id=id)
 
     @staticmethod
+    @login_required
     def resolve_invitation_code(root, info, id):
         user = info.context.user
         if not user.is_superuser:

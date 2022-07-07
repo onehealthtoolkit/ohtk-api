@@ -1,12 +1,9 @@
 from random import randint
+
 from dateutil.relativedelta import *
-
-from django.contrib.auth.models import UserManager, AbstractUser
+from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models import Q
 from django.utils.timezone import now
-
-from accounts.utils import get_current_domain_id
 
 
 class BaseModel(models.Model):

@@ -67,4 +67,6 @@ class StatusHistory(BaseModel):
 class CaseDefinition(BaseModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     report_type = models.ForeignKey(ReportType, on_delete=models.CASCADE)
+    description = models.TextField(default="", blank=True)
     condition = models.TextField()
+    is_active = models.BooleanField(default=True, blank=True)
