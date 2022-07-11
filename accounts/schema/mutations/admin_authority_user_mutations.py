@@ -8,7 +8,7 @@ from accounts.schema.types import (
     AdminAuthorityUserCreateResult,
     AdminAuthorityUserUpdateSuccess,
 )
-from accounts.schema.utils import is_duplicate, is_not_empty
+from common.utils import is_duplicate, is_not_empty
 from common.types import AdminFieldValidationProblem
 
 
@@ -37,11 +37,13 @@ class AdminAuthorityUserCreateMutation(graphene.Mutation):
         telephone,
     ):
         problems = []
-        if username_problem := is_not_empty("username", "User name must not be empty"):
+        if username_problem := is_not_empty(
+            "username", username, "User name must not be empty"
+        ):
             problems.append(username_problem)
 
         if first_name_problem := is_not_empty(
-            "first_name", "First name must not be empty"
+            "first_name", first_name, "First name must not be empty"
         ):
             problems.append(first_name_problem)
 
@@ -105,11 +107,13 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
             if duplicate_problem := is_duplicate("username", username, AuthorityUser):
                 problems.append(duplicate_problem)
 
-        if username_problem := is_not_empty("username", "User name must not be empty"):
+        if username_problem := is_not_empty(
+            "username", username, "User name must not be empty"
+        ):
             problems.append(username_problem)
 
         if first_name_problem := is_not_empty(
-            "first_name", "First name must not be empty"
+            "first_name", first_name, "First name must not be empty"
         ):
             problems.append(first_name_problem)
 

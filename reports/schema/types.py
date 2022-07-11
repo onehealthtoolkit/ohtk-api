@@ -3,7 +3,7 @@ from graphene.types.generic import GenericScalar
 from graphene_django import DjangoObjectType
 from common.types import AdminValidationProblem
 
-from reports.models import ReportType, Category, IncidentReport
+from reports.models import ReportType, Category, IncidentReport, ReporterNotification
 from reports.models.report import Image
 
 
@@ -156,4 +156,52 @@ class AdminReportTypeUpdateResult(graphene.Union):
         types = (
             AdminReportTypeUpdateSuccess,
             AdminReportTypeUpdateProblem,
+        )
+
+
+# ReporterNotificationType
+class ReporterNotificationType(DjangoObjectType):
+    class Meta:
+        model = ReporterNotification
+
+
+class AdminReporterNotificationQueryType(DjangoObjectType):
+    class Meta:
+        model = ReporterNotification
+        fields = ("id", "description", "condition", "template")
+        filter_fields = {
+            "description": ["istartswith", "exact"],
+        }
+
+
+class AdminReporterNotificationCreateSuccess(DjangoObjectType):
+    class Meta:
+        model = ReporterNotification
+
+
+class AdminReporterNotificationCreateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminReporterNotificationCreateResult(graphene.Union):
+    class Meta:
+        types = (
+            AdminReporterNotificationCreateSuccess,
+            AdminReporterNotificationCreateProblem,
+        )
+
+
+class AdminReporterNotificationUpdateSuccess(graphene.ObjectType):
+    reporter_notification = graphene.Field(ReporterNotificationType)
+
+
+class AdminReporterNotificationUpdateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminReporterNotificationUpdateResult(graphene.Union):
+    class Meta:
+        types = (
+            AdminReporterNotificationUpdateSuccess,
+            AdminReporterNotificationUpdateProblem,
         )

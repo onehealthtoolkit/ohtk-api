@@ -5,15 +5,18 @@ from graphql_jwt.decorators import login_required
 from pagination.connection_field import DjangoPaginationConnectionField
 from reports.models import ReportType, Category
 from reports.models.report import IncidentReport
+from reports.models.reporter_notification import ReporterNotification
 
 from .types import (
     AdminCategoryQueryType,
     AdminReportTypeQueryType,
+    AdminReporterNotificationQueryType,
     CategoryType,
     IncidentReportType,
     ReportTypeSyncInputType,
     ReportTypeSyncOutputType,
     ReportTypeType,
+    ReporterNotificationType,
 )
 
 
@@ -31,9 +34,15 @@ class Query(graphene.ObjectType):
     report_type = graphene.Field(ReportTypeType, id=graphene.ID(required=True))
     incident_reports = DjangoPaginationConnectionField(IncidentReportType)
     incident_report = graphene.Field(IncidentReportType, id=graphene.ID(required=True))
+    reporter_notification = graphene.Field(
+        ReporterNotificationType, id=graphene.ID(required=True)
+    )
 
     admin_category_query = DjangoPaginationConnectionField(AdminCategoryQueryType)
     admin_report_type_query = DjangoPaginationConnectionField(AdminReportTypeQueryType)
+    admin_reporter_notification_query = DjangoPaginationConnectionField(
+        AdminReporterNotificationQueryType
+    )
 
     @staticmethod
     @login_required
@@ -77,6 +86,13 @@ class Query(graphene.ObjectType):
         if not user.is_superuser:
             raise GraphQLError("Permission denied.")
         return IncidentReport.objects.get(id=id)
+
+    @staticmethod
+    def resolve_reporter_notification(root, info, id):
+        user = info.context.user
+        if not user.is_superuser:
+            raise GraphQLError("Permission denied.")
+        return ReporterNotification.objects.get(id=id)
 
     @staticmethod
     @login_required

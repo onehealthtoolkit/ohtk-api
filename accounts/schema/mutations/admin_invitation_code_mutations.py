@@ -8,7 +8,7 @@ from accounts.schema.types import (
     AdminInvitationCodeCreateProblem,
     AdminInvitationCodeUpdateSuccess,
 )
-from accounts.schema.utils import is_duplicate, is_not_empty
+from common.utils import is_duplicate, is_not_empty
 from common.types import AdminFieldValidationProblem
 
 
@@ -25,7 +25,7 @@ class AdminInvitationCodeCreateMutation(graphene.Mutation):
     @staticmethod
     def mutate(root, info, code, authority_id, from_date, through_date, inherits):
         problems = []
-        if code_problem := is_not_empty("code", "Code must not be empty"):
+        if code_problem := is_not_empty("code", code, "Code must not be empty"):
             problems.append(code_problem)
 
         if InvitationCode.objects.filter(code=code).exists():
@@ -77,7 +77,7 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
             if duplicate_problem := is_duplicate("code", code, InvitationCode):
                 problems.append(duplicate_problem)
 
-        if code_problem := is_not_empty("code", "Code must not be empty"):
+        if code_problem := is_not_empty("code", code, "Code must not be empty"):
             problems.append(code_problem)
 
         if len(problems) > 0:

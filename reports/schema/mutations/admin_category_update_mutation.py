@@ -1,6 +1,5 @@
 import graphene
-from accounts.schema.utils import is_duplicate, is_not_empty
-from common.types import AdminFieldValidationProblem
+from common.utils import is_duplicate, is_not_empty
 from reports.models.category import Category
 
 from reports.schema.types import (
@@ -34,7 +33,7 @@ class AdminCategoryUpdateMutation(graphene.Mutation):
 
         problems = []
 
-        if name_problem := is_not_empty("name", "Name must not be empty"):
+        if name_problem := is_not_empty("name", name, "Name must not be empty"):
             problems.append(name_problem)
 
         if category.name != name:
