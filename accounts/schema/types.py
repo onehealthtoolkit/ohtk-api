@@ -1,8 +1,18 @@
 import graphene
 from graphene_django import DjangoObjectType
 
+from django.contrib.gis.db import models
+from graphene_django.converter import convert_django_field
+
 from accounts.models import Authority, AuthorityUser, InvitationCode, Feature, User
+from common.converter import GeoJSON
 from common.types import AdminValidationProblem
+
+
+@convert_django_field.register(models.PolygonField)
+@convert_django_field.register(models.MultiPolygonField)
+def convert_geofield_to_string(field, registry=None):
+    return GeoJSON(description=field.help_text, required=not field.null)
 
 
 class AuthorityInheritType(DjangoObjectType):
@@ -22,6 +32,7 @@ class AuthorityType(DjangoObjectType):
             "id",
             "code",
             "name",
+            "area",
         )
         filter_fields = {"name": ["istartswith", "exact"]}
 

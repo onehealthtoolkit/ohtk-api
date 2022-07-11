@@ -2,6 +2,36 @@ from graphql_jwt.testcases import JSONWebTokenTestCase
 
 from accounts.models import Authority
 
+area_geojson = """
+        {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              43.9453125,
+              22.268764039073968
+            ],
+            [
+              41.1328125,
+              27.059125784374068
+            ],
+            [
+              33.046875,
+              22.917922936146045
+            ],
+            [
+              36.2109375,
+              15.961329081596647
+            ],
+            [
+              43.9453125,
+              22.268764039073968
+            ]
+          ]
+        ]
+      }
+      """
+
 
 class AdminAuthorityTests(JSONWebTokenTestCase):
     def setUp(self):
@@ -160,6 +190,97 @@ class AdminAuthorityTests(JSONWebTokenTestCase):
         self.assertIsNotNone(result.data["adminAuthorityUpdate"]["result"])
         self.assertIsNotNone(
             result.data["adminAuthorityUpdate"]["result"]["authority"]["id"]
+        )
+        self.assertEqual(
+            result.data["adminAuthorityUpdate"]["result"]["authority"]["code"], "99"
+        )
+
+    def test_create_with_area_field(self):
+        mutation = """
+        mutation adminAuthorityCreate($code: String!, $name: String!, $area: String) {
+            adminAuthorityCreate(code: $code, name: $name, area: $area) {
+                result {
+                  __typename
+                  ... on AdminAuthorityCreateSuccess {
+                    name
+                    id
+                    code                
+                    area
+                    createdAt
+                  }
+                  ... on AdminAuthorityCreateProblem {
+                    message
+                    fields {
+                      name
+                      message
+                    }
+                  }
+                }
+            }
+        }
+        """
+
+        result = self.client.execute(
+            mutation, {"code": "99", "name": "any thing", "area": area_geojson}
+        )
+        self.assertIsNotNone(result.data["adminAuthorityCreate"]["result"])
+        self.assertIsNotNone(result.data["adminAuthorityCreate"]["result"]["id"])
+        self.assertEqual(result.data["adminAuthorityCreate"]["result"]["code"], "99")
+        self.assertIsNotNone(result.data["adminAuthorityCreate"]["result"]["area"])
+
+    def test_update_with_area_field_success(self):
+        mutation = """
+        mutation adminAuthorityUpdate($id: ID!, $code: String!, $name: String!, $area: String) {
+            adminAuthorityUpdate(id: $id, code: $code, name: $name, area: $area) {
+                result {
+                  __typename
+                  ... on AdminAuthorityUpdateSuccess {
+                    authority {
+                        name
+                        id
+                        code
+                        area
+                    }
+
+                  }
+                  ... on AdminAuthorityUpdateProblem {
+                    message
+                    fields {
+                      name
+                      message
+                    }
+                  }
+                }
+            }
+        }
+        """
+        result = self.client.execute(
+            mutation,
+            {
+                "id": self.authority1.id,
+                "code": "99",
+                "name": "any thing",
+                "area": area_geojson,
+            },
+        )
+        self.assertIsNotNone(result.data["adminAuthorityUpdate"]["result"])
+        self.assertIsNotNone(
+            result.data["adminAuthorityUpdate"]["result"]["authority"]["id"]
+        )
+        self.assertIsNotNone(
+            result.data["adminAuthorityUpdate"]["result"]["authority"]["area"]
+        )
+        self.assertIsNotNone(
+            result.data["adminAuthorityUpdate"]["result"]["authority"]["area"]["type"]
+        )
+        self.assertEqual(
+            result.data["adminAuthorityUpdate"]["result"]["authority"]["area"]["type"],
+            "Polygon",
+        )
+        self.assertIsNotNone(
+            result.data["adminAuthorityUpdate"]["result"]["authority"]["area"][
+                "coordinates"
+            ]
         )
         self.assertEqual(
             result.data["adminAuthorityUpdate"]["result"]["authority"]["code"], "99"

@@ -2,7 +2,7 @@ from random import randint
 
 from dateutil.relativedelta import *
 from django.contrib.auth.models import AbstractUser
-from django.db import models
+from django.contrib.gis.db import models
 from django.utils.timezone import now
 
 
@@ -36,6 +36,7 @@ class Authority(BaseModel):
     inherits = models.ManyToManyField(
         "self", related_name="authority_inherits", symmetrical=False, blank=True
     )
+    area = models.PolygonField(null=True, blank=True)
 
     def __str__(self):
         return self.name

@@ -17,11 +17,12 @@ class AdminAuthorityCreateMutation(graphene.Mutation):
         code = graphene.String(required=True)
         name = graphene.String(required=True)
         inherits = graphene.List(graphene.String)
+        area = graphene.String(required=False)
 
     result = graphene.Field(AdminAuthorityCreateResult)
 
     @staticmethod
-    def mutate(root, info, code, name, inherits):
+    def mutate(root, info, code, name, inherits, area=None):
         problems = []
         if code_problem := is_not_empty("code", "Code must not be empty"):
             problems.append(code_problem)
@@ -39,7 +40,7 @@ class AdminAuthorityCreateMutation(graphene.Mutation):
                 result=AdminAuthorityCreateProblem(fields=problems)
             )
 
-        authority = Authority.objects.create(code=code, name=name)
+        authority = Authority.objects.create(code=code, name=name, area=area)
         if inherits:
             authority.inherits.set(Authority.objects.filter(pk__in=inherits))
 
@@ -52,11 +53,12 @@ class AdminAuthorityUpdateMutation(graphene.Mutation):
         code = graphene.String(required=True)
         name = graphene.String(required=True)
         inherits = graphene.List(graphene.String)
+        area = graphene.String(required=False)
 
     result = graphene.Field(AdminAuthorityUpdateResult)
 
     @staticmethod
-    def mutate(root, info, id, code, name, inherits):
+    def mutate(root, info, id, code, name, inherits, area=None):
         try:
             authority = Authority.objects.get(pk=id)
         except Authority.DoesNotExist:
@@ -84,6 +86,8 @@ class AdminAuthorityUpdateMutation(graphene.Mutation):
 
         authority.code = code
         authority.name = name
+        if area:
+            authority.area = area
         if inherits:
             authority.inherits.set(Authority.objects.filter(pk__in=inherits))
 
