@@ -1,8 +1,8 @@
 import graphene
 
-from .types import CaseType
+from ..types import CaseType
 from reports.schema.types import IncidentReportType
-from ..models import Case
+from ...models import Case
 
 
 class PromoteToCaseMutation(graphene.Mutation):

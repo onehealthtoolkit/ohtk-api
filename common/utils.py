@@ -1,14 +1,15 @@
 from typing import Union
-from common.types import AdminFieldValidationProblem, AdminValidationProblem
 from django.db import models
+from common.types import AdminFieldValidationProblem
 
 
 def is_not_empty(
     name: str,
+    value: str,
     message: str,
     problem_class: AdminFieldValidationProblem = AdminFieldValidationProblem,
 ) -> Union[AdminFieldValidationProblem, None]:
-    if not str:
+    if not value:
         return problem_class(name=name, message=message)
     return None
 

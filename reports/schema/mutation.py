@@ -8,6 +8,8 @@ from .mutations import (
     AdminCategoryUpdateMutation,
     AdminReportTypeCreateMutation,
     AdminReportTypeUpdateMutation,
+    AdminReporterNotificationCreateMutation,
+    AdminReporterNotificationUpdateMutation,
 )
 
 
@@ -19,3 +21,5 @@ class Mutation(graphene.ObjectType):
     admin_category_update = AdminCategoryUpdateMutation.Field()
     admin_report_type_create = AdminReportTypeCreateMutation.Field()
     admin_report_type_update = AdminReportTypeUpdateMutation.Field()
+    admin_reporter_notification_create = AdminReporterNotificationCreateMutation.Field()
+    admin_reporter_notification_update = AdminReporterNotificationUpdateMutation.Field()

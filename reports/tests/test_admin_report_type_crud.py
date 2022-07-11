@@ -53,8 +53,8 @@ class AdminReportTypeTests(JSONWebTokenTestCase):
 
     def test_create_with_error(self):
         mutation = """
-        mutation adminReportTypeCreate($name: String!, $ordering: Int!) {
-            adminReportTypeCreate(name: $name, ordering: $ordering) {
+        mutation adminReportTypeCreate($name: String!, $definition: String!, $ordering: Int!) {
+            adminReportTypeCreate(name: $name, definition: $definition, ordering: $ordering) {
                 result {
                   __typename
                   ... on AdminReportTypeCreateSuccess {
@@ -77,6 +77,7 @@ class AdminReportTypeTests(JSONWebTokenTestCase):
             mutation,
             {
                 "name": "report type1",
+                "definition": '{"x":"YYYYY"}',
                 "ordering": 1,
             },
         )

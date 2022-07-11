@@ -1,6 +1,6 @@
 import json
 import graphene
-from accounts.schema.utils import is_not_empty
+from common.utils import is_not_empty
 from common.types import AdminFieldValidationProblem
 from reports.models.category import Category
 from reports.models.report_type import ReportType
@@ -23,11 +23,11 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
     @staticmethod
     def mutate(root, info, name, category_id, definition, ordering):
         problems = []
-        if name_problem := is_not_empty("name", "Name must not be empty"):
+        if name_problem := is_not_empty("name", name, "Name must not be empty"):
             problems.append(name_problem)
 
         if definition_problem := is_not_empty(
-            "definition", "Definition must not be empty"
+            "definition", definition, "Definition must not be empty"
         ):
             problems.append(definition_problem)
 
