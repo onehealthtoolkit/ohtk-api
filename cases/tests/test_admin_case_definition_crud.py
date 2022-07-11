@@ -157,7 +157,6 @@ class AdminCaseDefinitionTests(JSONWebTokenTestCase):
                 "condition": "no",
             },
         )
-        print(result)
 
         self.assertIsNotNone(result.data["adminCaseDefinitionUpdate"]["result"])
         self.assertIsNotNone(
@@ -200,7 +199,6 @@ class AdminCaseDefinitionTests(JSONWebTokenTestCase):
                 "condition": "no",
             },
         )
-        print(result)
         self.assertIsNotNone(result.data["adminCaseDefinitionUpdate"]["result"])
         self.assertIsNotNone(
             result.data["adminCaseDefinitionUpdate"]["result"]["caseDefinition"]["id"]

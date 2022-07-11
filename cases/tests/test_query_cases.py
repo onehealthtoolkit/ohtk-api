@@ -12,7 +12,7 @@ class QueryCasesTestCase(BaseTestCase):
         self.mere_case1 = Case.objects.create(
             report=self.mers_report,
             description="mers description1",
-            status_template=self.mers_template,
+            state_definition=self.mers_state_definition,
         )
         self.mers_report2 = IncidentReport.objects.create(
             reported_by=self.user,
@@ -25,7 +25,7 @@ class QueryCasesTestCase(BaseTestCase):
         self.mere_case2 = Case.objects.create(
             report=self.mers_report2,
             description="mers description2",
-            status_template=self.mers_template,
+            state_definition=self.mers_state_definition,
         )
         self.mere_case1.authorities.add(self.bkk)
         self.mere_case2.authorities.add(self.bkk)
@@ -40,7 +40,7 @@ class QueryCasesTestCase(BaseTestCase):
                     report {
                         id
                     }
-                    statusTemplate {
+                    stateDefinition {
                         name
                     }
                     authorities {
@@ -69,7 +69,7 @@ class QueryCasesTestCase(BaseTestCase):
                 report {
                     id
                 }
-                statusTemplate {
+                stateDefinition {
                     name
                 }
                 authorities {

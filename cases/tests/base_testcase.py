@@ -2,7 +2,12 @@ from django.contrib.gis.geos import Point
 from django.utils.timezone import now
 from graphql_jwt.testcases import JSONWebTokenClient
 
-from cases.models import StatusTemplate, StatusTemplateMapping
+from cases.models import (
+    StateDefinition,
+    CaseStateMapping,
+    StateStep,
+    StateTransition,
+)
 from reports.models import IncidentReport
 from reports.tests.base_testcase import BaseTestCase as ReportBaseTestCase
 
@@ -12,14 +17,45 @@ class BaseTestCase(ReportBaseTestCase):
 
     def setUp(self):
         super().setUp()
-        self.default_template = StatusTemplate.objects.create(
-            is_default=True, definition={}, name="dengue template"
+        self.default_state_definition = StateDefinition.objects.create(
+            name="default state definition", is_default=True
         )
-        self.mers_template = StatusTemplate.objects.create(
-            is_default=False, definition={}, name="mers template"
+        self.mers_state_definition = StateDefinition.objects.create(
+            name="sick/death state definition"
         )
-        self.mapping = StatusTemplateMapping.objects.create(
-            report_type=self.mers_report_type, status_template=self.mers_template
+
+        self.mapping = CaseStateMapping.objects.create(
+            report_type=self.mers_report_type,
+            state_definition=self.mers_state_definition,
+        )
+
+        self.step1 = StateStep.objects.create(
+            name="step1",
+            is_start_state=True,
+            state_definition=self.mers_state_definition,
+        )
+
+        self.step2 = StateStep.objects.create(
+            name="step2", state_definition=self.mers_state_definition
+        )
+
+        self.step3 = StateStep.objects.create(
+            name="step3",
+            is_stop_state=True,
+            state_definition=self.mers_state_definition,
+        )
+
+        self.transition1 = StateTransition.objects.create(
+            from_step=self.step1, to_step=self.step2
+        )
+        self.transition2 = StateTransition.objects.create(
+            from_step=self.step2, to_step=self.step3
+        )
+
+        self.default_step1 = StateStep.objects.create(
+            name="default step1",
+            is_start_state=True,
+            state_definition=self.default_state_definition,
         )
 
         self.dengue_report = IncidentReport.objects.create(

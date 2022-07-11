@@ -2,19 +2,19 @@ import graphene
 from graphene_django import DjangoObjectType
 
 from accounts.schema.types import AuthorityType
-from cases.models import Case, CaseDefinition, StatusTemplate
+from cases.models import Case, CaseDefinition, StateDefinition
 from common.types import AdminValidationProblem
 from reports.schema.types import IncidentReportType
 
 
-class StatusTemplateType(DjangoObjectType):
+class StateDefinitionType(DjangoObjectType):
     class Meta:
-        model = StatusTemplate
+        model = StateDefinition
         fields = ["id", "name"]
 
 
 class CaseType(DjangoObjectType):
-    status_template = graphene.Field(StatusTemplateType)
+    state_definition = graphene.Field(StateDefinitionType)
     report = graphene.Field(IncidentReportType)
     authorities = graphene.List(AuthorityType)
 
@@ -23,7 +23,7 @@ class CaseType(DjangoObjectType):
         fields = [
             "id",
             "report",
-            "status_template",
+            "state_definition",
             "description",
             "authorities",
         ]
@@ -45,7 +45,7 @@ class CaseDefinitionType(DjangoObjectType):
             "report_type",
             "description",
             "condition",
-            "isActive",
+            "is_active",
         ]
 
 
