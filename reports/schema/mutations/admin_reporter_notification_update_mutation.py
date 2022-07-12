@@ -1,6 +1,7 @@
 import graphene
-from common.utils import is_not_empty
-from reports.models import ReporterNotification
+
+from common.utils import is_not_empty, check_and_get
+from reports.models import ReporterNotification, ReportType
 from reports.schema.types import (
     AdminReporterNotificationUpdateProblem,
     AdminReporterNotificationUpdateResult,
@@ -11,6 +12,7 @@ from reports.schema.types import (
 class AdminReporterNotificationUpdateMutation(graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True)
+        report_type_id = graphene.UUID(required=True)
         description = graphene.String(required=True)
         condition = graphene.String(required=True)
         template = graphene.String(required=True)
@@ -19,7 +21,17 @@ class AdminReporterNotificationUpdateMutation(graphene.Mutation):
     result = graphene.Field(AdminReporterNotificationUpdateResult)
 
     @staticmethod
-    def mutate(root, info, id, description, condition, template, is_active):
+    def mutate(
+        root,
+        info,
+        id,
+        report_type_id,
+        description,
+        condition,
+        template,
+        is_active,
+        problems=None,
+    ):
         try:
             reporter_notification = ReporterNotification.objects.get(pk=id)
         except ReporterNotification.DoesNotExist:
@@ -30,6 +42,12 @@ class AdminReporterNotificationUpdateMutation(graphene.Mutation):
             )
 
         problems = []
+        report_type, problem = check_and_get(
+            "report_type_id", report_type_id, ReportType
+        )
+        if problem:
+            problems.append(problem)
+
         if description_problem := is_not_empty(
             "description", description, "Description must not be empty"
         ):
@@ -49,6 +67,9 @@ class AdminReporterNotificationUpdateMutation(graphene.Mutation):
         reporter_notification.condition = condition
         reporter_notification.template = template
         reporter_notification.is_active = is_active
+        if report_type:
+            reporter_notification.report_type = report_type
+
         reporter_notification.save()
         return AdminReporterNotificationUpdateMutation(
             result=AdminReporterNotificationUpdateSuccess(

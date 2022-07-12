@@ -1,5 +1,5 @@
 import graphene
-from common.utils import is_not_empty
+from common.utils import is_not_empty, check_and_get
 from cases.models import CaseDefinition
 from cases.schema.types import (
     AdminCaseDefinitionUpdateProblem,
@@ -30,16 +30,12 @@ class AdminCaseDefinitionUpdateMutation(graphene.Mutation):
                 )
             )
 
-        try:
-            report_type = ReportType.objects.get(pk=report_type_id)
-        except ReportType.DoesNotExist:
-            return AdminCaseDefinitionUpdateMutation(
-                result=AdminCaseDefinitionUpdateProblem(
-                    fields=[], message="ReportType object not found"
-                )
-            )
-
         problems = []
+        report_type, problem = check_and_get(
+            "report_type_id", report_type_id, ReportType
+        )
+        if problem:
+            problems.append(problem)
 
         if description_problem := is_not_empty(
             "description", description, "Description must not be empty"

@@ -166,9 +166,11 @@ class ReporterNotificationType(DjangoObjectType):
 
 
 class AdminReporterNotificationQueryType(DjangoObjectType):
+    report_type = graphene.Field(ReportTypeType)
+
     class Meta:
         model = ReporterNotification
-        fields = ("id", "description", "condition", "template")
+        fields = ("id", "description", "condition", "template", "report_type")
         filter_fields = {
             "description": ["istartswith", "exact"],
         }

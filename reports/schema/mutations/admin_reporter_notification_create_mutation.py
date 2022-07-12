@@ -1,6 +1,7 @@
 import graphene
-from common.utils import is_not_empty
-from reports.models import ReporterNotification
+
+from common.utils import is_not_empty, check_and_get
+from reports.models import ReporterNotification, ReportType
 from reports.schema.types import (
     AdminReporterNotificationCreateProblem,
     AdminReporterNotificationCreateResult,
@@ -9,6 +10,7 @@ from reports.schema.types import (
 
 class AdminReporterNotificationCreateMutation(graphene.Mutation):
     class Arguments:
+        report_type_id = graphene.UUID(required=True)
         description = graphene.String(required=True)
         condition = graphene.String(required=True)
         template = graphene.String(required=True)
@@ -17,8 +19,15 @@ class AdminReporterNotificationCreateMutation(graphene.Mutation):
     result = graphene.Field(AdminReporterNotificationCreateResult)
 
     @staticmethod
-    def mutate(root, info, description, condition, template, is_active):
+    def mutate(root, info, report_type_id, description, condition, template, is_active):
         problems = []
+
+        report_type, problem = check_and_get(
+            "report_type_id", report_type_id, ReportType
+        )
+        if problem:
+            problems.append(problem)
+
         if description_problem := is_not_empty(
             "description", description, "Description must not be empty"
         ):
@@ -35,6 +44,7 @@ class AdminReporterNotificationCreateMutation(graphene.Mutation):
             )
 
         reporter_notification = ReporterNotification.objects.create(
+            report_type=report_type,
             description=description,
             condition=condition,
             template=template,
