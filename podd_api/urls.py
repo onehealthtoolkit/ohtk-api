@@ -20,6 +20,7 @@ from django.urls import path
 from django.views.decorators.csrf import csrf_exempt
 from graphene_file_upload.django import FileUploadGraphQLView
 from graphql_jwt.decorators import jwt_cookie
+from graphql_playground.views import GraphQLPlaygroundView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -27,4 +28,11 @@ urlpatterns = [
         "graphql/",
         jwt_cookie(csrf_exempt(FileUploadGraphQLView.as_view(graphiql=True))),
     ),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
+
+if settings.DEBUG:
+    urlpatterns += [
+        path("playground/", GraphQLPlaygroundView.as_view(endpoint="/graphql/")),
+    ]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

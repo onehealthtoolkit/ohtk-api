@@ -44,6 +44,7 @@ SHARED_APPS = (
     "django.contrib.gis",
     "graphene_django",
     "graphql_jwt.refresh_token.apps.RefreshTokenConfig",
+    "graphql_playground",
     "reports",
     "cases",
 )
