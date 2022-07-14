@@ -10,8 +10,9 @@ def evaluate_reporter_notification(report_id):
         report_type=report.report_type
     ):
         try:
-            if eval_context.eval(definition.condition):
-                definition.send_message(eval_context)
-                return
+            should_send_msg = eval_context.eval(definition.condition)
         except:
-            pass
+            should_send_msg = False
+        if should_send_msg:
+            definition.send_message(report.template_context(), report.reported_by)
+            return

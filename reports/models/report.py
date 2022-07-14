@@ -105,20 +105,21 @@ class IncidentReport(AbstractIncidentReport):
                 self.save(update_fields=("relevant_authority_resolved",))
 
     def evaluate_context(self):
-        return build_eval_obj(
-            {
-                "data": self.data,
-                "report_date": self.created_at,
-                "incident_date": self.incident_date,
-                "gps_location": self.gps_location,
-                "report_id": self.id,
-                "report_type": {
-                    "id": self.report_type.id,
-                    "name": self.report_type.name,
-                    "category": self.report_type.category,
-                },
-            }
-        )
+        return build_eval_obj(self.template_context())
+
+    def template_context(self):
+        return {
+            "data": self.data,
+            "report_date": self.created_at,
+            "incident_date": self.incident_date,
+            "gps_location": self.gps_location,
+            "report_id": self.id,
+            "report_type": {
+                "id": self.report_type.id,
+                "name": self.report_type.name,
+                "category": self.report_type.category,
+            },
+        }
 
 
 class ZeroReport(BaseReport):
