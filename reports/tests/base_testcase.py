@@ -3,6 +3,77 @@ from django.test import TestCase
 from accounts.models import Authority, AuthorityUser
 from reports.models import Category, ReportType
 
+bkk_area = """
+      {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              100.43701171875,
+              13.870080100685891
+            ],
+            [
+              100.4644775390625,
+              13.747388924343081
+            ],
+            [
+              100.6292724609375,
+              13.75806028283862
+            ],
+            [
+              100.6842041015625,
+              13.902075852500495
+            ],
+            [
+              100.535888671875,
+              13.987376214146467
+            ],
+            [
+              100.43701171875,
+              13.870080100685891
+            ]
+          ]
+        ]
+      }"""
+
+cm_area = """
+      {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              98.624267578125,
+              19.062117883514652
+            ],
+            [
+              98.624267578125,
+              18.58377568837094
+            ],
+            [
+              98.94287109375,
+              18.3336694457713
+            ],
+            [
+              99.38232421875,
+              18.656654486540006
+            ],
+            [
+              99.31640625,
+              19.02057711096681
+            ],
+            [
+              98.800048828125,
+              19.37334071336406
+            ],
+            [
+              98.624267578125,
+              19.062117883514652
+            ]
+          ]
+        ]
+      }
+"""
+
 
 class BaseTestCase(TestCase):
     def setUp(self):
@@ -19,12 +90,15 @@ class BaseTestCase(TestCase):
         """
         self.thailand = Authority.objects.create(code="TH", name="Thailand")
 
-        self.bkk = Authority.objects.create(code="BKK", name="Bangkok")
-        self.jatujak = Authority.objects.create(code="jatujak", name="jatujak")
+        self.bkk = Authority.objects.create(code="BKK", name="Bangkok", area=bkk_area)
+        self.jatujak = Authority.objects.create(
+            code="jatujak",
+            name="jatujak",
+        )
         self.bkk.inherits.add(self.thailand)
         self.jatujak.inherits.add(self.bkk)
 
-        self.cm = Authority.objects.create(code="CM", name="Chiangmai")
+        self.cm = Authority.objects.create(code="CM", name="Chiangmai", area=cm_area)
         self.cm.inherits.add(self.thailand)
 
         self.human_category = Category.objects.create(name="human")

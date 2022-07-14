@@ -16,7 +16,7 @@ class SubmitIncidentReport(graphene.Mutation):
         report_id = graphene.UUID(required=False)
         gps_location = graphene.String(
             required=False
-        )  # comma separated string eg. 13.234343,100.23434343
+        )  # comma separated string eg. 13.234343,100.23434343 (latitude, longitude)
         incident_in_authority = graphene.Boolean(required=False)
 
     result = graphene.Field(IncidentReportType)
@@ -38,7 +38,7 @@ class SubmitIncidentReport(graphene.Mutation):
         location = None
         if gps_location:
             [latitude, longitude] = gps_location.split(",")
-            location = Point(float(latitude), float(longitude))
+            location = Point(float(longitude), float(latitude))
         if incident_in_authority is None:
             incident_in_authority = False
 
@@ -53,5 +53,7 @@ class SubmitIncidentReport(graphene.Mutation):
         )
         if incident_in_authority:
             report.relevant_authorities.add(user.authorityuser.authority)
+        else:
+            report.resolve_relevant_authorities_by_area()
 
         return SubmitIncidentReport(result=report)

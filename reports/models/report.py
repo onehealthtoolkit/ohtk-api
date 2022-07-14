@@ -92,6 +92,14 @@ class IncidentReport(AbstractIncidentReport):
             self.origin_renderer_data = self.renderer_data
         super(IncidentReport, self).save(*args, **kwargs)
 
+    def resolve_relevant_authorities_by_area(self):
+        found_authorities = Authority.objects.filter(area__contains=self.gps_location)
+        for authority in found_authorities:
+            self.relevant_authorities.add(authority)
+        if found_authorities:
+            self.relevant_authority_resolved = True
+            self.save(update_fields=("relevant_authority_resolved",))
+
 
 class ZeroReport(BaseReport):
     pass

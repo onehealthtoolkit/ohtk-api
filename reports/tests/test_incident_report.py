@@ -190,9 +190,14 @@ class IncidentReportTestCase(BaseTestCase):
                 "reportId": str(report_id),
                 "incidentDate": "2022-03-18",
                 "incidentInAuthority": False,
+                "gpsLocation": "13.856747234606724,100.5523681640625",
             },
         )
         self.assertIsNone(result.errors, msg=result.errors)
         result_data = result.data["submitIncidentReport"]["result"]
-        self.assertEqual(False, result_data["relevantAuthorityResolved"])
-        self.assertEqual(0, len(result_data["relevantAuthorities"]))
+        self.assertEqual(True, result_data["relevantAuthorityResolved"])
+        authorities = result_data["relevantAuthorities"]
+        self.assertEqual(1, len(authorities))
+        self.assertEqual(
+            str(self.bkk.id), authorities[0]["id"]
+        )  # "pk" field in graphene is str type
