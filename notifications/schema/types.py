@@ -2,13 +2,8 @@ import graphene
 from graphene_django import DjangoObjectType
 
 from accounts.models import User
+from accounts.schema.types import UserType
 from notifications.models import UserMessage, Message
-
-
-class UserType(DjangoObjectType):
-    class Meta:
-        model = User
-        fields = ["id", "username", "first_name", "last_name"]
 
 
 class MessageType(DjangoObjectType):
