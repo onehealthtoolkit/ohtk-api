@@ -94,28 +94,32 @@ class IncidentReport(AbstractIncidentReport):
         super(IncidentReport, self).save(*args, **kwargs)
 
     def resolve_relevant_authorities_by_area(self):
-        found_authorities = Authority.objects.filter(area__contains=self.gps_location)
-        for authority in found_authorities:
-            self.relevant_authorities.add(authority)
-        if found_authorities:
-            self.relevant_authority_resolved = True
-            self.save(update_fields=("relevant_authority_resolved",))
+        if self.gps_location:
+            found_authorities = Authority.objects.filter(
+                area__contains=self.gps_location
+            )
+            for authority in found_authorities:
+                self.relevant_authorities.add(authority)
+            if found_authorities:
+                self.relevant_authority_resolved = True
+                self.save(update_fields=("relevant_authority_resolved",))
 
     def evaluate_context(self):
-        return build_eval_obj(
-            {
-                "data": self.data,
-                "report_date": self.created_at,
-                "incident_date": self.incident_date,
-                "gps_location": self.gps_location,
-                "report_id": self.id,
-                "report_type": {
-                    "id": self.report_type.id,
-                    "name": self.report_type.name,
-                    "category": self.report_type.category,
-                },
-            }
-        )
+        return build_eval_obj(self.template_context())
+
+    def template_context(self):
+        return {
+            "data": self.data,
+            "report_date": self.created_at,
+            "incident_date": self.incident_date,
+            "gps_location": self.gps_location,
+            "report_id": self.id,
+            "report_type": {
+                "id": self.report_type.id,
+                "name": self.report_type.name,
+                "category": self.report_type.category,
+            },
+        }
 
 
 class ZeroReport(BaseReport):

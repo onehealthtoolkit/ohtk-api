@@ -99,7 +99,7 @@ class IncidentReportTestCase(BaseTestCase):
                     }
                 """
         report_id = uuid.uuid4()
-        LOCATION = "13.233,101.003"
+        LOCATION = "101.003,13.233"  # longitude, latitude
         result = self.client.execute(
             mutation,
             {
@@ -158,7 +158,7 @@ class IncidentReportTestCase(BaseTestCase):
             str(self.user.authority.id), result_data["relevantAuthorities"][0]["id"]
         )
 
-    def test_submit_outside_their_own_authority(self):
+    def test_submit_outside_their_own_authority_but_resolve_by_area(self):
         mutation = """
                             mutation submit($data: GenericScalar!, $reportTypeId: UUID!, $incidentDate: Date!, $reportId: UUID, $gpsLocation: String, $incidentInAuthority: Boolean) {
                                 submitIncidentReport(data: $data,
@@ -190,7 +190,7 @@ class IncidentReportTestCase(BaseTestCase):
                 "reportId": str(report_id),
                 "incidentDate": "2022-03-18",
                 "incidentInAuthority": False,
-                "gpsLocation": "13.856747234606724,100.5523681640625",
+                "gpsLocation": "100.5523681640625,13.856747234606724",
             },
         )
         self.assertIsNone(result.errors, msg=result.errors)

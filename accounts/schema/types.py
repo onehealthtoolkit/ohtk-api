@@ -9,6 +9,7 @@ from common.converter import GeoJSON
 from common.types import AdminValidationProblem
 
 
+@convert_django_field.register(models.PointField)
 @convert_django_field.register(models.PolygonField)
 @convert_django_field.register(models.MultiPolygonField)
 def convert_geofield_to_string(field, registry=None):

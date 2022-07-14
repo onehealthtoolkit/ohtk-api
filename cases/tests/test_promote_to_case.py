@@ -20,7 +20,6 @@ class PromoteToCaseTests(BaseTestCase):
             }        
         """
         result = self.client.execute(mutation, {"reportId": str(self.dengue_report.id)})
-        print(result)
         self.assertIsNotNone(result.data["promoteToCase"]["report"])
         self.assertIsNotNone(result.data["promoteToCase"]["report"]["caseId"])
         case = Case.objects.filter(report=self.dengue_report).first()

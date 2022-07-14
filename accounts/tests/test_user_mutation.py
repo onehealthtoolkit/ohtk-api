@@ -42,6 +42,5 @@ class UserMutationTests(JSONWebTokenTestCase):
                 }        
                 """
         result = self.client.execute(mutation, {"image": self.file})
-        print(result)
         self.assertEqual(result.data["adminUserUploadAvatar"]["success"], True)
         self.assertIsNotNone(result.data["adminUserUploadAvatar"]["avatarUrl"])

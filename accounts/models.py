@@ -52,6 +52,7 @@ class Authority(BaseModel):
 
 class User(AbstractUser):
     avatar = models.ImageField(upload_to="avatars", null=True, blank=True)
+    fcm_token = models.CharField(max_length=200, blank=True)
 
     def is_authority_user(self):
         return hasattr(self, "authorityuser")

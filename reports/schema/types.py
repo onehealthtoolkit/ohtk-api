@@ -1,6 +1,8 @@
 import graphene
 from graphene.types.generic import GenericScalar
 from graphene_django import DjangoObjectType
+
+from accounts.schema.types import UserType
 from common.types import AdminValidationProblem
 
 from reports.models import ReportType, Category, IncidentReport, ReporterNotification
@@ -24,10 +26,28 @@ class IncidentReportType(DjangoObjectType):
     original_data = GenericScalar()
     gps_location = graphene.String()
     images = graphene.List(ImageType)
+    reported_by = graphene.Field(UserType)
 
     class Meta:
         model = IncidentReport
-        exclude = ("gps_location",)
+        fields = [
+            "id",
+            "platform",
+            "incident_date",
+            "report_type",
+            "data",
+            "renderer_data",
+            "test_flag",
+            "images",
+            "cover_image",
+            "gps_location",
+            "relevant_authority_resolved",
+            "relevant_authorities",
+            "case_id",
+            "created_at",
+            "updated_at",
+            "reported_by",
+        ]
         filter_fields = {
             "created_at": ["lte", "gte"],
             "incident_date": ["lte", "gte"],

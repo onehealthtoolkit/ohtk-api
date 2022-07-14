@@ -6,13 +6,27 @@ from reports.schema import Query as ReportsQuery
 from reports.schema import Mutation as ReportsMutation
 from cases.schema import Query as CasesQuery
 from cases.schema import Mutation as CasesMutation
+from notifications.schema import Query as NotificationsQuery
+from notifications.schema import Mutation as NotifictionsMutation
 
 
-class Query(AccountsQuery, ReportsQuery, CasesQuery, graphene.ObjectType):
+class Query(
+    AccountsQuery,
+    ReportsQuery,
+    CasesQuery,
+    NotificationsQuery,
+    graphene.ObjectType,
+):
     health_check = graphene.String(default_value="ok")
 
 
-class Mutation(AccountsMutation, ReportsMutation, CasesMutation, graphene.ObjectType):
+class Mutation(
+    AccountsMutation,
+    ReportsMutation,
+    CasesMutation,
+    NotifictionsMutation,
+    graphene.ObjectType,
+):
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()
     verify_token = graphql_jwt.Verify.Field()
     refresh_token = graphql_jwt.Refresh.Field()

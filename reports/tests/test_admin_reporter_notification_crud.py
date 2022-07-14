@@ -1,11 +1,14 @@
-import uuid
-from graphql_jwt.testcases import JSONWebTokenTestCase
-from reports.models.category import Category
+from graphql_jwt.testcases import JSONWebTokenClient
+
 from reports.models.reporter_notification import ReporterNotification
+from reports.tests.base_testcase import BaseTestCase
 
 
-class AdminReporterNotificationTests(JSONWebTokenTestCase):
+class AdminReporterNotificationTests(BaseTestCase):
+    client_class = JSONWebTokenClient
+
     def setUp(self):
+        super().setUp()
         self.reporterNotification1 = ReporterNotification.objects.create(
             template="name : {name}",
             description="reporterNotification1",
@@ -51,8 +54,8 @@ class AdminReporterNotificationTests(JSONWebTokenTestCase):
 
     def test_create_with_error(self):
         mutation = """
-        mutation adminReporterNotificationCreate($condition: String!, $description: String!, $template: String!) {
-            adminReporterNotificationCreate(condition: $condition, description: $description, template: $template) {
+        mutation adminReporterNotificationCreate($reportTypeId: UUID!, $condition: String!, $description: String!, $template: String!) {
+            adminReporterNotificationCreate(reportTypeId: $reportTypeId, condition: $condition, description: $description, template: $template) {
                 result {
                   __typename
                   ... on AdminReporterNotificationCreateSuccess {
@@ -73,13 +76,12 @@ class AdminReporterNotificationTests(JSONWebTokenTestCase):
         result = self.client.execute(
             mutation,
             {
+                "reportTypeId": str(self.mers_report_type.id),
                 "template": "template1",
                 "description": "",
                 "condition": "f",
             },
         )
-
-        print(result)
 
         self.assertIsNotNone(result.data["adminReporterNotificationCreate"]["result"])
         self.assertIsNotNone(
@@ -94,8 +96,8 @@ class AdminReporterNotificationTests(JSONWebTokenTestCase):
 
     def test_create_success(self):
         mutation = """
-        mutation adminReporterNotificationCreate($condition: String!, $description: String!, $template: String!) {
-            adminReporterNotificationCreate(condition: $condition, description: $description, template: $template) {
+        mutation adminReporterNotificationCreate($reportTypeId: UUID!, $condition: String!, $description: String!, $template: String!) {
+            adminReporterNotificationCreate(reportTypeId: $reportTypeId, condition: $condition, description: $description, template: $template) {
                 result {
                   __typename
                   ... on AdminReporterNotificationCreateSuccess {
@@ -116,6 +118,7 @@ class AdminReporterNotificationTests(JSONWebTokenTestCase):
         result = self.client.execute(
             mutation,
             {
+                "reportTypeId": str(self.mers_report_type.id),
                 "template": "template1",
                 "description": "description",
                 "condition": "f",
@@ -162,7 +165,6 @@ class AdminReporterNotificationTests(JSONWebTokenTestCase):
                 "template": "template1",
             },
         )
-        print(result)
 
         self.assertIsNotNone(result.data["adminReporterNotificationUpdate"]["result"])
         self.assertIsNotNone(
@@ -175,8 +177,8 @@ class AdminReporterNotificationTests(JSONWebTokenTestCase):
 
     def test_update_success(self):
         mutation = """
-                mutation adminReporterNotificationUpdate($id: ID!, $condition: String!, $description: String!, $template: String!) {
-            adminReporterNotificationUpdate(id: $id, condition: $condition, description: $description, template: $template) {
+        mutation adminReporterNotificationUpdate($id: ID!, $reportTypeId: UUID!, $condition: String!, $description: String!, $template: String!) {
+            adminReporterNotificationUpdate(id: $id, reportTypeId: $reportTypeId, condition: $condition, description: $description, template: $template) {
                 result {
                   __typename
                   ... on AdminReporterNotificationUpdateSuccess {
@@ -200,12 +202,12 @@ class AdminReporterNotificationTests(JSONWebTokenTestCase):
             mutation,
             {
                 "id": self.reporterNotification1.id,
+                "reportTypeId": str(self.mers_report_type.id),
                 "description": "reporterNotification2",
                 "condition": "no",
                 "template": "template1",
             },
         )
-        print(result)
         self.assertIsNotNone(result.data["adminReporterNotificationUpdate"]["result"])
         self.assertIsNotNone(
             result.data["adminReporterNotificationUpdate"]["result"][
