@@ -189,3 +189,5 @@ SHOW_PUBLIC_IF_NO_TENANT_FOUND = True
 MEDIA_ROOT = BASE_DIR / "medias"
 
 FIXTURE_DIRS = ["account/fixtures"]
+
+CELERY_TASK_ALWAYS_EAGER = True

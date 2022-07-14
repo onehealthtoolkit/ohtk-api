@@ -67,4 +67,5 @@ valet unproxy opensur
 ```
 ./manage.py test accounts.tests.test_admin_authority_user_crud.AdminAuthorityUserTests.test_update_with_error
 ./manage.py test reports.tests.test_admin_category_crud.AdminCategoryTests.test_simple_query
+./manage.py test cases.tests.test_admin_state_definition_crud.AdminStateDefinitionTests.test_update_with_error
 ```

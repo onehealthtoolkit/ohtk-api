@@ -2,7 +2,14 @@ import graphene
 from graphene_django import DjangoObjectType
 
 from accounts.schema.types import AuthorityType
-from cases.models import Case, CaseDefinition, StateDefinition, StateStep
+from graphene.types.generic import GenericScalar
+from cases.models import (
+    Case,
+    CaseDefinition,
+    StateDefinition,
+    StateStep,
+    StateTransition,
+)
 from common.types import AdminValidationProblem
 from reports.schema.types import IncidentReportType
 
@@ -170,4 +177,45 @@ class AdminStateStepUpdateResult(graphene.Union):
         types = (
             AdminStateStepUpdateSuccess,
             AdminStateStepUpdateProblem,
+        )
+
+
+# StateTransitionType
+class StateTransitionType(DjangoObjectType):
+    form_definition = GenericScalar()
+
+    class Meta:
+        model = StateTransition
+
+
+class AdminStateTransitionCreateSuccess(DjangoObjectType):
+    class Meta:
+        model = StateTransition
+
+
+class AdminStateTransitionCreateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminStateTransitionCreateResult(graphene.Union):
+    class Meta:
+        types = (
+            AdminStateTransitionCreateSuccess,
+            AdminStateTransitionCreateProblem,
+        )
+
+
+class AdminStateTransitionUpdateSuccess(graphene.ObjectType):
+    state_transition = graphene.Field(StateTransitionType)
+
+
+class AdminStateTransitionUpdateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminStateTransitionUpdateResult(graphene.Union):
+    class Meta:
+        types = (
+            AdminStateTransitionUpdateSuccess,
+            AdminStateTransitionUpdateProblem,
         )

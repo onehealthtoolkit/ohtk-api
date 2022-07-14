@@ -1,7 +1,8 @@
-from unittest import result
 import graphene
 from graphql_jwt.decorators import login_required
 from graphene.types.generic import GenericScalar
+
+from cases.tasks import evaluate_case_definition
 from reports.models.report import IncidentReport
 from django.contrib.gis.geos import Point
 from reports.models.report_type import ReportType
@@ -55,5 +56,7 @@ class SubmitIncidentReport(graphene.Mutation):
             report.relevant_authorities.add(user.authorityuser.authority)
         else:
             report.resolve_relevant_authorities_by_area()
+
+        evaluate_case_definition.delay(report.id)
 
         return SubmitIncidentReport(result=report)

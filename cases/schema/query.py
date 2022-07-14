@@ -8,8 +8,9 @@ from .types import (
     CaseType,
     StateDefinitionType,
     StateStepType,
+    StateTransitionType,
 )
-from ..models import Case, CaseDefinition, StateDefinition, StateStep
+from ..models import Case, CaseDefinition, StateDefinition, StateStep, StateTransition
 
 
 class Query(graphene.ObjectType):
@@ -25,11 +26,18 @@ class Query(graphene.ObjectType):
         StateDefinitionType, id=graphene.ID(required=True)
     )
     admin_state_definition_query = DjangoPaginationConnectionField(
-        AdminStateDefinitionQueryType, id=graphene.ID(required=True)
+        AdminStateDefinitionQueryType
     )
     state_step_get = graphene.Field(StateStepType, id=graphene.ID(required=True))
     admin_state_step_query = graphene.List(
         StateStepType, definition_id=graphene.ID(required=True)
+    )
+
+    state_transition_get = graphene.Field(
+        StateTransitionType, id=graphene.ID(required=True)
+    )
+    admin_state_transition_query = graphene.List(
+        StateTransitionType, definition_id=graphene.ID(required=True)
     )
 
     @staticmethod
@@ -51,3 +59,13 @@ class Query(graphene.ObjectType):
     @staticmethod
     def resolve_admin_state_step_query(root, info, definition_id):
         return StateStep.objects.filter(state_definition__id=definition_id)
+
+    @staticmethod
+    def resolve_state_transition_get(root, info, id):
+        return StateTransition.objects.get(pk=id)
+
+    @staticmethod
+    def resolve_admin_state_transition_query(root, info, definition_id):
+        return StateTransition.objects.filter(
+            from_step__state_definition__id=definition_id
+        )
