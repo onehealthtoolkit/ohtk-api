@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 from datetime import timedelta
 from pathlib import Path
 
+from firebase_admin import initialize_app, credentials
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -47,6 +50,7 @@ SHARED_APPS = (
     "graphql_playground",
     "reports",
     "cases",
+    "notifications",
 )
 
 TENANT_APPS = (
@@ -54,6 +58,7 @@ TENANT_APPS = (
     "accounts",
     "reports",
     "cases",
+    "notifications",
 )
 
 INSTALLED_APPS = list(SHARED_APPS) + [
@@ -191,3 +196,18 @@ MEDIA_ROOT = BASE_DIR / "medias"
 FIXTURE_DIRS = ["account/fixtures"]
 
 CELERY_TASK_ALWAYS_EAGER = True
+
+# begin ----override this firebase setup in local.py
+credentials_config = {}
+if credentials_config:
+    FIREBASE_APP = initialize_app(credentials.Certificate(credentials_config))
+
+# end ----
+
+
+FCM_DRY_RUN = True
+
+try:
+    from .local import *
+except ImportError:
+    pass

@@ -7,6 +7,7 @@ from reports.models.report import IncidentReport
 from django.contrib.gis.geos import Point
 from reports.models.report_type import ReportType
 from reports.schema.types import IncidentReportType
+from reports.tasks import evaluate_reporter_notification
 
 
 class SubmitIncidentReport(graphene.Mutation):
@@ -57,6 +58,7 @@ class SubmitIncidentReport(graphene.Mutation):
         else:
             report.resolve_relevant_authorities_by_area()
 
+        evaluate_reporter_notification.delay(report.id)
         evaluate_case_definition.delay(report.id)
 
         return SubmitIncidentReport(result=report)
