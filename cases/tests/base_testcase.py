@@ -61,7 +61,7 @@ class BaseTestCase(ReportBaseTestCase):
         self.dengue_report = IncidentReport.objects.create(
             reported_by=self.user,
             report_type=self.dengue_report_type,
-            data={"name": "John Doe"},
+            data={"name": "John Doe", "symptom": "fever"},
             incident_date=now(),
             relevant_authority_resolved=True,
             gps_location=Point(float(13.30), float(100.25)),
@@ -72,7 +72,7 @@ class BaseTestCase(ReportBaseTestCase):
         self.mers_report = IncidentReport.objects.create(
             reported_by=self.user,
             report_type=self.mers_report_type,
-            data={"name": "John Doe"},
+            data={"name": "John Doe", "symptom": "fever", "traveling": True},
             incident_date=now(),
             relevant_authority_resolved=True,
             gps_location=Point(float(13.30), float(100.25)),

@@ -5,6 +5,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
 
 from accounts.models import BaseModel, User, Authority
+from common.eval import build_eval_obj
 from . import ReportType
 
 """
@@ -99,6 +100,22 @@ class IncidentReport(AbstractIncidentReport):
         if found_authorities:
             self.relevant_authority_resolved = True
             self.save(update_fields=("relevant_authority_resolved",))
+
+    def evaluate_context(self):
+        return build_eval_obj(
+            {
+                "data": self.data,
+                "report_date": self.created_at,
+                "incident_date": self.incident_date,
+                "gps_location": self.gps_location,
+                "report_id": self.id,
+                "report_type": {
+                    "id": self.report_type.id,
+                    "name": self.report_type.name,
+                    "category": self.report_type.category,
+                },
+            }
+        )
 
 
 class ZeroReport(BaseReport):
