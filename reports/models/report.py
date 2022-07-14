@@ -94,12 +94,15 @@ class IncidentReport(AbstractIncidentReport):
         super(IncidentReport, self).save(*args, **kwargs)
 
     def resolve_relevant_authorities_by_area(self):
-        found_authorities = Authority.objects.filter(area__contains=self.gps_location)
-        for authority in found_authorities:
-            self.relevant_authorities.add(authority)
-        if found_authorities:
-            self.relevant_authority_resolved = True
-            self.save(update_fields=("relevant_authority_resolved",))
+        if self.gps_location:
+            found_authorities = Authority.objects.filter(
+                area__contains=self.gps_location
+            )
+            for authority in found_authorities:
+                self.relevant_authorities.add(authority)
+            if found_authorities:
+                self.relevant_authority_resolved = True
+                self.save(update_fields=("relevant_authority_resolved",))
 
     def evaluate_context(self):
         return build_eval_obj(

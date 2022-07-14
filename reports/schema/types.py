@@ -27,7 +27,23 @@ class IncidentReportType(DjangoObjectType):
 
     class Meta:
         model = IncidentReport
-        exclude = ("gps_location",)
+        fields = [
+            "id",
+            "incident_date",
+            "report_type",
+            "data",
+            "renderer_data",
+            "test_flag",
+            "images",
+            "cover_image",
+            "gps_location",
+            "relevant_authority_resolved",
+            "relevant_authorities",
+            "case_id",
+            "created_at",
+            "updated_at",
+            "reported_by",
+        ]
         filter_fields = {
             "created_at": ["lte", "gte"],
             "incident_date": ["lte", "gte"],

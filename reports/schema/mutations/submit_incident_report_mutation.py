@@ -39,7 +39,7 @@ class SubmitIncidentReport(graphene.Mutation):
         report_type = ReportType.objects.get(pk=report_type_id)
         location = None
         if gps_location:
-            [latitude, longitude] = gps_location.split(",")
+            [longitude, latitude] = gps_location.split(",")
             location = Point(float(longitude), float(latitude))
         if incident_in_authority is None:
             incident_in_authority = False
