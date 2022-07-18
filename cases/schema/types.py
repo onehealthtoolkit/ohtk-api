@@ -212,8 +212,37 @@ class CaseStateTransitionType(DjangoObjectType):
         fields = ["id", "created_at", "transition", "form_data", "created_by"]
 
 
+class DeepStateTransitionType(DjangoObjectType):
+    from_step = graphene.Field(StateStepType)
+    to_step = graphene.Field(StateStepType)
+    form_definition = graphene.JSONString
+
+    class Meta:
+        model = StateTransition
+        fields = ["id", "from_step", "to_step", "form_definition"]
+
+
+class DeepStateStepType(DjangoObjectType):
+    to_transitions = graphene.List(DeepStateTransitionType)
+
+    class Meta:
+        model = StateStep
+        fields = ["id", "name", "is_start_state", "is_stop_state", "to_transitions"]
+
+    def resolve_to_transitions(self, info):
+        return self.to_transitions.all()
+
+
+class DeepStateDefinitionType(DjangoObjectType):
+    statestep_set = graphene.List(DeepStateStepType)
+
+    class Meta:
+        model = StateDefinition
+        fields = ["id", "name", "is_default", "statestep_set"]
+
+
 class CaseStateType(DjangoObjectType):
-    state = graphene.Field(StateStepType, required=True)
+    state = graphene.Field(DeepStateStepType, required=True)
     transition = graphene.Field(CaseStateTransitionType, required=True)
 
     class Meta:
@@ -222,7 +251,7 @@ class CaseStateType(DjangoObjectType):
 
 
 class CaseType(DjangoObjectType):
-    state_definition = graphene.Field(StateDefinitionType)
+    state_definition = graphene.Field(DeepStateDefinitionType)
     report = graphene.Field(IncidentReportType)
     authorities = graphene.List(AuthorityType)
     states = graphene.List(CaseStateType)
@@ -246,29 +275,3 @@ class CaseType(DjangoObjectType):
 
     def resolve_authorities(root, info):
         return root.authorities.all()
-
-
-class DeepStateTransitionType(DjangoObjectType):
-    from_step = graphene.Field(StateStepType)
-    to_step = graphene.Field(StateStepType)
-    form_definition = graphene.JSONString
-
-    class Meta:
-        model = StateTransition
-        fields = ["id", "from_step", "to_step", "form_definition"]
-
-
-class DeepStateStepType(DjangoObjectType):
-    to_transitions = graphene.List(DeepStateTransitionType)
-
-    class Meta:
-        model = StateStep
-        fields = ["id", "name", "is_start_state", "is_stop_state", "to_transitions"]
-
-
-class DeepStateDefinitionType(DjangoObjectType):
-    statestep_set = graphene.List(DeepStateStepType)
-
-    class Meta:
-        model = StateDefinition
-        fields = ["id", "name", "is_default", "statestep_set"]

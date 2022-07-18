@@ -10,6 +10,7 @@ from .mutations import (
     AdminStateTransitionCreateMutation,
     AdminStateTransitionUpdateMutation,
     PromoteToCaseMutation,
+    ForwardStateMutation,
 )
 
 
@@ -23,3 +24,4 @@ class Mutation(graphene.ObjectType):
     admin_state_step_update = AdminStateStepUpdateMutation.Field()
     admin_state_transition_create = AdminStateTransitionCreateMutation.Field()
     admin_state_transition_update = AdminStateTransitionUpdateMutation.Field()
+    forward_state = ForwardStateMutation.Field()
