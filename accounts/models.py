@@ -59,6 +59,10 @@ class User(AbstractUser):
 
 
 class AuthorityUser(User):
+    class Role(models.TextChoices):
+        REPORTER = "REP", "Reporter"
+        OFFICER = "OFC", "Officer"
+
     class Meta:
         verbose_name = "Authority User"
 
@@ -67,6 +71,9 @@ class AuthorityUser(User):
     telephone = models.CharField(max_length=20, blank=True, null=True)
     authority = models.ForeignKey(
         Authority, related_name="users", on_delete=models.CASCADE
+    )
+    role = models.CharField(
+        choices=Role.choices, max_length=3, blank=True, default=Role.REPORTER
     )
 
     def __str__(self):
@@ -80,11 +87,17 @@ class AuthorityUser(User):
 
 class InvitationCode(BaseModel):
     authority = models.ForeignKey(
-        Authority, related_name="inviations", on_delete=models.CASCADE
+        Authority, related_name="invitations", on_delete=models.CASCADE
     )
     code = models.CharField(max_length=10, unique=True)
     from_date = models.DateTimeField()
     through_date = models.DateTimeField()
+    role = models.CharField(
+        AuthorityUser.Role.choices,
+        max_length=3,
+        blank=True,
+        default=AuthorityUser.Role.REPORTER,
+    )
 
     def __str__(self):
         return f"{self.code} {self.authority.name}"

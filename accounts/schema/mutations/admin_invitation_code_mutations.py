@@ -1,5 +1,5 @@
 import graphene
-from accounts.models import Authority, InvitationCode
+from accounts.models import Authority, InvitationCode, AuthorityUser
 
 from accounts.schema.types import (
     AdminInvitationCodeCreateResult,
@@ -19,11 +19,14 @@ class AdminInvitationCodeCreateMutation(graphene.Mutation):
         from_date = graphene.DateTime(required=True)
         through_date = graphene.DateTime(required=True)
         inherits = graphene.List(graphene.Int)
+        role = graphene.String(required=False)
 
     result = graphene.Field(AdminInvitationCodeCreateResult)
 
     @staticmethod
-    def mutate(root, info, code, authority_id, from_date, through_date, inherits):
+    def mutate(
+        root, info, code, authority_id, from_date, through_date, inherits, role=None
+    ):
         problems = []
         if code_problem := is_not_empty("code", code, "Code must not be empty"):
             problems.append(code_problem)
@@ -48,6 +51,7 @@ class AdminInvitationCodeCreateMutation(graphene.Mutation):
             authority=authority,
             from_date=from_date,
             through_date=through_date,
+            role=role if role else AuthorityUser.Role.REPORTER,
         )
         return AdminInvitationCodeCreateMutation(result=invitation_code)
 
@@ -56,13 +60,14 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True)
         code = graphene.String(required=True)
-        from_date = graphene.DateTime(required=None)
-        through_date = graphene.DateTime(required=None)
+        from_date = graphene.DateTime(required=False)
+        through_date = graphene.DateTime(required=False)
+        role = graphene.String(required=False)
 
     result = graphene.Field(AdminInvitationCodeUpdateResult)
 
     @staticmethod
-    def mutate(root, info, id, code, from_date, through_date):
+    def mutate(root, info, id, code, from_date, through_date, role):
         try:
             invitation_code = InvitationCode.objects.get(pk=id)
         except InvitationCode.DoesNotExist:
@@ -90,6 +95,8 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
             invitation_code.from_date = from_date
         if through_date is not None:
             invitation_code.through_date = through_date
+        if role is not None:
+            invitation_code.role = role
 
         invitation_code.save()
 

@@ -44,6 +44,7 @@ class AuthorityUserRegisterMutation(graphene.Mutation):
                 telephone=telephone,
                 email=email,
                 authority=invitation.authority,
+                role=invitation.role,
             )
 
             token = None

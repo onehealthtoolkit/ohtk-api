@@ -72,7 +72,7 @@ class AdminAuthorityUserQueryType(DjangoObjectType):
 class AdminInvitationCodeQueryType(DjangoObjectType):
     class Meta:
         model = InvitationCode
-        fields = ("id", "code", "authority", "from_date", "through_date")
+        fields = ("id", "code", "authority", "from_date", "through_date", "role")
         filter_fields = {
             "code": ["istartswith", "exact"],
         }
@@ -81,7 +81,7 @@ class AdminInvitationCodeQueryType(DjangoObjectType):
 class InvitationCodeType(DjangoObjectType):
     class Meta:
         model = InvitationCode
-        fields = ("id", "authority", "code", "from_date", "through_date")
+        fields = ("id", "authority", "code", "from_date", "through_date", "role")
 
 
 class UserType(DjangoObjectType):

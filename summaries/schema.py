@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 import graphene
+from django.db.models import Count
 from django.utils.timezone import now
 from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
@@ -37,9 +38,20 @@ class Query(graphene.ObjectType):
         ):
             authority = Authority.objects.get(pk=authority_id)
             sub_authorities = authority.all_inherits_down()
-            reporter_count = AuthorityUser.objects.filter(
-                authority__in=sub_authorities
-            ).count()
+            counts = (
+                AuthorityUser.objects.filter(authority__in=sub_authorities)
+                .values("role")
+                .annotate(total=Count("role"))
+            )
+            try:
+                reporter_count = counts.get(role=AuthorityUser.Role.REPORTER)["total"]
+            except AuthorityUser.DoesNotExist:
+                reporter_count = 0
+
+            try:
+                officer_count = counts.get(role=AuthorityUser.Role.OFFICER)["total"]
+            except AuthorityUser.DoesNotExist:
+                officer_count = 0
 
             open_case_count = Case.objects.filter(
                 authorities__in=sub_authorities, is_finished=False
@@ -48,7 +60,7 @@ class Query(graphene.ObjectType):
             return {
                 "open_case_count": open_case_count,
                 "reporter_count": reporter_count,
-                "official_count": 0,
+                "official_count": officer_count,
             }
         else:
             raise GraphQLError("Permission denied.")
