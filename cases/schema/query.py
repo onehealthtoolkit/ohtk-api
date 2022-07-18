@@ -9,6 +9,7 @@ from .types import (
     StateDefinitionType,
     StateStepType,
     StateTransitionType,
+    DeepStateDefinitionType,
 )
 from ..models import Case, CaseDefinition, StateDefinition, StateStep, StateTransition
 
@@ -40,6 +41,10 @@ class Query(graphene.ObjectType):
         StateTransitionType, definition_id=graphene.ID(required=True)
     )
 
+    deep_state_definition_get = graphene.Field(
+        DeepStateDefinitionType, id=graphene.ID(required=True)
+    )
+
     @staticmethod
     def resolve_case_get(root, info, id):
         return Case.objects.get(pk=id)
@@ -69,3 +74,7 @@ class Query(graphene.ObjectType):
         return StateTransition.objects.filter(
             from_step__state_definition__id=definition_id
         )
+
+    @staticmethod
+    def resolve_deep_state_definition_get(root, info, id):
+        return StateDefinition.objects.get(pk=id)

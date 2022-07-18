@@ -75,7 +75,7 @@ class Case(BaseModel):
 
     @property
     def current_states(self):
-        return CaseState.objects.filter(case_id=self.id, transition__isnull=True)
+        return self.casestate_set.filter(transition__isnull=True)
 
     @classmethod
     def promote_from_incident_report(cls, report_id):

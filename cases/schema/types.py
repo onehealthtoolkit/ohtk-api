@@ -9,6 +9,8 @@ from cases.models import (
     StateDefinition,
     StateStep,
     StateTransition,
+    CaseState,
+    CaseStateTransition,
 )
 from common.types import AdminValidationProblem
 from reports.schema.types import IncidentReportType
@@ -18,29 +20,6 @@ class StateDefinitionType(DjangoObjectType):
     class Meta:
         model = StateDefinition
         fields = ["id", "name", "is_default"]
-
-
-class CaseType(DjangoObjectType):
-    state_definition = graphene.Field(StateDefinitionType)
-    report = graphene.Field(IncidentReportType)
-    authorities = graphene.List(AuthorityType)
-
-    class Meta:
-        model = Case
-        fields = [
-            "id",
-            "report",
-            "state_definition",
-            "description",
-            "authorities",
-        ]
-        filter_fields = {
-            "report__created_at": ["lte", "gte"],
-            "report__relevant_authorities__id": ["in"],
-        }
-
-    def resolve_authorities(root, info):
-        return root.authorities.all()
 
 
 # CaseDefinitionType
@@ -143,8 +122,11 @@ class AdminStateDefinitionUpdateResult(graphene.Union):
 
 # StateStepType
 class StateStepType(DjangoObjectType):
+    state_definition = graphene.Field(StateDefinitionType)
+
     class Meta:
         model = StateStep
+        fields = ["id", "name", "is_start_state", "is_stop_state", "state_definition"]
 
 
 class AdminStateStepCreateSuccess(DjangoObjectType):
@@ -219,3 +201,74 @@ class AdminStateTransitionUpdateResult(graphene.Union):
             AdminStateTransitionUpdateSuccess,
             AdminStateTransitionUpdateProblem,
         )
+
+
+class CaseStateTransitionType(DjangoObjectType):
+    transition = graphene.Field(StateTransitionType, required=True)
+    form_data = graphene.JSONString
+
+    class Meta:
+        model = CaseStateTransition
+        fields = ["id", "created_at", "transition", "form_data", "created_by"]
+
+
+class CaseStateType(DjangoObjectType):
+    state = graphene.Field(StateStepType, required=True)
+    transition = graphene.Field(CaseStateTransitionType, required=True)
+
+    class Meta:
+        model = CaseState
+        fields = ["id", "state", "transition"]
+
+
+class CaseType(DjangoObjectType):
+    state_definition = graphene.Field(StateDefinitionType)
+    report = graphene.Field(IncidentReportType)
+    authorities = graphene.List(AuthorityType)
+    states = graphene.List(CaseStateType)
+
+    class Meta:
+        model = Case
+        fields = [
+            "id",
+            "report",
+            "state_definition",
+            "description",
+            "authorities",
+        ]
+        filter_fields = {
+            "report__created_at": ["lte", "gte"],
+            "report__relevant_authorities__id": ["in"],
+        }
+
+    def resolve_states(root, info):
+        return root.casestate_set.all()
+
+    def resolve_authorities(root, info):
+        return root.authorities.all()
+
+
+class DeepStateTransitionType(DjangoObjectType):
+    from_step = graphene.Field(StateStepType)
+    to_step = graphene.Field(StateStepType)
+    form_definition = graphene.JSONString
+
+    class Meta:
+        model = StateTransition
+        fields = ["id", "from_step", "to_step", "form_definition"]
+
+
+class DeepStateStepType(DjangoObjectType):
+    to_transitions = graphene.List(DeepStateTransitionType)
+
+    class Meta:
+        model = StateStep
+        fields = ["id", "name", "is_start_state", "is_stop_state", "to_transitions"]
+
+
+class DeepStateDefinitionType(DjangoObjectType):
+    statestep_set = graphene.List(DeepStateStepType)
+
+    class Meta:
+        model = StateDefinition
+        fields = ["id", "name", "is_default", "statestep_set"]
