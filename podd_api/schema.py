@@ -7,7 +7,8 @@ from reports.schema import Mutation as ReportsMutation
 from cases.schema import Query as CasesQuery
 from cases.schema import Mutation as CasesMutation
 from notifications.schema import Query as NotificationsQuery
-from notifications.schema import Mutation as NotifictionsMutation
+from notifications.schema import Mutation as NotificationsMutation
+from summaries.schema import Query as SummariesQuery
 
 
 class Query(
@@ -15,6 +16,7 @@ class Query(
     ReportsQuery,
     CasesQuery,
     NotificationsQuery,
+    SummariesQuery,
     graphene.ObjectType,
 ):
     health_check = graphene.String(default_value="ok")
@@ -24,7 +26,7 @@ class Mutation(
     AccountsMutation,
     ReportsMutation,
     CasesMutation,
-    NotifictionsMutation,
+    NotificationsMutation,
     graphene.ObjectType,
 ):
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()

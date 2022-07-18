@@ -71,6 +71,7 @@ class Case(BaseModel):
     state_definition = models.ForeignKey(
         StateDefinition, on_delete=models.PROTECT, null=True, blank=True
     )
+    is_finished = models.BooleanField(default=False, blank=True)
 
     @property
     def current_states(self):

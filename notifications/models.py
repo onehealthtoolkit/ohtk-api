@@ -43,3 +43,4 @@ class UserMessage(BaseModel):
                 fcm_msg,
                 dry_run=settings.FCM_DRY_RUN,
             )
+            return res

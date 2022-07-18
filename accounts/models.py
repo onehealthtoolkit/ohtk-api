@@ -72,6 +72,11 @@ class AuthorityUser(User):
     def __str__(self):
         return self.username
 
+    def has_summary_view_permission_on(self, authority_id):
+        authority = Authority.objects.get(pk=authority_id)
+        sub_authorities = self.authority.all_inherits_down()
+        return authority in sub_authorities
+
 
 class InvitationCode(BaseModel):
     authority = models.ForeignKey(
