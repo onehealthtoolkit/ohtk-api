@@ -105,7 +105,7 @@ class Case(BaseModel):
         to_step = StateStep.objects.get(pk=to_step_id)
         transition = StateTransition.objects.get(from_step=from_step, to_step=to_step)
         current_state = CaseState.objects.get(
-            case_id=self.id, state_id=from_step, transition__isnull=True
+            case_id=self.id, state=from_step, transition__isnull=True
         )
         current_state.transition = CaseStateTransition.objects.create(
             transition=transition, form_data=form_data, created_by=created_by

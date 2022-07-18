@@ -9,8 +9,8 @@ class ForwardStateMutationTestCase(BaseTestCase):
 
     def test_forward_state(self):
         mutation = """
-            mutation forwardState($caseId: ID!, $fromCaseStateId: ID!, $transitionId: ID!, $formData: GenericScalar) {
-              forwardState(caseId: $caseId, fromCaseStateId: $fromCaseStateId, transitionId: $transitionId, formData: $formData) {
+            mutation forwardState($caseId: ID!, $transitionId: ID!, $formData: GenericScalar) {
+              forwardState(caseId: $caseId, transitionId: $transitionId, formData: $formData) {
                 result {     
                     id               
                     state {
@@ -31,7 +31,6 @@ class ForwardStateMutationTestCase(BaseTestCase):
             mutation,
             {
                 "caseId": str(self.case.id),
-                "fromCaseStateId": self.case.current_states.first().id,
                 "transitionId": self.transition1.id,
                 "formData": {"x": 2},
             },
