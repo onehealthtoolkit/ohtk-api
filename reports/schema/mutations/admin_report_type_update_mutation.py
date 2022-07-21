@@ -18,11 +18,21 @@ class AdminReportTypeUpdateMutation(graphene.Mutation):
         category_id = graphene.Int(required=True)
         definition = graphene.String(required=True)
         ordering = graphene.Int(required=True)
+        state_definition_id = graphene.Int(required=False)
 
     result = graphene.Field(AdminReportTypeUpdateResult)
 
     @staticmethod
-    def mutate(root, info, id, name, category_id, definition, ordering):
+    def mutate(
+        root,
+        info,
+        id,
+        name,
+        category_id,
+        definition,
+        ordering,
+        state_definition_id=None,
+    ):
         try:
             report_type = ReportType.objects.get(pk=id)
         except ReportType.DoesNotExist:
@@ -49,6 +59,7 @@ class AdminReportTypeUpdateMutation(graphene.Mutation):
         report_type.category = Category.objects.get(pk=category_id)
         report_type.definition = json.loads(definition)
         report_type.ordering = ordering
+        report_type.state_definition_id = state_definition_id
         report_type.save()
         return AdminReportTypeUpdateMutation(
             result=AdminReportTypeUpdateSuccess(report_type=report_type)

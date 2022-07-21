@@ -27,6 +27,12 @@ class ReportType(BaseModel):
     )
     renderer_data_template = models.TextField(blank=True, null=True)
     ordering = models.IntegerField(default=0)
+    state_definition = models.ForeignKey(
+        "cases.StateDefinition",
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+    )
 
     @staticmethod
     def filter_by_authority(authority: Authority):

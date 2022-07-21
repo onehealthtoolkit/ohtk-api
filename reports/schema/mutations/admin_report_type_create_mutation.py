@@ -17,11 +17,14 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
         category_id = graphene.Int(required=True)
         definition = graphene.String(required=True)
         ordering = graphene.Int(required=True)
+        state_definition_id = graphene.Int(required=False)
 
     result = graphene.Field(AdminReportTypeCreateResult)
 
     @staticmethod
-    def mutate(root, info, name, category_id, definition, ordering):
+    def mutate(
+        root, info, name, category_id, definition, ordering, state_definition_id=None
+    ):
         problems = []
         if name_problem := is_not_empty("name", name, "Name must not be empty"):
             problems.append(name_problem)
@@ -46,5 +49,6 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
             category=Category.objects.get(pk=category_id),
             definition=json.loads(definition),
             ordering=ordering,
+            state_definition_id=state_definition_id,
         )
         return AdminReportTypeCreateMutation(result=report_type)
