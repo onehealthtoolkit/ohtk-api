@@ -50,3 +50,34 @@ class QueryTestCase(BaseTestCase):
         self.assertIsNotNone(result.data["eventsQuery"])
         self.assertIsNotNone(result.data["eventsQuery"]["cases"])
         self.assertIsNotNone(result.data["eventsQuery"]["reports"])
+
+    def test_summary_report_by_category_query(self):
+        query = """
+            query test($authorityId: Int!) {
+              summaryReportByCategoryQuery(authorityId:$authorityId) {
+                  category
+                  ordering
+                  day
+                  total
+                }
+            }        
+        """
+        result = self.client.execute(query, {"authorityId": self.thailand.id})
+        print(result)
+        self.assertIsNotNone(result.data["summaryReportByCategoryQuery"])
+
+    def test_summary_case_by_category_query(self):
+        query = """
+            query test($authorityId: Int!) {
+              summaryCaseByCategoryQuery(authorityId:$authorityId) {
+                  category
+                  ordering
+                  day
+                  total
+                }
+
+            }        
+        """
+        result = self.client.execute(query, {"authorityId": self.thailand.id})
+        print(result)
+        self.assertIsNotNone(result.data["summaryCaseByCategoryQuery"])

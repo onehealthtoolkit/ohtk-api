@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 import graphene
+from django.db.models.functions import TruncDay
 from django.db.models import Count
 from django.utils.timezone import now
 from graphql import GraphQLError
@@ -11,6 +12,7 @@ from cases.models import Case
 from cases.schema import CaseType
 from reports.models import IncidentReport
 from reports.schema.types import IncidentReportType
+from django.db.models import F
 
 
 class StatType(graphene.ObjectType):
@@ -24,9 +26,28 @@ class EventType(graphene.ObjectType):
     reports = graphene.List(IncidentReportType)
 
 
+class SummaryByCategoryType(graphene.ObjectType):
+    category = graphene.String(required=True)
+    ordering = graphene.Int(required=False)
+    day = graphene.Date(required=True)
+    total = graphene.Int(required=True)
+
+
 class Query(graphene.ObjectType):
     stat_query = graphene.Field(StatType, authority_id=graphene.Int(required=True))
     events_query = graphene.Field(EventType, authority_id=graphene.Int(required=True))
+    summary_report_by_category_query = graphene.List(
+        graphene.NonNull(SummaryByCategoryType),
+        authority_id=graphene.Int(required=True),
+        from_date=graphene.DateTime(required=False),
+        to_date=graphene.DateTime(required=False),
+    )
+    summary_case_by_category_query = graphene.List(
+        graphene.NonNull(SummaryByCategoryType),
+        authority_id=graphene.Int(required=True),
+        from_date=graphene.DateTime(required=False),
+        to_date=graphene.DateTime(required=False),
+    )
 
     @staticmethod
     @login_required
@@ -85,5 +106,81 @@ class Query(graphene.ObjectType):
             )
 
             return {"cases": cases, "reports": reports}
+        else:
+            raise GraphQLError("Permission denied.")
+
+    @staticmethod
+    @login_required
+    def resolve_summary_report_by_category_query(
+        root, info, authority_id, from_date, to_date
+    ):
+        user = info.context.user
+        authority = Authority.objects.get(pk=authority_id)
+        if (
+            user.is_authority_user()
+            and user.authorityuser.has_summary_view_permission_on(authority_id)
+        ):
+            sub_authorities = authority.all_inherits_down()
+            q = (
+                IncidentReport.objects.annotate(day=TruncDay("created_at"))
+                .filter(relevant_authorities__in=sub_authorities)
+                .values(
+                    "report_type__category__name",
+                    "report_type__category__ordering",
+                    "day",
+                )
+                .annotate(
+                    category=F("report_type__category__name"),
+                    ordering=F("report_type__category__ordering"),
+                    total=Count("id"),
+                )
+                .order_by("report_type__category__ordering", "day")
+            )
+            # print(q.query)
+            if from_date:
+                q = q.filter(created_at__gte=from_date)
+
+            if to_date:
+                q = q.filter(created_at__lte=to_date)
+
+            return q
+        else:
+            raise GraphQLError("Permission denied.")
+
+    @staticmethod
+    @login_required
+    def resolve_summary_case_by_category_query(
+        root, info, authority_id, from_date, to_date
+    ):
+        user = info.context.user
+        authority = Authority.objects.get(pk=authority_id)
+        if (
+            user.is_authority_user()
+            and user.authorityuser.has_summary_view_permission_on(authority_id)
+        ):
+            sub_authorities = authority.all_inherits_down()
+            q = (
+                Case.objects.annotate(day=TruncDay("report__created_at"))
+                .filter(authorities__in=sub_authorities)
+                .values(
+                    "report__report_type__category__name",
+                    "report__report_type__category__ordering",
+                    "day",
+                )
+                .annotate(
+                    category=F("report__report_type__category__name"),
+                    ordering=F("report__report_type__category__ordering"),
+                    total=Count("id"),
+                )
+                .order_by("report__report_type__category__ordering", "day")
+            )
+            # print(q.query)
+            if from_date:
+                q = q.filter(created_at__gte=from_date)
+
+            if to_date:
+                q = q.filter(created_at__lte=to_date)
+
+            return q
         else:
             raise GraphQLError("Permission denied.")
