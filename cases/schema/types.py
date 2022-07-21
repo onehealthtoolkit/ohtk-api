@@ -240,10 +240,13 @@ class DeepStateDefinitionType(DjangoObjectType):
         model = StateDefinition
         fields = ["id", "name", "is_default", "statestep_set"]
 
+    def resolve_statestep_set(self, info):
+        return StateStep.objects.filter(state_definition=self)
+
 
 class CaseStateType(DjangoObjectType):
     state = graphene.Field(DeepStateStepType, required=True)
-    transition = graphene.Field(CaseStateTransitionType, required=True)
+    transition = graphene.Field(CaseStateTransitionType, required=False)
 
     class Meta:
         model = CaseState
