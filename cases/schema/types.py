@@ -278,3 +278,9 @@ class CaseType(DjangoObjectType):
 
     def resolve_authorities(root, info):
         return root.authorities.all()
+
+
+class AdminNotificationTemplateAuthorityType(graphene.ObjectType):
+    notification_template_id = graphene.ID(required=True)
+    notification_template_name = graphene.String(required=True)
+    to = graphene.String(required=False)

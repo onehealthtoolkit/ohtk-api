@@ -42,6 +42,9 @@ class StateTransition(BaseModel):
     )
     form_definition = models.JSONField(blank=True, null=True)
 
+    def __str__(self):
+        return f"from {self.from_step.name} to {self.to_step.name}"
+
 
 class CaseStateMapping(BaseModel):
     report_type = models.ForeignKey(ReportType, on_delete=models.CASCADE)
@@ -136,3 +139,17 @@ class CaseDefinition(BaseModel):
     description = models.TextField(default="", blank=True)
     condition = models.TextField()
     is_active = models.BooleanField(default=True, blank=True)
+
+
+class NotificationTemplate(BaseModel):
+    name = models.CharField(max_length=300)
+    state_transition = models.ForeignKey(StateTransition, on_delete=models.PROTECT)
+    report_type = models.ForeignKey(ReportType, on_delete=models.PROTECT)
+    title_template = models.TextField(blank=True)
+    body_template = models.TextField(blank=True)
+
+
+class AuthorityNotification(BaseModel):
+    template = models.ForeignKey(NotificationTemplate, on_delete=models.CASCADE)
+    authority = models.ForeignKey(Authority, on_delete=models.PROTECT)
+    to = models.TextField(blank=True)
