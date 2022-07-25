@@ -6,6 +6,7 @@ from graphene.types.generic import GenericScalar
 from cases.models import (
     Case,
     CaseDefinition,
+    NotificationTemplate,
     StateDefinition,
     StateStep,
     StateTransition,
@@ -284,3 +285,53 @@ class AdminNotificationTemplateAuthorityType(graphene.ObjectType):
     notification_template_id = graphene.ID(required=True)
     notification_template_name = graphene.String(required=True)
     to = graphene.String(required=False)
+
+
+## NotificationTemplateType
+class NotificationTemplateType(DjangoObjectType):
+    state_definition = graphene.Field(StateDefinitionType)
+
+    class Meta:
+        model = NotificationTemplate
+
+
+class AdminNotificationTemplateQueryType(DjangoObjectType):
+    class Meta:
+        model = NotificationTemplate
+        fields = ("id", "name", "report_type")
+        filter_fields = {
+            "name": ["istartswith", "exact"],
+        }
+
+
+class AdminNotificationTemplateCreateSuccess(DjangoObjectType):
+    class Meta:
+        model = NotificationTemplate
+
+
+class AdminNotificationTemplateCreateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminNotificationTemplateCreateResult(graphene.Union):
+    class Meta:
+        types = (
+            AdminNotificationTemplateCreateSuccess,
+            AdminNotificationTemplateCreateProblem,
+        )
+
+
+class AdminNotificationTemplateUpdateSuccess(graphene.ObjectType):
+    notification_template = graphene.Field(NotificationTemplateType)
+
+
+class AdminNotificationTemplateUpdateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminNotificationTemplateUpdateResult(graphene.Union):
+    class Meta:
+        types = (
+            AdminNotificationTemplateUpdateSuccess,
+            AdminNotificationTemplateUpdateProblem,
+        )

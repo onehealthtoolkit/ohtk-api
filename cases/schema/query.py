@@ -2,11 +2,14 @@ import graphene
 from graphql_jwt.decorators import login_required
 
 from pagination import DjangoPaginationConnectionField
+from reports.models.report_type import ReportType
 from .types import (
     AdminCaseDefinitionQueryType,
+    AdminNotificationTemplateQueryType,
     AdminStateDefinitionQueryType,
     CaseDefinitionType,
     CaseType,
+    NotificationTemplateType,
     StateDefinitionType,
     StateStepType,
     StateTransitionType,
@@ -58,6 +61,16 @@ class Query(graphene.ObjectType):
         report_type_id=graphene.ID(required=True),
     )
 
+    admin_notification_template_query = DjangoPaginationConnectionField(
+        AdminNotificationTemplateQueryType
+    )
+    notification_template_get = graphene.Field(
+        NotificationTemplateType, id=graphene.ID(required=True)
+    )
+    transition_list_by_report_type = graphene.List(
+        graphene.NonNull(StateTransitionType), report_type_id=graphene.ID(required=True)
+    )
+
     @staticmethod
     @login_required
     def resolve_case_get(root, info, id):
@@ -80,6 +93,11 @@ class Query(graphene.ObjectType):
 
     @staticmethod
     @login_required
+    def resolve_notification_template_get(root, info, id):
+        return NotificationTemplate.objects.get(pk=id)
+
+    @staticmethod
+    @login_required
     def resolve_admin_state_step_query(root, info, definition_id):
         return StateStep.objects.filter(state_definition__id=definition_id)
 
@@ -99,6 +117,14 @@ class Query(graphene.ObjectType):
     @login_required
     def resolve_deep_state_definition_get(root, info, id):
         return StateDefinition.objects.get(pk=id)
+
+    @staticmethod
+    @login_required
+    def resolve_transition_list_by_report_type(root, info, report_type_id):
+        state_definition = ReportType.objects.get(pk=report_type_id).state_definition
+        return StateTransition.objects.filter(
+            from_step__state_definition=state_definition
+        )
 
     @staticmethod
     @login_required
