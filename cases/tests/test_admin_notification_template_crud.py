@@ -7,12 +7,14 @@ from cases.models import (
     StateStep,
     StateTransition,
 )
+from cases.tests.base_testcase import BaseTestCase
 from reports.models.category import Category
 from reports.models.report_type import ReportType
 
 
-class AdminNotificationTemplateTests(JSONWebTokenTestCase):
+class AdminNotificationTemplateTests(BaseTestCase):
     def setUp(self):
+        super().setUp()
         self.category = Category.objects.create(name="report category1", ordering=1)
         self.reportType = ReportType.objects.create(
             name="report type1",
@@ -264,4 +266,55 @@ class AdminNotificationTemplateTests(JSONWebTokenTestCase):
                 "notificationTemplate"
             ]["name"],
             "Notification3",
+        )
+
+    def test_authority_notification_upsert_success(self):
+        query = """
+        query adminNotificationTemplateAuthorityQuery($reportTypeId:ID!) {
+            adminNotificationTemplateAuthorityQuery(reportTypeId:$reportTypeId) {
+                notificationTemplateId
+                notificationTemplateName
+                to
+            }
+        }
+        """
+        result = self.client.execute(query, {"reportTypeId": str(self.reportType.id)})
+        self.assertEqual(len(result.data["adminNotificationTemplateAuthorityQuery"]), 2)
+        notificationTemplates = result.data["adminNotificationTemplateAuthorityQuery"]
+        mutation = """
+        mutation adminAuthorityNotificationUpsert($notificationTemplateId: Int!, $to: String!) {
+            adminAuthorityNotificationUpsert(notificationTemplateId: $notificationTemplateId, to: $to) {
+                result {
+                  __typename
+                  ... on AdminAuthorityNotificationUpsertSuccess {
+                      id
+                      to
+                  }
+                  ... on AdminAuthorityNotificationUpsertProblem {
+                    message
+                    fields {
+                      name
+                      message
+                    }
+                  }
+                }
+            }
+        }
+        """
+        result = self.client.execute(
+            mutation,
+            {
+                "notificationTemplateId": int(
+                    notificationTemplates[0]["notificationTemplateId"]
+                ),
+                "to": "notify@podd.com",
+            },
+        )
+        self.assertIsNotNone(result.data["adminAuthorityNotificationUpsert"]["result"])
+        self.assertIsNotNone(
+            result.data["adminAuthorityNotificationUpsert"]["result"]["id"]
+        )
+        self.assertEqual(
+            result.data["adminAuthorityNotificationUpsert"]["result"]["to"],
+            "notify@podd.com",
         )

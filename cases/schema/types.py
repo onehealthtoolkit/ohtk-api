@@ -4,6 +4,7 @@ from graphene_django import DjangoObjectType
 from accounts.schema.types import AuthorityType
 from graphene.types.generic import GenericScalar
 from cases.models import (
+    AuthorityNotification,
     Case,
     CaseDefinition,
     NotificationTemplate,
@@ -334,4 +335,26 @@ class AdminNotificationTemplateUpdateResult(graphene.Union):
         types = (
             AdminNotificationTemplateUpdateSuccess,
             AdminNotificationTemplateUpdateProblem,
+        )
+
+
+class AuthorityNotificationType(DjangoObjectType):
+    class Meta:
+        model = AuthorityNotification
+
+
+class AdminAuthorityNotificationUpsertSuccess(DjangoObjectType):
+    class Meta:
+        model = AuthorityNotification
+
+
+class AdminAuthorityNotificationUpsertProblem(AdminValidationProblem):
+    pass
+
+
+class AdminAuthorityNotificationUpsertResult(graphene.Union):
+    class Meta:
+        types = (
+            AdminAuthorityNotificationUpsertSuccess,
+            AdminAuthorityNotificationUpsertProblem,
         )

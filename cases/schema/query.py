@@ -131,14 +131,13 @@ class Query(graphene.ObjectType):
     def resolve_admin_notification_template_authority_query(root, info, report_type_id):
         user = info.context.user
         if user.is_authority_user():
-            notifications = NotificationTemplate.objects.filter(
-                report_type_id=report_type_id
-            ).raw(
+            notifications = NotificationTemplate.objects.raw(
                 """select nt.id, nt.name, an.to
                    from cases_notificationtemplate nt left join
                         cases_authoritynotification an on nt.id = an.template_id and an.authority_id = %s
+                   where nt.report_type_id = %s     
                    """,
-                [user.authorityuser.authority.id],
+                [user.authorityuser.authority.id, report_type_id],
             )
             return [
                 {
