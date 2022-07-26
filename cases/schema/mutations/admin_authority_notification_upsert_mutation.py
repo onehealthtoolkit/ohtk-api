@@ -35,17 +35,15 @@ class AdminAuthorityNotificationUpsertMutation(graphene.Mutation):
 
         try:
             authority_notification = AuthorityNotification.objects.get(
-                template=notification_template
+                template=notification_template,
+                authority=user.authorityuser.authority,
             )
-            authority_notification.authority = user.authorityuser.authority
-            authority_notification.template = notification_template
             authority_notification.to = to
-            authority_notification.save()
         except AuthorityNotification.DoesNotExist:
             authority_notification = AuthorityNotification(
                 authority=user.authorityuser.authority,
                 template=notification_template,
                 to=to,
             )
-            authority_notification.save()
+        authority_notification.save()
         return AdminAuthorityNotificationUpsertMutation(result=authority_notification)

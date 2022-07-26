@@ -2,6 +2,7 @@ import uuid
 from graphql_jwt.testcases import JSONWebTokenTestCase
 
 from cases.models import (
+    AuthorityNotification,
     NotificationTemplate,
     StateDefinition,
     StateStep,
@@ -318,3 +319,17 @@ class AdminNotificationTemplateTests(BaseTestCase):
             result.data["adminAuthorityNotificationUpsert"]["result"]["to"],
             "notify@podd.com",
         )
+        # call twice, because the second time this must be update insteadof insert.
+        result = self.client.execute(
+            mutation,
+            {
+                "notificationTemplateId": int(
+                    notificationTemplates[0]["notificationTemplateId"]
+                ),
+                "to": "another@podd.com",
+            },
+        )
+        cnt = AuthorityNotification.objects.filter(to="another@podd.com").count()
+        self.assertEqual(1, cnt)
+        cnt = AuthorityNotification.objects.filter(to="notify@podd.com").count()
+        self.assertEqual(0, cnt)
