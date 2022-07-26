@@ -1,5 +1,6 @@
 import uuid
 from graphql_jwt.testcases import JSONWebTokenTestCase
+from accounts.models import User
 
 from cases.models import StateDefinition, StateStep
 from reports.models.report_type import ReportType
@@ -23,6 +24,8 @@ class AdminStateStepTests(JSONWebTokenTestCase):
             is_stop_state=True,
             state_definition=self.stateDefinition,
         )
+        self.user = User.objects.create(username="admintest")
+        self.client.authenticate(self.user)
 
     def test_query_with_definition_id(self):
         query = """

@@ -9,6 +9,9 @@ from .mutations import (
     AdminStateStepUpdateMutation,
     AdminStateTransitionCreateMutation,
     AdminStateTransitionUpdateMutation,
+    AdminNotificationTemplateCreateMutation,
+    AdminNotificationTemplateUpdateMutation,
+    AdminAuthorityNotificationUpsertMutation,
     PromoteToCaseMutation,
     ForwardStateMutation,
 )
@@ -24,4 +27,9 @@ class Mutation(graphene.ObjectType):
     admin_state_step_update = AdminStateStepUpdateMutation.Field()
     admin_state_transition_create = AdminStateTransitionCreateMutation.Field()
     admin_state_transition_update = AdminStateTransitionUpdateMutation.Field()
+    admin_notification_template_create = AdminNotificationTemplateCreateMutation.Field()
+    admin_notification_template_update = AdminNotificationTemplateUpdateMutation.Field()
+    admin_authority_notification_upsert = (
+        AdminAuthorityNotificationUpsertMutation.Field()
+    )
     forward_state = ForwardStateMutation.Field()
