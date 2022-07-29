@@ -14,6 +14,7 @@ class AdminNotificationTemplateUpdateMutation(graphene.Mutation):
         id = graphene.ID(required=True)
         name = graphene.String(required=True)
         type = graphene.String(required=True)
+        condition = graphene.String(required=None)
         state_transition_id = graphene.Int(required=None)
         report_type_id = graphene.UUID(required=True)
         title_template = graphene.String(required=True)
@@ -28,6 +29,7 @@ class AdminNotificationTemplateUpdateMutation(graphene.Mutation):
         id,
         name,
         type,
+        condition,
         state_transition_id,
         report_type_id,
         title_template,
@@ -71,6 +73,7 @@ class AdminNotificationTemplateUpdateMutation(graphene.Mutation):
 
         notification_template.name = name
         notification_template.type = type
+        notification_template.condition = condition
         notification_template.state_transition = state_transition
         notification_template.report_type = report_type
         notification_template.title_template = title_template
