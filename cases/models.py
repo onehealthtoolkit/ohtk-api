@@ -142,8 +142,19 @@ class CaseDefinition(BaseModel):
 
 
 class NotificationTemplate(BaseModel):
+    class Type(models.TextChoices):
+        REPORT = "rep", "Report"
+        PROMOTE_TO_CASE = "ptc", "Promote to case"
+        CASE_TRANSITION = "cas", "Case transition"
+
     name = models.CharField(max_length=300)
-    state_transition = models.ForeignKey(StateTransition, on_delete=models.PROTECT)
+    type = models.CharField(
+        max_length=3, choices=Type.choices, default=Type.CASE_TRANSITION
+    )
+    condition = models.TextField(blank=True, null=True)
+    state_transition = models.ForeignKey(
+        StateTransition, on_delete=models.PROTECT, null=True, blank=True
+    )
     report_type = models.ForeignKey(ReportType, on_delete=models.PROTECT)
     title_template = models.TextField(blank=True)
     body_template = models.TextField(blank=True)
