@@ -122,6 +122,8 @@ class Query(graphene.ObjectType):
     @login_required
     def resolve_transition_list_by_report_type(root, info, report_type_id):
         state_definition = ReportType.objects.get(pk=report_type_id).state_definition
+        if not state_definition:
+            state_definition = StateDefinition.objects.filter(is_default=True).first()
         return StateTransition.objects.filter(
             from_step__state_definition=state_definition
         )
