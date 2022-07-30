@@ -94,8 +94,8 @@ class AdminNotificationTemplateTests(BaseTestCase):
 
     def test_create_with_error(self):
         mutation = """
-        mutation adminNotificationTemplateCreate($name: String!, $stateTransitionId: Int!, $reportTypeId: UUID!, $titleTemplate: String!, $bodyTemplate: String!) {
-            adminNotificationTemplateCreate(name: $name, stateTransitionId: $stateTransitionId, reportTypeId: $reportTypeId, titleTemplate: $titleTemplate, bodyTemplate: $bodyTemplate) {
+        mutation adminNotificationTemplateCreate($name: String!, $type: String!, $stateTransitionId: Int!, $reportTypeId: UUID!, $titleTemplate: String!, $bodyTemplate: String!) {
+            adminNotificationTemplateCreate(name: $name, type: $type, stateTransitionId: $stateTransitionId, reportTypeId: $reportTypeId, titleTemplate: $titleTemplate, bodyTemplate: $bodyTemplate) {
                 result {
                   __typename
                   ... on AdminNotificationTemplateCreateSuccess {
@@ -117,6 +117,7 @@ class AdminNotificationTemplateTests(BaseTestCase):
             mutation,
             {
                 "name": "Notification1",
+                "type": NotificationTemplate.Type.CASE_TRANSITION.value,
                 "stateTransitionId": self.stateTransition.id,
                 "reportTypeId": str(self.reportType.id),
                 "titleTemplate": "This message title",
@@ -140,8 +141,8 @@ class AdminNotificationTemplateTests(BaseTestCase):
 
     def test_create_success(self):
         mutation = """
-        mutation adminNotificationTemplateCreate($name: String!, $stateTransitionId: Int!, $reportTypeId: UUID!, $titleTemplate: String!, $bodyTemplate: String!) {
-            adminNotificationTemplateCreate(name: $name, stateTransitionId: $stateTransitionId, reportTypeId: $reportTypeId, titleTemplate: $titleTemplate, bodyTemplate: $bodyTemplate) {
+        mutation adminNotificationTemplateCreate($name: String!, $type: String!, $stateTransitionId: Int!, $reportTypeId: UUID!, $titleTemplate: String!, $bodyTemplate: String!) {
+            adminNotificationTemplateCreate(name: $name, type:$type, stateTransitionId: $stateTransitionId, reportTypeId: $reportTypeId, titleTemplate: $titleTemplate, bodyTemplate: $bodyTemplate) {
                 result {
                   __typename
                   ... on AdminNotificationTemplateCreateSuccess {
@@ -159,16 +160,20 @@ class AdminNotificationTemplateTests(BaseTestCase):
             }
         }
         """
+        print(NotificationTemplate.Type.CASE_TRANSITION)
+        print(NotificationTemplate.Type.CASE_TRANSITION.value)
         result = self.client.execute(
             mutation,
             {
                 "name": "Notification3",
+                "type": NotificationTemplate.Type.CASE_TRANSITION.value,
                 "stateTransitionId": self.stateTransition.id,
                 "reportTypeId": str(self.reportType.id),
                 "titleTemplate": "This message title",
                 "bodyTemplate": "The body template testing",
             },
         )
+        print(result)
         self.assertIsNotNone(result.data["adminNotificationTemplateCreate"]["result"])
         self.assertIsNotNone(
             result.data["adminNotificationTemplateCreate"]["result"]["id"]
@@ -180,8 +185,8 @@ class AdminNotificationTemplateTests(BaseTestCase):
 
     def test_update_with_error(self):
         mutation = """
-        mutation adminNotificationTemplateUpdate($id: ID!, $name: String!, $stateTransitionId: Int!, $reportTypeId: UUID!, $titleTemplate: String!, $bodyTemplate: String!) {
-            adminNotificationTemplateUpdate(id: $id, name: $name, stateTransitionId: $stateTransitionId, reportTypeId: $reportTypeId, titleTemplate: $titleTemplate, bodyTemplate: $bodyTemplate) {
+        mutation adminNotificationTemplateUpdate($id: ID!, $name: String!, $type:String!, $stateTransitionId: Int!, $reportTypeId: UUID!, $titleTemplate: String!, $bodyTemplate: String!) {
+            adminNotificationTemplateUpdate(id: $id, name: $name, type:$type, stateTransitionId: $stateTransitionId, reportTypeId: $reportTypeId, titleTemplate: $titleTemplate, bodyTemplate: $bodyTemplate) {
                 result {
                   __typename
                   ... on AdminNotificationTemplateUpdateSuccess {
@@ -205,6 +210,7 @@ class AdminNotificationTemplateTests(BaseTestCase):
             mutation,
             {
                 "id": self.notification_template1.id,
+                "type": NotificationTemplate.Type.CASE_TRANSITION.value,
                 "name": "Notification2",
                 "stateTransitionId": self.stateTransition.id,
                 "reportTypeId": str(self.reportType.id),
@@ -224,8 +230,8 @@ class AdminNotificationTemplateTests(BaseTestCase):
 
     def test_update_success(self):
         mutation = """
-        mutation adminNotificationTemplateUpdate($id: ID!, $name: String!, $stateTransitionId: Int!, $reportTypeId: UUID!, $titleTemplate: String!, $bodyTemplate: String!) {
-            adminNotificationTemplateUpdate(id: $id, name: $name, stateTransitionId: $stateTransitionId, reportTypeId: $reportTypeId, titleTemplate: $titleTemplate, bodyTemplate: $bodyTemplate) {
+        mutation adminNotificationTemplateUpdate($id: ID!, $name: String!, $type: String!, $stateTransitionId: Int!, $reportTypeId: UUID!, $titleTemplate: String!, $bodyTemplate: String!) {
+            adminNotificationTemplateUpdate(id: $id, name: $name, type: $type, stateTransitionId: $stateTransitionId, reportTypeId: $reportTypeId, titleTemplate: $titleTemplate, bodyTemplate: $bodyTemplate) {
                 result {
                   __typename
                   ... on AdminNotificationTemplateUpdateSuccess {
@@ -250,12 +256,14 @@ class AdminNotificationTemplateTests(BaseTestCase):
             {
                 "id": self.notification_template1.id,
                 "name": "Notification3",
+                "type": NotificationTemplate.Type.CASE_TRANSITION.value,
                 "stateTransitionId": self.stateTransition.id,
                 "reportTypeId": str(self.reportType.id),
                 "titleTemplate": "This message title",
                 "bodyTemplate": "The body template testing",
             },
         )
+        print(result)
         self.assertIsNotNone(result.data["adminNotificationTemplateUpdate"]["result"])
         self.assertIsNotNone(
             result.data["adminNotificationTemplateUpdate"]["result"][

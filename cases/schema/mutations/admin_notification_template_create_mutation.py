@@ -12,7 +12,9 @@ from reports.models.report_type import ReportType
 class AdminNotificationTemplateCreateMutation(graphene.Mutation):
     class Arguments:
         name = graphene.String(required=True)
-        state_transition_id = graphene.Int(required=True)
+        type = graphene.String(required=True)
+        condition = graphene.String(required=None)
+        state_transition_id = graphene.Int(required=None)
         report_type_id = graphene.UUID(required=True)
         title_template = graphene.String(required=True)
         body_template = graphene.String(required=True)
@@ -24,17 +26,21 @@ class AdminNotificationTemplateCreateMutation(graphene.Mutation):
         root,
         info,
         name,
+        type,
+        condition,
         state_transition_id,
         report_type_id,
         title_template,
         body_template,
     ):
         problems = []
-        state_transition, state_transition_problem = check_and_get(
-            "state_transition_id", state_transition_id, StateTransition
-        )
-        if state_transition_problem:
-            problems.append(state_transition_problem)
+        state_transition = None
+        if state_transition_id:
+            state_transition, state_transition_problem = check_and_get(
+                "state_transition_id", state_transition_id, StateTransition
+            )
+            if state_transition_problem:
+                problems.append(state_transition_problem)
 
         report_type, report_type_problem = check_and_get(
             "report_type_id", report_type_id, ReportType
@@ -55,6 +61,8 @@ class AdminNotificationTemplateCreateMutation(graphene.Mutation):
 
         notification_template = NotificationTemplate.objects.create(
             name=name,
+            type=type,
+            condition=condition,
             state_transition=state_transition,
             report_type=report_type,
             title_template=title_template,

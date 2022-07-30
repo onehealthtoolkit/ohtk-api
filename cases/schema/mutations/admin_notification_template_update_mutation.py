@@ -13,7 +13,9 @@ class AdminNotificationTemplateUpdateMutation(graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True)
         name = graphene.String(required=True)
-        state_transition_id = graphene.Int(required=True)
+        type = graphene.String(required=True)
+        condition = graphene.String(required=None)
+        state_transition_id = graphene.Int(required=None)
         report_type_id = graphene.UUID(required=True)
         title_template = graphene.String(required=True)
         body_template = graphene.String(required=True)
@@ -26,6 +28,8 @@ class AdminNotificationTemplateUpdateMutation(graphene.Mutation):
         info,
         id,
         name,
+        type,
+        condition,
         state_transition_id,
         report_type_id,
         title_template,
@@ -41,11 +45,13 @@ class AdminNotificationTemplateUpdateMutation(graphene.Mutation):
             )
 
         problems = []
-        state_transition, state_transition_problem = check_and_get(
-            "state_transition_id", state_transition_id, StateTransition
-        )
-        if state_transition_problem:
-            problems.append(state_transition_problem)
+        state_transition = None
+        if state_transition_id:
+            state_transition, state_transition_problem = check_and_get(
+                "state_transition_id", state_transition_id, StateTransition
+            )
+            if state_transition_problem:
+                problems.append(state_transition_problem)
 
         report_type, report_type_problem = check_and_get(
             "report_type_id", report_type_id, ReportType
@@ -66,6 +72,8 @@ class AdminNotificationTemplateUpdateMutation(graphene.Mutation):
             )
 
         notification_template.name = name
+        notification_template.type = type
+        notification_template.condition = condition
         notification_template.state_transition = state_transition
         notification_template.report_type = report_type
         notification_template.title_template = title_template
