@@ -47,6 +47,7 @@ class IncidentReportType(DjangoObjectType):
             "created_at",
             "updated_at",
             "reported_by",
+            "case_id",
         ]
         filter_fields = {
             "created_at": ["lte", "gte"],
