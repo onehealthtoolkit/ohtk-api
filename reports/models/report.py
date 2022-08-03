@@ -6,6 +6,7 @@ from django.contrib.gis.db import models
 
 from accounts.models import BaseModel, User, Authority
 from common.eval import build_eval_obj
+from threads.models import Thread
 from . import ReportType
 
 """
@@ -79,6 +80,13 @@ class IncidentReport(AbstractIncidentReport):
     relevant_authority_resolved = models.BooleanField(default=False, null=False)
     relevant_authorities = models.ManyToManyField(Authority, related_name="incidents")
     case_id = models.UUIDField(blank=True, null=True)
+    thread = models.ForeignKey(
+        Thread,
+        on_delete=models.SET_NULL,
+        related_name="reports",
+        blank=True,
+        null=True,
+    )
 
     def save(self, *args, **kwargs):
         self.renderer_data = self.report_type.render_data(

@@ -4,6 +4,7 @@ import uuid
 
 from accounts.models import Authority, BaseModel, User
 from reports.models import IncidentReport, ReportType
+from threads.models import Thread
 
 
 class StateDefinition(BaseModel):
@@ -75,6 +76,13 @@ class Case(BaseModel):
         StateDefinition, on_delete=models.PROTECT, null=True, blank=True
     )
     is_finished = models.BooleanField(default=False, blank=True)
+    thread = models.ForeignKey(
+        Thread,
+        on_delete=models.SET_NULL,
+        related_name="cases",
+        blank=True,
+        null=True,
+    )
 
     @property
     def current_states(self):
@@ -93,6 +101,7 @@ class Case(BaseModel):
             report=report,
             description=report.renderer_data,
             state_definition=state_definition,
+            thread=report.thread,
         )
 
         state_definition.initialize_state_for_case(case.id)
