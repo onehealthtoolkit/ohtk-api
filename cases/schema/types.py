@@ -269,11 +269,17 @@ class CaseType(DjangoObjectType):
             "state_definition",
             "description",
             "authorities",
+            "is_finished",
+            "thread_id",
         ]
         filter_fields = {
             "report__created_at": ["lte", "gte"],
             "report__relevant_authorities__id": ["in"],
         }
+
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        return queryset.order_by("-created_at")
 
     def resolve_states(root, info):
         return root.casestate_set.all()

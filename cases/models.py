@@ -123,6 +123,11 @@ class Case(BaseModel):
             transition=transition, form_data=form_data, created_by=created_by
         )
         current_state.save()
+
+        if to_step.is_stop_state:
+            self.is_finished = True
+            self.save(update_fields=("is_finished",))
+
         return CaseState.objects.create(
             case_id=self.id,
             state_id=to_step_id,
