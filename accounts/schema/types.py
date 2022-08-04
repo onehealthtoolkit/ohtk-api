@@ -1,4 +1,6 @@
 import graphene
+import django_filters
+from django.db.models import Q
 from graphene_django import DjangoObjectType
 
 from django.contrib.gis.db import models
@@ -57,16 +59,27 @@ class AdminAuthorityQueryType(DjangoObjectType):
         filter_fields = {"name": ["istartswith", "exact"]}
 
 
+class AdminAuthorityUserQueryFilter(django_filters.FilterSet):
+    q = django_filters.CharFilter(method="q_filter")
+
+    class Meta:
+        model = AuthorityUser
+        fields = []
+
+    def q_filter(self, queryset, name, value):
+        return queryset.filter(
+            Q(first_name__icontains=value)
+            | Q(last_name__icontains=value)
+            | Q(username__icontains=value)
+            | Q(email__icontains=value)
+        )
+
+
 class AdminAuthorityUserQueryType(DjangoObjectType):
     class Meta:
         model = AuthorityUser
         fields = ("id", "username", "first_name", "last_name", "email")
-        filter_fields = {
-            "username": ["istartswith", "exact"],
-            "first_name": ["istartswith", "exact"],
-            "last_name": ["istartswith", "exact"],
-            "email": ["istartswith", "exact"],
-        }
+        filterset_class = AdminAuthorityUserQueryFilter
 
 
 class AdminInvitationCodeQueryType(DjangoObjectType):
@@ -137,7 +150,7 @@ class UserProfileType(graphene.ObjectType):
             return self.authority.id
         return 0
 
-    def resolve_avatar(self, info):
+    def resolve_avatar_url(self, info):
         return self.avatar.url if self.avatar else None
 
 
