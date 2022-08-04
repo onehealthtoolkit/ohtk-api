@@ -25,4 +25,4 @@ class ReporterNotification(BaseModel):
             message = ""
 
         reporter_message = Message.objects.create(title="", body=message)
-        reporter_message.send(user)
+        reporter_message.send_user(user)

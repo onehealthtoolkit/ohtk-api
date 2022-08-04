@@ -149,3 +149,7 @@ class BaseTestCase(TestCase):
         self.user = AuthorityUser.objects.create(
             username="test", authority=self.thailand
         )
+
+        self.jatujak_reporter = AuthorityUser.objects.create(
+            username="reporter", authority=self.jatujak
+        )

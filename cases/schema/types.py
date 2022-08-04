@@ -260,6 +260,7 @@ class CaseType(DjangoObjectType):
     report = graphene.Field(IncidentReportType)
     authorities = graphene.List(AuthorityType)
     states = graphene.List(CaseStateType)
+    thread_id = graphene.Int()
 
     class Meta:
         model = Case

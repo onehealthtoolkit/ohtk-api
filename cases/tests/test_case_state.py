@@ -1,7 +1,5 @@
 from cases.models import (
     StateDefinition,
-    StateStep,
-    StateTransition,
     Case,
     CaseState,
 )

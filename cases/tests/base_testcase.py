@@ -67,6 +67,19 @@ class BaseTestCase(ReportBaseTestCase):
             gps_location=Point(float(13.30), float(100.25)),
         )
         self.dengue_report.relevant_authorities.add(self.user.authority)
+
+        self.dengue_report_jatujak = IncidentReport.objects.create(
+            reported_by=self.user,
+            report_type=self.dengue_report_type,
+            data={"name": "John Doe", "symptom": "fever"},
+            incident_date=now(),
+            relevant_authority_resolved=True,
+            gps_location=Point(float(13.30), float(100.25)),
+        )
+        self.dengue_report_jatujak.relevant_authorities.add(
+            self.jatujak_reporter.authority
+        )
+
         self.client.authenticate(self.user)
 
         self.mers_report = IncidentReport.objects.create(

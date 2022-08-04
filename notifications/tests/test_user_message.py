@@ -15,7 +15,7 @@ class UserMessageTestCase(TestCase):
 
     def test_send_message(self):
         msg = Message.objects.create(title="hello", body="hello world")
-        msg.send(self.user)
+        msg.send_user(self.user)
         um = UserMessage.objects.get(message=msg)
         self.assertEqual(um.user_id, self.user.id)
         self.assertFalse(um.is_seen)

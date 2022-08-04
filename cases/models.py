@@ -1,8 +1,15 @@
+from typing import List, Union
+
 from django.core.exceptions import ValidationError
 from django.db import models
 import uuid
 
+from django.db.models import QuerySet
+from django.template import Template, Context
+from django.template.defaultfilters import striptags
+
 from accounts.models import Authority, BaseModel, User
+from notifications.models import Message, Receiver
 from reports.models import IncidentReport, ReportType
 from threads.models import Thread
 
@@ -172,6 +179,36 @@ class NotificationTemplate(BaseModel):
     report_type = models.ForeignKey(ReportType, on_delete=models.PROTECT)
     title_template = models.TextField(blank=True)
     body_template = models.TextField(blank=True)
+
+    def create_message_with_report(self, report: IncidentReport) -> Message:
+        template_context = Context(report.template_context())
+        title = ""
+        body = ""
+        if self.title_template:
+            title_template = Template(self.title_template)
+            title = striptags(title_template.render(template_context))
+        if self.body_template:
+            body_template = Template(self.body_template)
+            body = striptags(body_template.render(template_context))
+        return Message.objects.create(title=title, body=body)
+
+    def get_notifications_with_authorities(
+        self, authorities: Union[List[Authority], QuerySet]
+    ) -> QuerySet:
+        return self.authoritynotification_set.filter(authority__in=authorities)
+
+    @staticmethod
+    def send_message(self, notifications: QuerySet, message: Message):
+        for notification in notifications:
+            message.send(notification.to)
+
+    def send_report_notification(self, report_id):
+        report = IncidentReport.objects.get(pk=report_id)
+        message = self.create_message_with_report(report)
+        notifications = self.get_notifications_with_authorities(
+            report.relevant_authorities.all()
+        )
+        self.send_message(notifications, message)
 
 
 class AuthorityNotification(BaseModel):

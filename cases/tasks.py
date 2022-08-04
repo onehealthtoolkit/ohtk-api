@@ -1,4 +1,4 @@
-from cases.models import CaseDefinition, Case
+from cases.models import CaseDefinition, Case, NotificationTemplate
 from podd_api.celery import app
 from reports.models import IncidentReport
 
@@ -14,3 +14,18 @@ def evaluate_case_definition(report_id):
                 return  # do only one promote
         except:
             pass
+
+
+@app.task
+def evaluate_notification_template_after_receive_report(report_id):
+    report = IncidentReport.objects.get(pk=report_id)
+    eval_context = report.evaluate_context()
+    for template in NotificationTemplate.objects.filter(
+        type=NotificationTemplate.Type.REPORT
+    ):
+        if template.condition:
+            try:
+                if eval_context.eval(template.condition):
+                    template.send_report_notification(report_id)
+            except:
+                pass
