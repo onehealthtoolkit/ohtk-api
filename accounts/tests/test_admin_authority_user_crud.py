@@ -34,8 +34,8 @@ class AdminAuthorityUserTests(JSONWebTokenTestCase):
 
     def test_query_with_username(self):
         query = """
-        query adminAuthorityUserQuery($username: String) {
-            adminAuthorityUserQuery(username: $username) {
+        query adminAuthorityUserQuery($q: String) {
+            adminAuthorityUserQuery(q: $q) {
                 results {
                     id
                     username
@@ -44,7 +44,7 @@ class AdminAuthorityUserTests(JSONWebTokenTestCase):
             }
         }
         """
-        result = self.client.execute(query, {"username": "test"})
+        result = self.client.execute(query, {"q": "test"})
         self.assertEqual(len(result.data["adminAuthorityUserQuery"]["results"]), 1)
 
     def test_create_with_error(self):
