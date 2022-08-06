@@ -16,7 +16,7 @@ class CommentType(DjangoObjectType):
 
     class Meta:
         model = Comment
-        fields = ["id", "body", "thread_id", "created_by", "attachments"]
+        fields = ["id", "body", "thread_id", "created_by", "attachments", "created_at"]
 
     def resolve_attachments(self, info):
         return self.attachments.all()
@@ -28,7 +28,7 @@ class CommentCreateSuccess(DjangoObjectType):
 
     class Meta:
         model = Comment
-        fields = ["id", "body", "thread_id", "created_by", "attachments"]
+        fields = ["id", "body", "thread_id", "created_by", "attachments", "created_at"]
 
     def resolve_attachments(self, info):
         return self.attachments.all()

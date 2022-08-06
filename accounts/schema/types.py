@@ -99,6 +99,7 @@ class InvitationCodeType(DjangoObjectType):
 
 class UserType(DjangoObjectType):
     telephone = graphene.String()
+    avatar_url = graphene.String(required=False)
 
     class Meta:
         model = User
@@ -115,6 +116,9 @@ class UserType(DjangoObjectType):
             return self.authorityuser.telephone
         else:
             return ""
+
+    def resolve_avatar_url(self, info):
+        return self.avatar.url if self.avatar else None
 
 
 class AuthorityUserType(DjangoObjectType):
