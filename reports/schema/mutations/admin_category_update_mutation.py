@@ -1,4 +1,7 @@
 import graphene
+from graphql_jwt.decorators import login_required, user_passes_test
+
+from accounts.utils import is_superuser
 from common.utils import is_duplicate, is_not_empty
 from reports.models.category import Category
 
@@ -23,6 +26,8 @@ class AdminCategoryUpdateMutation(graphene.Mutation):
     result = graphene.Field(AdminCategoryUpdateResult)
 
     @staticmethod
+    @login_required
+    @user_passes_test(is_superuser)
     def mutate(root, info, id, name, ordering, icon, clear_icon):
         try:
             category = Category.objects.get(pk=id)

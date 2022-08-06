@@ -1,4 +1,7 @@
 import graphene
+from graphql_jwt.decorators import login_required, user_passes_test
+
+from accounts.utils import is_superuser
 from common.utils import is_duplicate, is_not_empty, check_and_get
 from cases.models import NotificationTemplate, StateTransition
 from cases.schema.types import (
@@ -23,6 +26,8 @@ class AdminNotificationTemplateUpdateMutation(graphene.Mutation):
     result = graphene.Field(AdminNotificationTemplateUpdateResult)
 
     @staticmethod
+    @login_required
+    @user_passes_test(is_superuser)
     def mutate(
         root,
         info,

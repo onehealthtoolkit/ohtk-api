@@ -1,5 +1,8 @@
 import json
 import graphene
+from graphql_jwt.decorators import login_required, user_passes_test
+
+from accounts.utils import is_superuser
 from common.utils import is_duplicate, is_not_empty, check_and_get
 from cases.models import StateDefinition, StateStep, StateTransition
 from cases.schema.types import (
@@ -19,6 +22,8 @@ class AdminStateTransitionUpdateMutation(graphene.Mutation):
     result = graphene.Field(AdminStateTransitionUpdateResult)
 
     @staticmethod
+    @login_required
+    @user_passes_test(is_superuser)
     def mutate(root, info, id, from_step_id, to_step_id, form_definition):
         try:
             state_transition = StateTransition.objects.get(pk=id)

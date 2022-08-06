@@ -5,7 +5,7 @@
     <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="ignoredPackages">
         <value>
-          <list size="107">
+          <list size="130">
             <item index="0" class="java.lang.String" itemvalue="python-dateutil" />
             <item index="1" class="java.lang.String" itemvalue="django-mailgun" />
             <item index="2" class="java.lang.String" itemvalue="PyYAML" />
@@ -113,8 +113,38 @@
             <item index="104" class="java.lang.String" itemvalue="google-auth" />
             <item index="105" class="java.lang.String" itemvalue="openpyxl" />
             <item index="106" class="java.lang.String" itemvalue="terminaltables" />
+            <item index="107" class="java.lang.String" itemvalue="requests-mock" />
+            <item index="108" class="java.lang.String" itemvalue="ruamel.yaml" />
+            <item index="109" class="java.lang.String" itemvalue="MarkupSafe" />
+            <item index="110" class="java.lang.String" itemvalue="swagger-spec-validator" />
+            <item index="111" class="java.lang.String" itemvalue="drf-yasg" />
+            <item index="112" class="java.lang.String" itemvalue="importlib-metadata" />
+            <item index="113" class="java.lang.String" itemvalue="Jinja2" />
+            <item index="114" class="java.lang.String" itemvalue="coreschema" />
+            <item index="115" class="java.lang.String" itemvalue="pyrsistent" />
+            <item index="116" class="java.lang.String" itemvalue="simplejson" />
+            <item index="117" class="java.lang.String" itemvalue="coreapi" />
+            <item index="118" class="java.lang.String" itemvalue="djangorestframework-simplejwt" />
+            <item index="119" class="java.lang.String" itemvalue="django-filter" />
+            <item index="120" class="java.lang.String" itemvalue="ruamel.yaml.clib" />
+            <item index="121" class="java.lang.String" itemvalue="zipp" />
+            <item index="122" class="java.lang.String" itemvalue="charset-normalizer" />
+            <item index="123" class="java.lang.String" itemvalue="itypes" />
+            <item index="124" class="java.lang.String" itemvalue="tomli" />
+            <item index="125" class="java.lang.String" itemvalue="openapi-codec" />
+            <item index="126" class="java.lang.String" itemvalue="pytz" />
+            <item index="127" class="java.lang.String" itemvalue="Markdown" />
+            <item index="128" class="java.lang.String" itemvalue="jsonschema" />
+            <item index="129" class="java.lang.String" itemvalue="inflection" />
           </list>
         </value>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredIdentifiers">
+        <list>
+          <option value="cases.schema.types.*" />
+        </list>
       </option>
     </inspection_tool>
   </profile>

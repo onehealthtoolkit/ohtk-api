@@ -13,7 +13,7 @@ class AdminInvitationCodeTests(JSONWebTokenTestCase):
         self.InvitationCode2 = InvitationCode(authority=self.authority)
         self.InvitationCode2.save()
 
-        self.user = get_user_model().objects.create(username="test")
+        self.user = get_user_model().objects.create(username="test", is_superuser=True)
         self.client.authenticate(self.user)
 
     def test_simple_query(self):

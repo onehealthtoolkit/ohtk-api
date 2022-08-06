@@ -1,4 +1,7 @@
 import graphene
+from graphql_jwt.decorators import login_required, user_passes_test
+
+from accounts.utils import is_superuser
 from common.utils import is_not_empty
 from common.types import AdminFieldValidationProblem
 from reports.models.category import Category
@@ -18,6 +21,8 @@ class AdminCategoryCreateMutation(graphene.Mutation):
     result = graphene.Field(AdminCategoryCreateResult)
 
     @staticmethod
+    @login_required
+    @user_passes_test(is_superuser)
     def mutate(root, info, name, icon, ordering):
         problems = []
         if name_problem := is_not_empty("name", name, "Name must not be empty"):

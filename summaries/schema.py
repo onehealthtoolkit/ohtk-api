@@ -54,7 +54,7 @@ class Query(graphene.ObjectType):
     def resolve_stat_query(root, info, authority_id):
         user = info.context.user
         if (
-            user.is_authority_user()
+            user.is_authority_user
             and user.authorityuser.has_summary_view_permission_on(authority_id)
         ):
             authority = Authority.objects.get(pk=authority_id)
@@ -92,7 +92,7 @@ class Query(graphene.ObjectType):
         user = info.context.user
         authority = Authority.objects.get(pk=authority_id)
         if (
-            user.is_authority_user()
+            user.is_authority_user
             and user.authorityuser.has_summary_view_permission_on(authority_id)
         ):
             from_date = now().today() - timedelta(days=30)
@@ -117,7 +117,7 @@ class Query(graphene.ObjectType):
         user = info.context.user
         authority = Authority.objects.get(pk=authority_id)
         if (
-            user.is_authority_user()
+            user.is_authority_user
             and user.authorityuser.has_summary_view_permission_on(authority_id)
         ):
             sub_authorities = authority.all_inherits_down()
@@ -155,7 +155,7 @@ class Query(graphene.ObjectType):
         user = info.context.user
         authority = Authority.objects.get(pk=authority_id)
         if (
-            user.is_authority_user()
+            user.is_authority_user
             and user.authorityuser.has_summary_view_permission_on(authority_id)
         ):
             sub_authorities = authority.all_inherits_down()

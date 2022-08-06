@@ -1,5 +1,8 @@
 import json
 import graphene
+from graphql_jwt.decorators import login_required, user_passes_test
+
+from accounts.utils import is_superuser
 from common.utils import is_not_empty
 from common.types import AdminFieldValidationProblem
 from reports.models.category import Category
@@ -22,6 +25,8 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
     result = graphene.Field(AdminReportTypeCreateResult)
 
     @staticmethod
+    @login_required
+    @user_passes_test(is_superuser)
     def mutate(
         root, info, name, category_id, definition, ordering, state_definition_id=None
     ):

@@ -1,4 +1,6 @@
 import graphene
+from graphql_jwt.decorators import login_required, user_passes_test
+from graphql_jwt.exceptions import PermissionDenied
 
 from accounts.models import AuthorityUser, Authority, User
 from accounts.schema.types import (
@@ -8,8 +10,18 @@ from accounts.schema.types import (
     AdminAuthorityUserCreateResult,
     AdminAuthorityUserUpdateSuccess,
 )
-from common.utils import is_duplicate, is_not_empty
+from accounts.utils import (
+    check_permission_on_inherits_down,
+    check_permission_authority_must_be_the_same,
+    fn_or,
+    is_superuser,
+    is_officer_role,
+    is_authority_user,
+    fn_and,
+    is_staff,
+)
 from common.types import AdminFieldValidationProblem
+from common.utils import is_duplicate, is_not_empty
 
 
 class AdminAuthorityUserCreateMutation(graphene.Mutation):
@@ -25,6 +37,8 @@ class AdminAuthorityUserCreateMutation(graphene.Mutation):
     result = graphene.Field(AdminAuthorityUserCreateResult)
 
     @staticmethod
+    @login_required
+    @user_passes_test(fn_or(is_superuser, is_officer_role))
     def mutate(
         root,
         info,
@@ -36,6 +50,16 @@ class AdminAuthorityUserCreateMutation(graphene.Mutation):
         email,
         telephone,
     ):
+        user = info.context.user
+        if not user.is_superuser:
+            if authority_id:
+                if user.is_staff:
+                    check_permission_on_inherits_down(authority_id)
+                else:
+                    check_permission_authority_must_be_the_same(user, authority_id)
+            else:
+                authority_id = user.authorityuser.authority_id
+
         problems = []
         if username_problem := is_not_empty(
             "username", username, "User name must not be empty"
@@ -59,12 +83,7 @@ class AdminAuthorityUserCreateMutation(graphene.Mutation):
                 result=AdminAuthorityUserCreateProblem(fields=problems)
             )
 
-        user = info.context.user
-        if user.is_authority_user():
-            authority = info.context.user.authorityuser.authority
-        if authority_id != 0:
-            authority = Authority.objects.get(pk=authority_id)
-
+        authority = Authority.objects.get(pk=authority_id)
         user = AuthorityUser.objects.create_user(
             authority=authority,
             username=username,
@@ -90,20 +109,41 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
     result = graphene.Field(AdminAuthorityUserUpdateResult)
 
     @staticmethod
+    @login_required
+    @user_passes_test(fn_or(is_superuser, is_officer_role))
     def mutate(
         root, info, id, authority_id, username, first_name, last_name, email, telephone
     ):
         try:
-            authority_user = AuthorityUser.objects.get(pk=id)
+            update_user = AuthorityUser.objects.get(pk=id)
         except AuthorityUser.DoesNotExist:
             return AdminAuthorityUserUpdateMutation(
                 result=AdminAuthorityUserUpdateProblem(
                     fields=[], message="Object not found"
                 )
             )
+        user = info.context.user
+
+        if not user.is_superuser:
+            # check on update_user value
+            if not user.is_staff:
+                # can update only their own user
+                check_permission_authority_must_be_the_same(
+                    user, update_user.authority_id
+                )
+            else:
+                # can update all user of their children authorities
+                check_permission_on_inherits_down([update_user.authority_id])
+
+            # check on parameter authority_id
+            if authority_id:
+                if user.is_staff:
+                    check_permission_authority_must_be_the_same(user, authority_id)
+                else:
+                    check_permission_on_inherits_down([authority_id])
 
         problems = []
-        if authority_user.username != username:
+        if update_user.username != username:
             if duplicate_problem := is_duplicate("username", username, AuthorityUser):
                 problems.append(duplicate_problem)
 
@@ -122,7 +162,7 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
                 result=AdminAuthorityUserUpdateProblem(fields=problems)
             )
         if (
-            authority_user.username != username
+            update_user.username != username
             and User.objects.filter(username=username).exists()
         ):
             return AdminAuthorityUserUpdateMutation(
@@ -146,14 +186,14 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
                 )
             )
         if authority_id != 0:
-            authority_user.authority = Authority.objects.get(pk=authority_id)
+            update_user.authority = Authority.objects.get(pk=authority_id)
 
-        authority_user.username = username
-        authority_user.first_name = first_name
-        authority_user.last_name = last_name
-        authority_user.email = email
-        authority_user.telephone = telephone
-        authority_user.save()
+        update_user.username = username
+        update_user.first_name = first_name
+        update_user.last_name = last_name
+        update_user.email = email
+        update_user.telephone = telephone
+        update_user.save()
         return AdminAuthorityUserUpdateMutation(
-            result=AdminAuthorityUserUpdateSuccess(authority_user=authority_user)
+            result=AdminAuthorityUserUpdateSuccess(authority_user=update_user)
         )

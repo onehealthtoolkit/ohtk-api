@@ -112,7 +112,7 @@ class UserType(DjangoObjectType):
         )
 
     def resolve_telephone(self, info):
-        if self.is_authority_user():
+        if self.is_authority_user:
             return self.authorityuser.telephone
         else:
             return ""
@@ -145,7 +145,7 @@ class UserProfileType(graphene.ObjectType):
     avatar_url = graphene.String(required=False)
 
     def resolve_authority_name(self, info):
-        if self.is_authority_user():
+        if self.is_authority_user:
             return self.authority.name
         return ""
 

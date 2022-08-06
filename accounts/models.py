@@ -49,11 +49,16 @@ class Authority(BaseModel):
         """find all child authority that has recursive inherit up to this.(include self)"""
         return Authority.objects.raw(f"select * from inherit_authority_down({self.id})")
 
+    def is_in_inherits_down(self, ids):
+        child_ids = self.all_inherits_down().values_list("id")
+        return set(ids).issubset(set(child_ids))
+
 
 class User(AbstractUser):
     avatar = models.ImageField(upload_to="avatars", null=True, blank=True)
     fcm_token = models.CharField(max_length=200, blank=True)
 
+    @property
     def is_authority_user(self):
         return hasattr(self, "authorityuser")
 

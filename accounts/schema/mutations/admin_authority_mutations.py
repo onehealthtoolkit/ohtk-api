@@ -1,4 +1,6 @@
 import graphene
+from django.core.exceptions import PermissionDenied
+from graphql_jwt.decorators import login_required, user_passes_test
 
 from accounts.models import Authority
 from accounts.schema.types import (
@@ -8,8 +10,16 @@ from accounts.schema.types import (
     AdminAuthorityCreateProblem,
     AdminAuthorityUpdateSuccess,
 )
-from common.utils import is_duplicate, is_not_empty
+from accounts.utils import (
+    check_permission_on_inherits_down,
+    is_superuser,
+    fn_and,
+    is_staff,
+    is_officer_role,
+    fn_or,
+)
 from common.types import AdminFieldValidationProblem
+from common.utils import is_duplicate, is_not_empty
 
 
 class AdminAuthorityCreateMutation(graphene.Mutation):
@@ -22,7 +32,13 @@ class AdminAuthorityCreateMutation(graphene.Mutation):
     result = graphene.Field(AdminAuthorityCreateResult)
 
     @staticmethod
+    @login_required
+    @user_passes_test(fn_or(is_superuser, fn_and(is_staff, is_officer_role)))
     def mutate(root, info, code, name, inherits, area=None):
+        user = info.context.user
+        if not user.is_superuser:
+            check_permission_on_inherits_down(user, inherits)
+
         problems = []
         if code_problem := is_not_empty("code", code, "Code must not be empty"):
             problems.append(code_problem)
@@ -58,7 +74,15 @@ class AdminAuthorityUpdateMutation(graphene.Mutation):
     result = graphene.Field(AdminAuthorityUpdateResult)
 
     @staticmethod
+    @login_required
+    @user_passes_test(fn_or(is_superuser, fn_and(is_staff, is_officer_role)))
     def mutate(root, info, id, code, name, inherits, area=None):
+        user = info.context.user
+        if not user.is_superuser:
+            check_permission_on_inherits_down(
+                user, [id]
+            )  # allow to edit only sub child of their authority.
+
         try:
             authority = Authority.objects.get(pk=id)
         except Authority.DoesNotExist:

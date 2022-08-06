@@ -1,6 +1,6 @@
 from graphql_jwt.testcases import JSONWebTokenTestCase
 
-from accounts.models import Authority
+from accounts.models import Authority, User
 
 area_geojson = """
         {
@@ -37,6 +37,8 @@ class AdminAuthorityTests(JSONWebTokenTestCase):
     def setUp(self):
         self.authority1 = Authority.objects.create(name="test", code="1")
         self.authority2 = Authority.objects.create(name="another", code="2")
+        self.user = User.objects.create(username="admintest", is_superuser=True)
+        self.client.authenticate(self.user)
 
     def test_simple_query(self):
         query = """

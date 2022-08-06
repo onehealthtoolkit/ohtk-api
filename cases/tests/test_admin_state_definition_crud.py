@@ -1,4 +1,6 @@
 from graphql_jwt.testcases import JSONWebTokenTestCase
+
+from accounts.models import User
 from cases.models import StateDefinition
 
 
@@ -12,6 +14,8 @@ class AdminStateDefinitionTests(JSONWebTokenTestCase):
             name="stateDefinition2",
             is_default=False,
         )
+        self.user = User.objects.create(username="admintest", is_superuser=True)
+        self.client.authenticate(self.user)
 
     def test_simple_query(self):
         query = """

@@ -132,7 +132,7 @@ class Query(graphene.ObjectType):
     @login_required
     def resolve_admin_notification_template_authority_query(root, info, report_type_id):
         user = info.context.user
-        if user.is_authority_user():
+        if user.is_authority_user:
             notifications = NotificationTemplate.objects.raw(
                 """select nt.id, nt.name, an.to
                    from cases_notificationtemplate nt left join

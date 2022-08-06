@@ -1,5 +1,6 @@
 from graphql_jwt.testcases import JSONWebTokenClient
 
+from accounts.models import User
 from reports.models.reporter_notification import ReporterNotification
 from reports.tests.base_testcase import BaseTestCase
 
@@ -19,6 +20,8 @@ class AdminReporterNotificationTests(BaseTestCase):
             description="reporterNotification2",
             condition="1!=2",
         )
+        self.user = User.objects.create(username="admintest", is_superuser=True)
+        self.client.authenticate(self.user)
 
     def test_simple_query(self):
         query = """

@@ -24,7 +24,7 @@ class AdminStateStepTests(JSONWebTokenTestCase):
             is_stop_state=True,
             state_definition=self.stateDefinition,
         )
-        self.user = User.objects.create(username="admintest")
+        self.user = User.objects.create(username="admintest", is_superuser=True)
         self.client.authenticate(self.user)
 
     def test_query_with_definition_id(self):

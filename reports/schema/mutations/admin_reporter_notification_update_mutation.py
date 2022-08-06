@@ -1,5 +1,7 @@
 import graphene
+from graphql_jwt.decorators import user_passes_test, login_required
 
+from accounts.utils import is_superuser
 from common.utils import is_not_empty, check_and_get
 from reports.models import ReporterNotification, ReportType
 from reports.schema.types import (
@@ -21,6 +23,8 @@ class AdminReporterNotificationUpdateMutation(graphene.Mutation):
     result = graphene.Field(AdminReporterNotificationUpdateResult)
 
     @staticmethod
+    @login_required
+    @user_passes_test(is_superuser)
     def mutate(
         root,
         info,

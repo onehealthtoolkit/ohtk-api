@@ -13,7 +13,9 @@ class AdminAuthorityUserTests(JSONWebTokenTestCase):
         self.authorityUser2 = AuthorityUser.objects.create(
             username="another", authority=self.authority
         )
-        self.user = get_user_model().objects.create(username="admintest")
+        self.user = get_user_model().objects.create(
+            username="admintest", is_superuser=True
+        )
         self.client.authenticate(self.user)
 
     def test_simple_query(self):

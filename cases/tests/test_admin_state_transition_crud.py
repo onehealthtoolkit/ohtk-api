@@ -35,7 +35,7 @@ class AdminStateTransitionTests(JSONWebTokenTestCase):
             to_step=self.toStep,
             form_definition='{"y":"y-value"}',
         )
-        self.user = User.objects.create(username="admintest")
+        self.user = User.objects.create(username="admintest", is_superuser=True)
         self.client.authenticate(self.user)
 
     def test_query_with_definition_id(self):

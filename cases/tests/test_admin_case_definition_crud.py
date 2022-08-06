@@ -1,6 +1,7 @@
 import uuid
 from graphql_jwt.testcases import JSONWebTokenTestCase
 
+from accounts.models import User
 from cases.models import CaseDefinition
 from reports.models.category import Category
 from reports.models.report_type import ReportType
@@ -22,6 +23,8 @@ class AdminCaseDefinitionTests(JSONWebTokenTestCase):
         self.caseDefinition2 = CaseDefinition.objects.create(
             report_type=self.reportType, description="caseDefinition2", condition="1==1"
         )
+        self.user = User.objects.create(username="admintest", is_superuser=True)
+        self.client.authenticate(self.user)
 
     def test_simple_query(self):
         query = """

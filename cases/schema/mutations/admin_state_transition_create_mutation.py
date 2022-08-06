@@ -1,5 +1,8 @@
 import json
 import graphene
+from graphql_jwt.decorators import login_required, user_passes_test
+
+from accounts.utils import is_superuser
 from common.utils import is_not_empty, check_and_get
 from cases.models import StateStep, StateTransition, StateTransition
 from cases.schema.types import (
@@ -17,6 +20,8 @@ class AdminStateTransitionCreateMutation(graphene.Mutation):
     result = graphene.Field(AdminStateTransitionCreateResult)
 
     @staticmethod
+    @login_required
+    @user_passes_test(is_superuser)
     def mutate(root, info, from_step_id, to_step_id, form_definition):
         problems = []
         from_step, from_step_problem = check_and_get(

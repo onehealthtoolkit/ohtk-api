@@ -1,4 +1,7 @@
 import graphene
+from graphql_jwt.decorators import login_required, user_passes_test
+
+from accounts.utils import is_superuser
 from common.utils import is_not_empty, check_and_get
 from cases.models import CaseDefinition
 from cases.schema.types import (
@@ -20,6 +23,8 @@ class AdminCaseDefinitionUpdateMutation(graphene.Mutation):
     result = graphene.Field(AdminCaseDefinitionUpdateResult)
 
     @staticmethod
+    @login_required
+    @user_passes_test(is_superuser)
     def mutate(root, info, id, report_type_id, description, condition, is_active):
         try:
             case_definition = CaseDefinition.objects.get(pk=id)
