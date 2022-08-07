@@ -1,6 +1,6 @@
 import graphene
 from django.core.exceptions import PermissionDenied
-from graphql_jwt.decorators import login_required, user_passes_test
+from graphql_jwt.decorators import login_required, user_passes_test, superuser_required
 
 from accounts.models import Authority
 from accounts.schema.types import (
@@ -120,3 +120,18 @@ class AdminAuthorityUpdateMutation(graphene.Mutation):
         return AdminAuthorityUpdateMutation(
             result=AdminAuthorityUpdateSuccess(authority=authority)
         )
+
+
+class AdminAuthorityDeleteMutation(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    success = graphene.Boolean()
+
+    @staticmethod
+    @login_required
+    @superuser_required
+    def mutate(root, info, id):
+        authority = Authority.objects.get(pk=id)
+        authority.delete()
+        return {"success": True}

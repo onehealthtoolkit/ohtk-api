@@ -50,3 +50,23 @@ class CommentCreateResult(graphene.Union):
             CommentCreateSuccess,
             CommentCreateProblem,
         )
+
+
+class CommentUpdateSuccess(CommentCreateSuccess):
+    class Meta:
+        model = Comment
+        fields = ["id", "body", "thread_id", "created_by", "attachments", "created_at"]
+
+    pass
+
+
+class CommentUpdateProblem(AdminValidationProblem):
+    pass
+
+
+class CommentUpdateResult(graphene.Union):
+    class Meta:
+        types = (
+            CommentUpdateSuccess,
+            CommentUpdateProblem,
+        )

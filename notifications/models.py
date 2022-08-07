@@ -4,7 +4,7 @@ from django.db import models
 from firebase_admin import messaging
 from firebase_admin.messaging import ApsAlert
 
-from accounts.models import BaseModel, User
+from accounts.models import BaseModel, User, BaseModelManager
 from podd_api import settings
 
 
@@ -23,6 +23,8 @@ class Receiver:
 
 
 class Message(BaseModel):
+    objects = BaseModelManager()
+
     title = models.CharField(max_length=200)
     body = models.TextField()
     image = models.CharField(max_length=200, blank=True)
@@ -54,6 +56,8 @@ class Message(BaseModel):
 
 
 class UserMessage(BaseModel):
+    objects = BaseModelManager()
+
     message = models.ForeignKey(Message, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     is_seen = models.BooleanField(default=False, blank=True)

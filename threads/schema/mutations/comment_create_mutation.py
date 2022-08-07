@@ -4,7 +4,7 @@ from graphql_jwt.decorators import login_required
 
 from common.utils import is_not_empty
 from threads.models import Thread, Comment, CommentAttachment
-from threads.schema.types import CommentCreateResult
+from threads.schema.types import CommentCreateResult, CommentCreateProblem
 
 
 class CommentCreateMutation(graphene.Mutation):
@@ -24,6 +24,9 @@ class CommentCreateMutation(graphene.Mutation):
         problems = []
         if body_problem := is_not_empty("body", body, "Body must not be empty"):
             problems.append(body_problem)
+
+        if len(problems) > 0:
+            return CommentCreateMutation(result=CommentCreateProblem(fields=problems))
 
         comment = Comment.objects.create(
             body=body,

@@ -1,11 +1,13 @@
 from django.contrib.gis.db import models
 
-from accounts.models import BaseModel
+from accounts.models import BaseModel, BaseModelManager
 
 
 class Category(BaseModel):
     class Meta:
         verbose_name_plural = "categories"
+
+    objects = BaseModelManager()
 
     name = models.CharField(max_length=255, unique=True)
     icon = models.ImageField(upload_to="icons", blank=True, null=True)

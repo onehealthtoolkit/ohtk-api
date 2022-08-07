@@ -1,6 +1,5 @@
 import graphene
-from graphql_jwt.decorators import login_required, user_passes_test
-from graphql_jwt.exceptions import PermissionDenied
+from graphql_jwt.decorators import login_required, user_passes_test, superuser_required
 
 from accounts.models import AuthorityUser, Authority, User
 from accounts.schema.types import (
@@ -16,9 +15,6 @@ from accounts.utils import (
     fn_or,
     is_superuser,
     is_officer_role,
-    is_authority_user,
-    fn_and,
-    is_staff,
 )
 from common.types import AdminFieldValidationProblem
 from common.utils import is_duplicate, is_not_empty
@@ -197,3 +193,18 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
         return AdminAuthorityUserUpdateMutation(
             result=AdminAuthorityUserUpdateSuccess(authority_user=update_user)
         )
+
+
+class AdminAuthorityUserDeleteMutation(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    success = graphene.Boolean()
+
+    @staticmethod
+    @login_required
+    @superuser_required
+    def mutate(root, info, id):
+        user = AuthorityUser.objects.get(pk=id)
+        user.delete()
+        return {"success": True}

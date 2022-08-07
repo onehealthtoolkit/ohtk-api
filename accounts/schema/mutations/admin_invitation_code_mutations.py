@@ -1,5 +1,5 @@
 import graphene
-from graphql_jwt.decorators import login_required, user_passes_test
+from graphql_jwt.decorators import login_required, user_passes_test, superuser_required
 
 from accounts.models import Authority, InvitationCode, AuthorityUser
 
@@ -132,3 +132,18 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
         return AdminInvitationCodeUpdateMutation(
             result=AdminInvitationCodeUpdateSuccess(invitation_code=invitation_code)
         )
+
+
+class AdminInvitationCodeDeleteMutation(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    success = graphene.Boolean()
+
+    @staticmethod
+    @login_required
+    @superuser_required
+    def mutate(root, info, id):
+        code = InvitationCode.objects.get(pk=id)
+        code.delete()
+        return {"success": True}

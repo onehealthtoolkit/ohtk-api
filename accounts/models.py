@@ -17,20 +17,30 @@ class BaseModel(models.Model):
 
     def delete(self, hard=False, **kwargs):
         if hard:
-            super(BaseModel, self).delete()
+            super().delete()
         else:
             self.deleted_at = now()
-            self.save()
+            self.save(update_fields=("deleted_at",))
 
     def restore(self):
         self.deleted_at = None
-        self.save()
+        self.save(update_fields=("deleted_at",))
+
+
+class BaseModelManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
+    def all(self):
+        return super().get_queryset()
 
 
 class Authority(BaseModel):
     class Meta:
         ordering = ("name",)
         verbose_name_plural = "Authorities"
+
+    objects = BaseModelManager()
 
     code = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=512)
@@ -68,6 +78,7 @@ class AuthorityUser(User):
     class Role(models.TextChoices):
         REPORTER = "REP", "Reporter"
         OFFICER = "OFC", "Officer"
+        ADMIN = "ADM", "Admin"
 
     class Meta:
         verbose_name = "Authority User"
@@ -92,6 +103,9 @@ class AuthorityUser(User):
 
 
 class InvitationCode(BaseModel):
+
+    objects = BaseModelManager()
+
     authority = models.ForeignKey(
         Authority, related_name="invitations", on_delete=models.CASCADE
     )
@@ -128,5 +142,7 @@ class InvitationCode(BaseModel):
 
 
 class Feature(BaseModel):
+    objects = BaseModelManager()
+
     key = models.CharField(max_length=100, primary_key=True)
     value = models.CharField(max_length=100)

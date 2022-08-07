@@ -2,12 +2,14 @@ from django.db import models
 from django.template import Template, Context
 from django.template.defaultfilters import striptags
 
-from accounts.models import BaseModel, User
+from accounts.models import BaseModel, User, BaseModelManager
 from notifications.models import Message, UserMessage
 from reports.models import ReportType
 
 
 class ReporterNotification(BaseModel):
+    objects = BaseModelManager()
+
     description = models.TextField(default="", blank=True)
     condition = models.TextField()
     template = models.TextField()

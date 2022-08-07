@@ -10,6 +10,27 @@ class StateDefinitionTestCase(TestCase):
         self.report_type = ReportType.objects.create(
             name="sick/death", definition={}, category=category
         )
+        self.definition = StateDefinition.objects.create(
+            name="default state definition"
+        )
+
+        self.step1 = StateStep.objects.create(
+            name="step1", is_start_state=True, state_definition=self.definition
+        )
+
+        self.step2 = StateStep.objects.create(
+            name="step2", state_definition=self.definition
+        )
+
+        self.step3 = StateStep.objects.create(
+            name="step3", is_stop_state=True, state_definition=self.definition
+        )
+        self.transition1 = StateTransition.objects.create(
+            from_step=self.step1, to_step=self.step2
+        )
+        self.transition2 = StateTransition.objects.create(
+            from_step=self.step2, to_step=self.step3
+        )
 
     def test_definition_model(self):
         definition = StateDefinition.objects.create(name="default state definition")
@@ -60,3 +81,17 @@ class StateDefinitionTestCase(TestCase):
             raise "should not be here"
         except:
             pass
+
+    def test_delete_definition(self):
+        self.definition.delete()
+        self.assertEqual(StateTransition.objects.count(), 0)
+        self.assertEqual(StateStep.objects.count(), 0)
+        self.assertEqual(StateDefinition.objects.count(), 0)
+
+    def test_delete_step(self):
+        self.assertEqual(StateTransition.objects.count(), 2)
+        self.assertEqual(StateStep.objects.count(), 3)
+        self.step1.delete()
+        self.assertEqual(StateStep.objects.count(), 2)
+        self.assertEqual(StateTransition.objects.count(), 1)
+        self.assertEqual(StateTransition.objects.first().id, self.transition2.id)

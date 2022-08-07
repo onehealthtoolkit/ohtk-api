@@ -7,7 +7,7 @@ from django.contrib.gis.db import models
 from django.template import Template, Context
 from django.template.defaultfilters import striptags
 
-from accounts.models import BaseModel, Authority
+from accounts.models import BaseModel, Authority, BaseModelManager
 from . import Category
 
 
@@ -16,6 +16,8 @@ class ReportType(BaseModel):
     class ReportTypeData:
         id: uuid.UUID
         updated_at: datetime
+
+    objects = BaseModelManager()
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255, unique=True)

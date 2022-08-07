@@ -5,7 +5,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
 from easy_thumbnails.fields import ThumbnailerImageField
 
-from accounts.models import BaseModel, User, Authority
+from accounts.models import BaseModel, User, Authority, BaseModelManager
 from common.eval import build_eval_obj
 from threads.models import Thread
 from . import ReportType
@@ -25,6 +25,8 @@ from . import ReportType
 
 
 class BaseReport(BaseModel):
+    objects = BaseModelManager()
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     platform = models.CharField(max_length=20, blank=True, null=True)
     reported_by = models.ForeignKey(
@@ -40,6 +42,8 @@ class BaseReport(BaseModel):
 
 
 class Image(BaseModel):
+    objects = BaseModelManager()
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     file = ThumbnailerImageField(upload_to="reports")
     report_type = models.ForeignKey(

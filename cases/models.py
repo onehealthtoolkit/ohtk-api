@@ -1,20 +1,21 @@
+import uuid
 from typing import List, Union
 
 from django.core.exceptions import ValidationError
 from django.db import models
-import uuid
-
 from django.db.models import QuerySet
 from django.template import Template, Context
 from django.template.defaultfilters import striptags
 
-from accounts.models import Authority, BaseModel, User
-from notifications.models import Message, Receiver
+from accounts.models import Authority, BaseModel, User, BaseModelManager
+from notifications.models import Message
 from reports.models import IncidentReport, ReportType
 from threads.models import Thread
 
 
 class StateDefinition(BaseModel):
+    objects = BaseModelManager()
+
     name = models.CharField(max_length=200)
     is_default = models.BooleanField(default=False, blank=True)
 
@@ -33,15 +34,31 @@ class StateDefinition(BaseModel):
             return CaseState.objects.create(case_id=case_id, state_id=first_step.id)
         return None
 
+    def delete(self, hard=False, **kwargs):
+        for step in self.statestep_set.all():
+            step.delete(hard)
+        super().delete(hard, **kwargs)
+
 
 class StateStep(BaseModel):
+    objects = BaseModelManager()
+
     name = models.CharField(max_length=200)
     is_start_state = models.BooleanField(default=False, blank=True)
     is_stop_state = models.BooleanField(default=False, blank=True)
     state_definition = models.ForeignKey(StateDefinition, on_delete=models.CASCADE)
 
+    def delete(self, hard=False, **kwargs):
+        for transition in self.to_transitions.filter():
+            transition.delete(hard)
+        for transition in self.from_transitions.filter():
+            transition.delete(hard)
+        super().delete(hard, **kwargs)
+
 
 class StateTransition(BaseModel):
+    objects = BaseModelManager()
+
     from_step = models.ForeignKey(
         StateStep, on_delete=models.CASCADE, related_name="to_transitions"
     )
@@ -55,6 +72,8 @@ class StateTransition(BaseModel):
 
 
 class CaseStateMapping(BaseModel):
+    objects = BaseModelManager()
+
     report_type = models.ForeignKey(ReportType, on_delete=models.CASCADE)
     state_definition = models.ForeignKey(StateDefinition, on_delete=models.CASCADE)
 
@@ -68,6 +87,8 @@ class CaseStateMapping(BaseModel):
 
 
 class Case(BaseModel):
+    objects = BaseModelManager()
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     report = models.ForeignKey(
         IncidentReport,
@@ -142,12 +163,16 @@ class Case(BaseModel):
 
 
 class CaseStateTransition(BaseModel):
+    objects = BaseModelManager()
+
     transition = models.ForeignKey(StateTransition, on_delete=models.PROTECT)
     form_data = models.JSONField(blank=True, null=True)
     created_by = models.ForeignKey(User, on_delete=models.PROTECT)
 
 
 class CaseState(BaseModel):
+    objects = BaseModelManager()
+
     case = models.ForeignKey(Case, on_delete=models.CASCADE)
     state = models.ForeignKey(StateStep, on_delete=models.PROTECT)
     transition = models.ForeignKey(
@@ -156,6 +181,8 @@ class CaseState(BaseModel):
 
 
 class CaseDefinition(BaseModel):
+    objects = BaseModelManager()
+
     report_type = models.ForeignKey(ReportType, on_delete=models.CASCADE)
     description = models.TextField(default="", blank=True)
     condition = models.TextField()
@@ -167,6 +194,8 @@ class NotificationTemplate(BaseModel):
         REPORT = "rep", "Report"
         PROMOTE_TO_CASE = "ptc", "Promote to case"
         CASE_TRANSITION = "cas", "Case transition"
+
+    objects = BaseModelManager()
 
     name = models.CharField(max_length=300)
     type = models.CharField(
@@ -212,6 +241,8 @@ class NotificationTemplate(BaseModel):
 
 
 class AuthorityNotification(BaseModel):
+    objects = BaseModelManager()
+
     template = models.ForeignKey(NotificationTemplate, on_delete=models.CASCADE)
     authority = models.ForeignKey(Authority, on_delete=models.PROTECT)
     to = models.TextField(blank=True)
