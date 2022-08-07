@@ -1,6 +1,7 @@
 import graphene
 import django_filters
 from django.db.models import Q
+from easy_thumbnails.files import get_thumbnailer
 from graphene_django import DjangoObjectType
 
 from django.contrib.gis.db import models
@@ -118,7 +119,10 @@ class UserType(DjangoObjectType):
             return ""
 
     def resolve_avatar_url(self, info):
-        return self.avatar.url if self.avatar else None
+        if self.avatar:
+            return get_thumbnailer(self.avatar)["thumbnail"]
+        else:
+            return None
 
 
 class AuthorityUserType(DjangoObjectType):
@@ -155,7 +159,10 @@ class UserProfileType(graphene.ObjectType):
         return 0
 
     def resolve_avatar_url(self, info):
-        return self.avatar.url if self.avatar else None
+        if self.avatar:
+            return get_thumbnailer(self.avatar)["thumbnail"]
+        else:
+            return None
 
 
 class CheckInvitationCodeType(DjangoObjectType):

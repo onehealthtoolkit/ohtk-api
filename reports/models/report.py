@@ -3,6 +3,7 @@ import uuid
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
+from easy_thumbnails.fields import ThumbnailerImageField
 
 from accounts.models import BaseModel, User, Authority
 from common.eval import build_eval_obj
@@ -40,7 +41,7 @@ class BaseReport(BaseModel):
 
 class Image(BaseModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    file = models.ImageField(upload_to="reports")
+    file = ThumbnailerImageField(upload_to="reports")
     report_type = models.ForeignKey(
         ContentType,
         limit_choices_to={
@@ -88,14 +89,15 @@ class IncidentReport(AbstractIncidentReport):
         null=True,
     )
 
+    def render_data_context(self):
+        return {
+            "data": self.data,
+            "id": self.id,
+            "incident_date": self.incident_date,
+        }
+
     def save(self, *args, **kwargs):
-        self.renderer_data = self.report_type.render_data(
-            {
-                "data": self.data,
-                "id": self.id,
-                "incident_date": self.incident_date,
-            }
-        )
+        self.renderer_data = self.report_type.render_data(self.render_data_context())
         if not self.origin_data:
             self.origin_data = self.data
             self.origin_renderer_data = self.renderer_data

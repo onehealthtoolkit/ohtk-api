@@ -4,6 +4,7 @@ from dateutil.relativedelta import *
 from django.contrib.auth.models import AbstractUser
 from django.contrib.gis.db import models
 from django.utils.timezone import now
+from easy_thumbnails.fields import ThumbnailerImageField
 
 
 class BaseModel(models.Model):
@@ -55,7 +56,7 @@ class Authority(BaseModel):
 
 
 class User(AbstractUser):
-    avatar = models.ImageField(upload_to="avatars", null=True, blank=True)
+    avatar = ThumbnailerImageField(upload_to="avatars", null=True, blank=True)
     fcm_token = models.CharField(max_length=200, blank=True)
 
     @property

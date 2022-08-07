@@ -53,6 +53,7 @@ SHARED_APPS = (
     "notifications",
     "summaries",
     "threads",
+    "easy_thumbnails",
 )
 
 TENANT_APPS = (
@@ -63,6 +64,7 @@ TENANT_APPS = (
     "notifications",
     "summaries",
     "threads",
+    "easy_thumbnails",
 )
 
 INSTALLED_APPS = list(SHARED_APPS) + [
@@ -208,6 +210,20 @@ if credentials_config:
 
 # end ----
 
+THUMBNAIL_ALIASES = {
+    "accounts.User.avatar": {
+        "thumbnail": {"size": (50, 50), "crop": True},
+    },
+    "accounts.AuthorityUser.avatar": {
+        "thumbnail": {"size": (50, 50), "crop": True},
+    },
+    "reports.Image.file": {
+        "thumbnail": {"size": (200, 0), "crop": "smart"},
+    },
+    "threads.CommentAttachment.file": {
+        "thumbnail": {"size": (200, 200), "crop": "smart"},
+    },
+}
 
 FCM_DRY_RUN = True
 

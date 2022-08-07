@@ -1,4 +1,5 @@
 import graphene
+from easy_thumbnails.files import get_thumbnailer
 from graphene.types.generic import GenericScalar
 from graphene_django import DjangoObjectType
 
@@ -17,8 +18,13 @@ class ReportTypeType(DjangoObjectType):
 
 
 class ImageType(DjangoObjectType):
+    thumbnail = graphene.String()
+
     class Meta:
         model = Image
+
+    def resolve_thumbnail(self, info):
+        return get_thumbnailer(self.file)["thumbnail"]
 
 
 class IncidentReportType(DjangoObjectType):

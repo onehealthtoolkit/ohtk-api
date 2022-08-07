@@ -1,4 +1,5 @@
 from django.db import models
+from easy_thumbnails.fields import ThumbnailerField
 
 from accounts.models import BaseModel, User
 
@@ -19,4 +20,4 @@ class CommentAttachment(BaseModel):
     comment = models.ForeignKey(
         Comment, on_delete=models.CASCADE, related_name="attachments"
     )
-    file = models.FileField(upload_to="attachments")
+    file = ThumbnailerField(upload_to="attachments")

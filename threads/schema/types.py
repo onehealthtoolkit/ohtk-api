@@ -1,4 +1,5 @@
 import graphene
+from easy_thumbnails.files import get_thumbnailer
 from graphene_django import DjangoObjectType
 
 from common.types import AdminValidationProblem
@@ -6,8 +7,13 @@ from threads.models import Comment, CommentAttachment
 
 
 class CommentAttachmentType(DjangoObjectType):
+    thumbnail = graphene.String()
+
     class Meta:
         model = CommentAttachment
+
+    def resolve_thumbnail(self, info):
+        return get_thumbnailer(self.file)["thumbnail"]
 
 
 class CommentType(DjangoObjectType):
