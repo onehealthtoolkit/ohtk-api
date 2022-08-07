@@ -20,6 +20,7 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
         category_id = graphene.Int(required=True)
         definition = graphene.String(required=True)
         ordering = graphene.Int(required=True)
+        renderer_data_template = graphene.String(required=False)
         state_definition_id = graphene.Int(required=False)
 
     result = graphene.Field(AdminReportTypeCreateResult)
@@ -28,7 +29,14 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
     @login_required
     @user_passes_test(is_superuser)
     def mutate(
-        root, info, name, category_id, definition, ordering, state_definition_id=None
+        root,
+        info,
+        name,
+        category_id,
+        definition,
+        ordering,
+        state_definition_id=None,
+        renderer_data_template=None,
     ):
         problems = []
         if name_problem := is_not_empty("name", name, "Name must not be empty"):
@@ -54,6 +62,7 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
             category=Category.objects.get(pk=category_id),
             definition=json.loads(definition),
             ordering=ordering,
+            renderer_data_template=renderer_data_template,
             state_definition_id=state_definition_id,
         )
         return AdminReportTypeCreateMutation(result=report_type)
