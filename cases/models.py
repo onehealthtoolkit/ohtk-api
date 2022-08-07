@@ -49,9 +49,9 @@ class StateStep(BaseModel):
     state_definition = models.ForeignKey(StateDefinition, on_delete=models.CASCADE)
 
     def delete(self, hard=False, **kwargs):
-        for transition in self.to_transitions.filter():
+        for transition in self.to_transitions.all():
             transition.delete(hard)
-        for transition in self.from_transitions.filter():
+        for transition in self.from_transitions.all():
             transition.delete(hard)
         super().delete(hard, **kwargs)
 

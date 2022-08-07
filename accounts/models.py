@@ -31,9 +31,6 @@ class BaseModelManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().filter(deleted_at__isnull=True)
 
-    def all(self):
-        return super().get_queryset()
-
 
 class Authority(BaseModel):
     class Meta:
@@ -41,6 +38,7 @@ class Authority(BaseModel):
         verbose_name_plural = "Authorities"
 
     objects = BaseModelManager()
+    objects_original = models.Manager()
 
     code = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=512)
