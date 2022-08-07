@@ -144,9 +144,13 @@ class UserProfileType(graphene.ObjectType):
     username = graphene.String(required=True)
     first_name = graphene.String(required=True)
     last_name = graphene.String(required=True)
+    email = graphene.String()
     authority_name = graphene.String(required=False)
     authority_id = graphene.Int(required=False)
     avatar_url = graphene.String(required=False)
+    is_staff = graphene.Boolean()
+    is_superuser = graphene.Boolean()
+    role = graphene.String()
 
     def resolve_authority_name(self, info):
         if self.is_authority_user:
@@ -154,9 +158,15 @@ class UserProfileType(graphene.ObjectType):
         return ""
 
     def resolve_authority_id(self, info):
-        if hasattr(self, "authority"):
+        if self.is_authority_user:
             return self.authority.id
         return 0
+
+    def resolve_role(self, info):
+        if self.is_authority_user:
+            return self.role
+        else:
+            return ""
 
     def resolve_avatar_url(self, info):
         if self.avatar:
