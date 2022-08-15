@@ -33,6 +33,7 @@ class IncidentReportType(DjangoObjectType):
     gps_location = graphene.String()
     images = graphene.List(ImageType)
     reported_by = graphene.Field(UserType)
+    thread_id = graphene.Int()
 
     class Meta:
         model = IncidentReport
@@ -54,6 +55,7 @@ class IncidentReportType(DjangoObjectType):
             "updated_at",
             "reported_by",
             "case_id",
+            "thread_id",
         ]
         filter_fields = {
             "created_at": ["lte", "gte"],
