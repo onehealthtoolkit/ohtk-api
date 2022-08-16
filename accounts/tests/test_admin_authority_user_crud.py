@@ -94,8 +94,8 @@ class AdminAuthorityUserTests(JSONWebTokenTestCase):
 
     def test_create_success(self):
         mutation = """
-        mutation adminAuthorityUserCreate($authorityId: Int!, $username: String!, $password: String!, $firstName: String!, $lastName: String!, $email: String!, $telephone: String) {
-            adminAuthorityUserCreate(authorityId: $authorityId, username: $username, password: $password, firstName: $firstName, lastName: $lastName, email: $email, telephone: $telephone) {
+        mutation adminAuthorityUserCreate($authorityId: Int!, $username: String!, $password: String!, $firstName: String!, $lastName: String!, $email: String!, $telephone: String,  $role: String) {
+            adminAuthorityUserCreate(authorityId: $authorityId, username: $username, password: $password, firstName: $firstName, lastName: $lastName, email: $email, telephone: $telephone, role:$role) {
                 result {
                   __typename
                   ... on AdminAuthorityUserCreateSuccess {
@@ -125,6 +125,7 @@ class AdminAuthorityUserTests(JSONWebTokenTestCase):
                 "lastName": "oooo",
                 "email": "test@test.com",
                 "telephone": "22222",
+                "role": "",
             },
         )
         self.assertIsNotNone(result.data["adminAuthorityUserCreate"]["result"])
@@ -180,8 +181,8 @@ class AdminAuthorityUserTests(JSONWebTokenTestCase):
 
     def test_update_success(self):
         mutation = """
-        mutation adminAuthorityUserUpdate($id: ID!, $authorityId: Int!, $username: String!, $firstName: String!, $lastName: String!, $email: String!, $telephone: String) {
-            adminAuthorityUserUpdate(id: $id,  authorityId: $authorityId, username: $username, firstName: $firstName, lastName: $lastName, email: $email, telephone: $telephone) {
+        mutation adminAuthorityUserUpdate($id: ID!, $authorityId: Int!, $username: String!, $firstName: String!, $lastName: String!, $email: String!, $telephone: String, $role: String) {
+            adminAuthorityUserUpdate(id: $id,  authorityId: $authorityId, username: $username, firstName: $firstName, lastName: $lastName, email: $email, telephone: $telephone, role:$role) {
                 result {
                   __typename
                   ... on AdminAuthorityUserUpdateSuccess {
@@ -212,6 +213,7 @@ class AdminAuthorityUserTests(JSONWebTokenTestCase):
                 "lastName": "oooo",
                 "email": "test@test.com",
                 "telephone": "22222",
+                "role": "REP",
             },
         )
 

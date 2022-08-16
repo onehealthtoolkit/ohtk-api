@@ -276,6 +276,7 @@ class CaseType(DjangoObjectType):
         filter_fields = {
             "report__created_at": ["lte", "gte"],
             "report__relevant_authorities__id": ["in"],
+            "report__report_type__id": ["in"],
         }
 
     @classmethod

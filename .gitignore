@@ -140,3 +140,4 @@ GitHub.sublime-settings
 !.vscode/extensions.json
 .history
 /podd_api/local.py
+/medias
