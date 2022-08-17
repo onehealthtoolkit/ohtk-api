@@ -79,7 +79,7 @@ class AdminAuthorityUserQueryFilter(django_filters.FilterSet):
 class AdminAuthorityUserQueryType(DjangoObjectType):
     class Meta:
         model = AuthorityUser
-        fields = ("id", "username", "first_name", "last_name", "email")
+        fields = ("id", "username", "first_name", "last_name", "email", "role")
         filterset_class = AdminAuthorityUserQueryFilter
 
 
@@ -136,6 +136,7 @@ class AuthorityUserType(DjangoObjectType):
             "last_name",
             "email",
             "telephone",
+            "role",
         )
 
 
