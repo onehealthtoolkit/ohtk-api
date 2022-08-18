@@ -1,7 +1,9 @@
 import graphene
+import django_filters
 from easy_thumbnails.files import get_thumbnailer
 from graphene.types.generic import GenericScalar
 from graphene_django import DjangoObjectType
+from django.db.models import Q
 
 from accounts.schema.types import UserType
 from common.types import AdminValidationProblem
@@ -139,6 +141,19 @@ class AdminCategoryUpdateResult(graphene.Union):
 
 
 ## Report type
+class AdminReportTypeQueryFilter(django_filters.FilterSet):
+    q = django_filters.CharFilter(method="q_filter")
+
+    class Meta:
+        model = ReportType
+        fields = []
+
+    def q_filter(self, queryset, name, value):
+        return queryset.filter(
+            Q(name__icontains=value) | Q(category__name__icontains=value)
+        )
+
+
 class AdminReportTypeQueryType(DjangoObjectType):
     class Meta:
         model = ReportType
@@ -151,9 +166,7 @@ class AdminReportTypeQueryType(DjangoObjectType):
             "renderer_data_template",
             "ordering",
         )
-        filter_fields = {
-            "name": ["istartswith", "exact"],
-        }
+        filterset_class = AdminReportTypeQueryFilter
 
 
 class AdminReportTypeCreateSuccess(DjangoObjectType):

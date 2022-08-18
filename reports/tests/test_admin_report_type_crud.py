@@ -42,8 +42,8 @@ class AdminReportTypeTests(JSONWebTokenTestCase):
 
     def test_query_with_name(self):
         query = """
-        query adminReportTypeQuery($name: String) {
-            adminReportTypeQuery(name: $name) {
+        query adminReportTypeQuery($q: String) {
+            adminReportTypeQuery(q: $q) {
                 results {
                     id
                     name
@@ -52,8 +52,8 @@ class AdminReportTypeTests(JSONWebTokenTestCase):
             }
         }
         """
-        result = self.client.execute(query, {"name": "report type1"})
-        self.assertEqual(len(result.data["adminReportTypeQuery"]["results"]), 1)
+        result = self.client.execute(query, {"q": "report type1"})
+        self.assertEqual(len(result.data["adminReportTypeQuery"]["results"]), 2)
 
     def test_create_with_error(self):
         mutation = """

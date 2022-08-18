@@ -1,5 +1,7 @@
 import graphene
+import django_filters
 from graphene_django import DjangoObjectType
+from django.db.models import Q
 
 from accounts.schema.types import AuthorityType
 from graphene.types.generic import GenericScalar
@@ -304,13 +306,24 @@ class NotificationTemplateType(DjangoObjectType):
         model = NotificationTemplate
 
 
+class AdminNotificationTemplateQueryFilter(django_filters.FilterSet):
+    q = django_filters.CharFilter(method="q_filter")
+
+    class Meta:
+        model = NotificationTemplate
+        fields = []
+
+    def q_filter(self, queryset, name, value):
+        return queryset.filter(
+            Q(name__icontains=value) | Q(report_type__name__icontains=value)
+        )
+
+
 class AdminNotificationTemplateQueryType(DjangoObjectType):
     class Meta:
         model = NotificationTemplate
         fields = ("id", "name", "report_type")
-        filter_fields = {
-            "name": ["istartswith", "exact"],
-        }
+        filterset_class = AdminNotificationTemplateQueryFilter
 
 
 class AdminNotificationTemplateCreateSuccess(DjangoObjectType):
