@@ -3,6 +3,7 @@ import graphene
 from .mutations import (
     SubmitZeroReportMutation,
     SubmitIncidentReport,
+    SubmitFollowupReport,
     SubmitImage,
     AdminCategoryCreateMutation,
     AdminCategoryUpdateMutation,
@@ -16,6 +17,7 @@ from .mutations import (
 class Mutation(graphene.ObjectType):
     submit_zero_report = SubmitZeroReportMutation.Field()
     submit_incident_report = SubmitIncidentReport.Field()
+    submit_followup_report = SubmitFollowupReport.Field()
     submit_image = SubmitImage.Field()
     admin_category_create = AdminCategoryCreateMutation.Field()
     admin_category_update = AdminCategoryUpdateMutation.Field()

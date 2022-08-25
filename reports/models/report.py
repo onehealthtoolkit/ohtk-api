@@ -144,15 +144,3 @@ class FollowUpReport(AbstractIncidentReport):
     incident = models.ForeignKey(
         IncidentReport, on_delete=models.CASCADE, related_name="followups"
     )
-
-    def save(self, *args, **kwargs):
-        renderer_data = self.report_type.render_data(
-            {
-                "data": self.data,
-                "id": self.id,
-                "incident_date": self.incident_date,
-            }
-        )
-        if self.renderer_data != renderer_data:
-            self.renderer_data = renderer_data
-        super(FollowUpReport, self).save(*args, **kwargs)

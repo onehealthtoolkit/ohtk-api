@@ -9,7 +9,7 @@ from accounts.schema.types import UserType
 from common.types import AdminValidationProblem
 
 from reports.models import ReportType, Category, IncidentReport, ReporterNotification
-from reports.models.report import Image
+from reports.models.report import Image, FollowUpReport
 
 
 class CategoryType(DjangoObjectType):
@@ -82,6 +82,37 @@ class IncidentReportType(DjangoObjectType):
             "relevant_authorities__id": ["in"],
             "report_type__id": ["in"],
         }
+
+    def resolve_gps_location(self, info):
+        if self.gps_location:
+            return f"{self.gps_location.x},{self.gps_location.y}"
+        else:
+            return ""
+
+    def resolve_images(self, info):
+        return self.images.all()
+
+
+class FollowupReportType(DjangoObjectType):
+    data = GenericScalar()
+    gps_location = graphene.String()
+    images = graphene.List(ImageType)
+    reported_by = graphene.Field(UserType)
+    report_type = graphene.Field(ReportTypeType)
+    incident = graphene.Field(IncidentReportType)
+
+    class Meta:
+        model = FollowUpReport
+        fields = [
+            "id",
+            "report_type",
+            "data",
+            "renderer_data",
+            "images",
+            "gps_location",
+            "incident",
+            "test_flag",
+        ]
 
     def resolve_gps_location(self, info):
         if self.gps_location:
