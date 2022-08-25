@@ -44,6 +44,22 @@ class ImageType(DjangoObjectType):
         return get_thumbnailer(self.file)["thumbnail"].url
 
 
+class FollowupType(DjangoObjectType):
+    data = GenericScalar()
+    reported_by = graphene.Field(UserType)
+    report_type = graphene.Field(ReportTypeType)
+
+    class Meta:
+        model = FollowUpReport
+        fields = [
+            "id",
+            "created_at",
+            "data",
+            "renderer_data",
+            "test_flag",
+        ]
+
+
 class IncidentReportType(DjangoObjectType):
     data = GenericScalar()
     original_data = GenericScalar()
@@ -52,6 +68,7 @@ class IncidentReportType(DjangoObjectType):
     reported_by = graphene.Field(UserType)
     report_type = graphene.Field(ReportTypeType)
     thread_id = graphene.Int()
+    followups = graphene.List(FollowupType)
 
     class Meta:
         model = IncidentReport
@@ -74,6 +91,7 @@ class IncidentReportType(DjangoObjectType):
             "reported_by",
             "case_id",
             "thread_id",
+            "followups",
         ]
         filter_fields = {
             "created_at": ["lte", "gte"],
@@ -91,6 +109,9 @@ class IncidentReportType(DjangoObjectType):
 
     def resolve_images(self, info):
         return self.images.all()
+
+    def resolve_followups(self, info):
+        return self.followups.all()
 
 
 class FollowupReportType(DjangoObjectType):

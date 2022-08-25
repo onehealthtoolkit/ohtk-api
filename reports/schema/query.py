@@ -4,7 +4,7 @@ from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
 from pagination.connection_field import DjangoPaginationConnectionField
 from reports.models import ReportType, Category
-from reports.models.report import IncidentReport
+from reports.models.report import IncidentReport, FollowUpReport
 from reports.models.reporter_notification import ReporterNotification
 
 from .types import (
@@ -17,6 +17,7 @@ from .types import (
     ReportTypeSyncOutputType,
     ReportTypeType,
     ReporterNotificationType,
+    FollowupReportType,
 )
 
 
@@ -34,6 +35,7 @@ class Query(graphene.ObjectType):
     report_type = graphene.Field(ReportTypeType, id=graphene.ID(required=True))
     incident_reports = DjangoPaginationConnectionField(IncidentReportType)
     incident_report = graphene.Field(IncidentReportType, id=graphene.ID(required=True))
+    followup_report = graphene.Field(FollowupReportType, id=graphene.ID(required=True))
     reporter_notification = graphene.Field(
         ReporterNotificationType, id=graphene.ID(required=True)
     )
@@ -88,6 +90,12 @@ class Query(graphene.ObjectType):
         return IncidentReport.objects.get(id=id)
 
     @staticmethod
+    @login_required
+    def resolve_followup_report(root, info, id):
+        return FollowUpReport.objects.get(id=id)
+
+    @staticmethod
+    @login_required
     def resolve_reporter_notification(root, info, id):
         user = info.context.user
         if not user.is_superuser:
