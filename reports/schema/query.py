@@ -34,6 +34,7 @@ class Query(graphene.ObjectType):
     category = graphene.Field(CategoryType, id=graphene.ID(required=True))
     report_type = graphene.Field(ReportTypeType, id=graphene.ID(required=True))
     incident_reports = DjangoPaginationConnectionField(IncidentReportType)
+    my_incident_reports = DjangoPaginationConnectionField(IncidentReportType)
     incident_report = graphene.Field(IncidentReportType, id=graphene.ID(required=True))
     followup_report = graphene.Field(FollowupReportType, id=graphene.ID(required=True))
     reporter_notification = graphene.Field(
@@ -117,3 +118,13 @@ class Query(graphene.ObjectType):
             query = query.filter(relevant_authorities__in=child_authorities)
 
         return query
+
+    @staticmethod
+    @login_required
+    def resolve_my_incident_reports(root, info, **kwargs):
+        user = info.context.user
+        return (
+            IncidentReport.objects.filter(reported_by=user)
+            .order_by("-created_at")
+            .prefetch_related("images", "reported_by", "report_type")
+        )
