@@ -22,6 +22,8 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
         ordering = graphene.Int(required=True)
         renderer_data_template = graphene.String(required=False)
         state_definition_id = graphene.Int(required=False)
+        followup_definition = graphene.String(required=False)
+        renderer_followup_data_template = graphene.String(required=False)
 
     result = graphene.Field(AdminReportTypeCreateResult)
 
@@ -37,6 +39,8 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
         ordering,
         state_definition_id=None,
         renderer_data_template=None,
+        followup_definition=None,
+        renderer_followup_data_template=None,
     ):
         problems = []
         if name_problem := is_not_empty("name", name, "Name must not be empty"):
@@ -64,5 +68,7 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
             ordering=ordering,
             renderer_data_template=renderer_data_template,
             state_definition_id=state_definition_id,
+            followup_definition=followup_definition,
+            renderer_followup_data_template=renderer_followup_data_template,
         )
         return AdminReportTypeCreateMutation(result=report_type)

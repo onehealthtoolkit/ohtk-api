@@ -210,3 +210,114 @@ class AdminReportTypeTests(JSONWebTokenTestCase):
             result.data["adminReportTypeUpdate"]["result"]["reportType"]["name"],
             "report type 3",
         )
+
+    def test_create_with_followup_definition_success(self):
+        mutation = """
+        mutation adminReportTypeCreate($name: String!, $categoryId: Int!, $definition: String!, $ordering: Int!, $followupDefinition: String, $rendererFollowupDataTemplate: String) {
+            adminReportTypeCreate(name: $name, definition: $definition, categoryId: $categoryId, ordering: $ordering, followupDefinition: $followupDefinition, rendererFollowupDataTemplate: $rendererFollowupDataTemplate) {
+                result {
+                  __typename
+                  ... on AdminReportTypeCreateSuccess {
+                    id
+                    name
+                    ordering
+                    followupDefinition
+                    rendererFollowupDataTemplate
+                  }
+                  ... on AdminReportTypeCreateProblem {
+                    message
+                    fields {
+                      name
+                      message
+                    }
+                  }
+                }
+            }
+        }
+        """
+        result = self.client.execute(
+            mutation,
+            {
+                "name": "cat3",
+                "categoryId": self.category.id,
+                "definition": '{"x":"YYYYY"}',
+                "ordering": 3,
+                "followupDefinition": '{"y": "1"}',
+                "rendererFollowupDataTemplate": "hello",
+            },
+        )
+        self.assertIsNotNone(result.data["adminReportTypeCreate"]["result"])
+        self.assertIsNotNone(result.data["adminReportTypeCreate"]["result"]["id"])
+        self.assertEqual(result.data["adminReportTypeCreate"]["result"]["name"], "cat3")
+        self.assertIsNotNone(
+            result.data["adminReportTypeCreate"]["result"]["followupDefinition"]
+        )
+        self.assertEqual(
+            result.data["adminReportTypeCreate"]["result"][
+                "rendererFollowupDataTemplate"
+            ],
+            "hello",
+        )
+
+    def test_update_with_followup_definition_success(self):
+        mutation = """
+        mutation adminReportTypeUpdate($id: ID!, $name: String!, $categoryId: Int!, $definition: String!, 
+                $ordering: Int!, $followupDefinition: String, $rendererFollowupDataTemplate: String) {
+            adminReportTypeUpdate(id: $id, name: $name, definition: $definition, categoryId: $categoryId, 
+                    ordering: $ordering, followupDefinition: $followupDefinition, 
+                    rendererFollowupDataTemplate: $rendererFollowupDataTemplate) {
+                result {
+                  __typename
+                  ... on AdminReportTypeUpdateSuccess {
+                    reportType {
+                        id
+                        name
+                        ordering
+                        followupDefinition
+                        rendererFollowupDataTemplate
+                    }
+                  }
+                  ... on AdminReportTypeUpdateProblem {
+                    message
+                    fields {
+                      name
+                      message
+                    }
+                  }
+                }
+            }
+        }
+        """
+        result = self.client.execute(
+            mutation,
+            {
+                "id": str(self.reportType1.id),
+                "name": "report type 3",
+                "categoryId": self.category.id,
+                "definition": '{"z":"AAAAAA"}',
+                "ordering": 5,
+                "followupDefinition": '{"y": "1"}',
+                "rendererFollowupDataTemplate": "hello",
+            },
+        )
+        print(result)
+
+        self.assertIsNotNone(result.data["adminReportTypeUpdate"]["result"])
+        self.assertIsNotNone(
+            result.data["adminReportTypeUpdate"]["result"]["reportType"]["id"]
+        )
+        self.assertEqual(
+            result.data["adminReportTypeUpdate"]["result"]["reportType"]["name"],
+            "report type 3",
+        )
+        self.assertIsNotNone(
+            result.data["adminReportTypeUpdate"]["result"]["reportType"][
+                "followupDefinition"
+            ]
+        )
+        self.assertEqual(
+            result.data["adminReportTypeUpdate"]["result"]["reportType"][
+                "rendererFollowupDataTemplate"
+            ],
+            "hello",
+        )

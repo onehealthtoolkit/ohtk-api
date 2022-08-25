@@ -28,6 +28,7 @@ class CategoryType(DjangoObjectType):
 
 class ReportTypeType(DjangoObjectType):
     definition = GenericScalar()
+    followup_definition = GenericScalar()
     category = graphene.Field(CategoryType)
 
     class Meta:

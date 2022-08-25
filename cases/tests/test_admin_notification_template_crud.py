@@ -78,8 +78,8 @@ class AdminNotificationTemplateTests(BaseTestCase):
 
     def test_query_with_name(self):
         query = """
-        query adminNotificationTemplateQuery($name: String) {
-            adminNotificationTemplateQuery(name: $name) {
+        query adminNotificationTemplateQuery($q: String) {
+            adminNotificationTemplateQuery(q: $q) {
                 results {
                     id
                     name
@@ -87,7 +87,7 @@ class AdminNotificationTemplateTests(BaseTestCase):
             }
         }
         """
-        result = self.client.execute(query, {"name": "Notification1"})
+        result = self.client.execute(query, {"q": "Notification1"})
         self.assertEqual(
             len(result.data["adminNotificationTemplateQuery"]["results"]), 1
         )

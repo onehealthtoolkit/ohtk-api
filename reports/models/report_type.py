@@ -23,11 +23,13 @@ class ReportType(BaseModel):
     name = models.CharField(max_length=255, unique=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     definition = models.JSONField()
+    followup_definition = models.JSONField(null=True, blank=True)
     authorities = models.ManyToManyField(
         Authority,
         related_name="reportTypes",
     )
     renderer_data_template = models.TextField(blank=True, null=True)
+    renderer_followup_data_template = models.TextField(blank=True, null=True)
     ordering = models.IntegerField(default=0)
     state_definition = models.ForeignKey(
         "cases.StateDefinition",
@@ -78,6 +80,15 @@ class ReportType(BaseModel):
 
     def render_data(self, form_data):
         template = self.renderer_data_template
+        if template:
+            t = Template(template)
+            c = Context(form_data)
+            return striptags(t.render(c))
+        else:
+            return ""
+
+    def render_followup_data(self, form_data):
+        template = self.renderer_followup_data_template
         if template:
             t = Template(template)
             c = Context(form_data)

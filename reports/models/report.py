@@ -105,7 +105,7 @@ class IncidentReport(AbstractIncidentReport):
         if not self.origin_data:
             self.origin_data = self.data
             self.origin_renderer_data = self.renderer_data
-        super(IncidentReport, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def resolve_relevant_authorities_by_area(self):
         if self.gps_location:
@@ -144,3 +144,16 @@ class FollowUpReport(AbstractIncidentReport):
     incident = models.ForeignKey(
         IncidentReport, on_delete=models.CASCADE, related_name="followups"
     )
+
+    def render_data_context(self):
+        return {
+            "data": self.data,
+            "id": self.id,
+            "incident_data": self.incident.data,
+        }
+
+    def save(self, *args, **kwargs):
+        self.renderer_data = self.report_type.render_followup_data(
+            self.render_data_context()
+        )
+        super().save(*args, **kwargs)

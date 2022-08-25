@@ -23,6 +23,8 @@ class AdminReportTypeUpdateMutation(graphene.Mutation):
         ordering = graphene.Int(required=True)
         state_definition_id = graphene.Int(required=False)
         renderer_data_template = graphene.String(required=False)
+        followup_definition = graphene.String(required=False)
+        renderer_followup_data_template = graphene.String(required=False)
 
     result = graphene.Field(AdminReportTypeUpdateResult)
 
@@ -39,6 +41,8 @@ class AdminReportTypeUpdateMutation(graphene.Mutation):
         ordering,
         state_definition_id=None,
         renderer_data_template=None,
+        followup_definition=None,
+        renderer_followup_data_template=None,
     ):
         try:
             report_type = ReportType.objects.get(pk=id)
@@ -68,6 +72,8 @@ class AdminReportTypeUpdateMutation(graphene.Mutation):
         report_type.ordering = ordering
         report_type.state_definition_id = state_definition_id
         report_type.renderer_data_template = renderer_data_template
+        report_type.followup_definition = followup_definition,
+        report_type.renderer_followup_data_template = renderer_followup_data_template
         report_type.save()
         return AdminReportTypeUpdateMutation(
             result=AdminReportTypeUpdateSuccess(report_type=report_type)
