@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/4.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
+import os
 from datetime import timedelta
 from pathlib import Path
 
@@ -17,7 +18,10 @@ from firebase_admin import initialize_app, credentials
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+STATIC_ROOT = os.path.join(
+    BASE_DIR,
+    "static",
+)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
@@ -38,6 +42,7 @@ SHARED_APPS = (
     "tenants",
     "django_filters",
     "pagination",
+    "corsheaders",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -48,6 +53,7 @@ SHARED_APPS = (
     "graphene_django",
     "graphql_jwt.refresh_token.apps.RefreshTokenConfig",
     "graphql_playground",
+    "channels",
     "reports",
     "cases",
     "notifications",
@@ -71,11 +77,8 @@ INSTALLED_APPS = list(SHARED_APPS) + [
     app for app in TENANT_APPS if app not in SHARED_APPS
 ]
 
-TENANT_MODEL = "tenants.Client"  # app.Model
-
-TENANT_DOMAIN_MODEL = "tenants.Domain"  # app.Model
-
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django_tenants.middleware.main.TenantMainMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -86,6 +89,14 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
 ]
+
+# CORS_ALLOWED_ORIGIN_REGEXES = [
+#     r"^https://\w+\.opensurclient\.test$",
+#     r"^https://opensurclient\.test$",
+#     r"^http://localhost:3000$",
+# ]
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = "podd_api.urls"
 
@@ -106,7 +117,15 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "podd_api.wsgi.application"
-
+ASGI_APPLICATION = "podd_api.asgi.application"
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
@@ -182,6 +201,8 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 GRAPHQL_JWT = {
+    "JWT_COOKIE_SAMESITE": "None",
+    "JWT_COOKIE_SECURE": True,
     "JWT_VERIFY_EXPIRATION": True,
     "JWT_LONG_RUNNING_REFRESH_TOKEN": True,
     "JWT_EXPIRATION_DELTA": timedelta(minutes=30),
@@ -209,6 +230,22 @@ if credentials_config:
     FIREBASE_APP = initialize_app(credentials.Certificate(credentials_config))
 
 # end ----
+
+USE_S3 = os.getenv("USE_S3") == "TRUE"
+if USE_S3:
+    MEDIA_BUCKET_NAME = "ohtk-media-bucket"
+    DEFAULT_FILE_STORAGE = "common.storage.S3MediaStorage"
+    THUMBNAIL_DEFAULT_STORAGE = "common.storage.MediaStorage"
+    AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+    AWS_STORAGE_BUCKET_NAME = (
+        os.getenv("AWS_STORAGE_BUCKET_NAME") or "ohtk-media-bucket"
+    )
+else:
+    MEDIA_URL = "/medias/"
+    MEDIA_BUCKET_NAME = ""
+    DEFAULT_FILE_STORAGE = "common.storage.SimpleFileMediaStorage"
+    THUMBNAIL_DEFAULT_STORAGE = "common.storage.SimpleFileMediaStorage"
 
 THUMBNAIL_ALIASES = {
     "accounts.User.avatar": {

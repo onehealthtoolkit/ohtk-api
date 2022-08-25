@@ -13,7 +13,7 @@ class CommentAttachmentType(DjangoObjectType):
         model = CommentAttachment
 
     def resolve_thumbnail(self, info):
-        return get_thumbnailer(self.file)["thumbnail"]
+        return get_thumbnailer(self.file)["thumbnail"].url
 
 
 class CommentType(DjangoObjectType):

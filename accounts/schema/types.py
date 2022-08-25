@@ -120,7 +120,7 @@ class UserType(DjangoObjectType):
 
     def resolve_avatar_url(self, info):
         if self.avatar:
-            return get_thumbnailer(self.avatar)["thumbnail"]
+            return get_thumbnailer(self.avatar)["thumbnail"].url
         else:
             return None
 
@@ -171,7 +171,7 @@ class UserProfileType(graphene.ObjectType):
 
     def resolve_avatar_url(self, info):
         if self.avatar:
-            return get_thumbnailer(self.avatar)["thumbnail"]
+            return get_thumbnailer(self.avatar)["thumbnail"].url
         else:
             return None
 

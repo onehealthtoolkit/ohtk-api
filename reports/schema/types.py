@@ -12,8 +12,23 @@ from reports.models import ReportType, Category, IncidentReport, ReporterNotific
 from reports.models.report import Image
 
 
+class CategoryType(DjangoObjectType):
+    class Meta:
+        model = Category
+        fields = (
+            "id",
+            "name",
+            "icon",
+            "ordering",
+        )
+
+    def resolve_icon(self, info):
+        return self.icon.url
+
+
 class ReportTypeType(DjangoObjectType):
     definition = GenericScalar()
+    category = graphene.Field(CategoryType)
 
     class Meta:
         model = ReportType
@@ -26,7 +41,7 @@ class ImageType(DjangoObjectType):
         model = Image
 
     def resolve_thumbnail(self, info):
-        return get_thumbnailer(self.file)["thumbnail"]
+        return get_thumbnailer(self.file)["thumbnail"].url
 
 
 class IncidentReportType(DjangoObjectType):
@@ -35,6 +50,7 @@ class IncidentReportType(DjangoObjectType):
     gps_location = graphene.String()
     images = graphene.List(ImageType)
     reported_by = graphene.Field(UserType)
+    report_type = graphene.Field(ReportTypeType)
     thread_id = graphene.Int()
 
     class Meta:
@@ -77,11 +93,6 @@ class IncidentReportType(DjangoObjectType):
         return self.images.all()
 
 
-class CategoryType(DjangoObjectType):
-    class Meta:
-        model = Category
-
-
 class ReportTypeSyncInputType(graphene.InputObjectType):
     id = graphene.UUID(required=True)
     updated_at = graphene.DateTime(
@@ -105,6 +116,9 @@ class AdminCategoryQueryType(DjangoObjectType):
         filter_fields = {
             "name": ["istartswith", "exact"],
         }
+
+    def resolve_icon(self):
+        return self.icon.url
 
 
 class AdminCategoryCreateSuccess(DjangoObjectType):
