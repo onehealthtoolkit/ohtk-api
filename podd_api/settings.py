@@ -116,7 +116,6 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "podd_api.wsgi.application"
 ASGI_APPLICATION = "podd_api.asgi.application"
 CHANNEL_LAYERS = {
     "default": {

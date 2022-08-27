@@ -93,6 +93,13 @@ class IncidentReport(AbstractIncidentReport):
         null=True,
     )
 
+    @property
+    def gps_location_str(self):
+        if self.gps_location:
+            return f"{self.gps_location.x},{self.gps_location.y}"
+        else:
+            return ""
+
     def render_data_context(self):
         return {
             "data": self.data,
@@ -112,9 +119,8 @@ class IncidentReport(AbstractIncidentReport):
             found_authorities = Authority.objects.filter(
                 area__contains=self.gps_location
             )
-            for authority in found_authorities:
-                self.relevant_authorities.add(authority)
             if found_authorities:
+                self.relevant_authorities.add(*found_authorities)
                 self.relevant_authority_resolved = True
                 self.save(update_fields=("relevant_authority_resolved",))
 
