@@ -112,7 +112,7 @@ class AdminAuthorityUpdateMutation(graphene.Mutation):
         authority.name = name
         if area:
             authority.area = area
-        if inherits:
+        if inherits != None:
             authority.inherits.set(Authority.objects.filter(pk__in=inherits))
 
         authority.save()

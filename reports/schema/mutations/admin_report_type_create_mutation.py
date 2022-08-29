@@ -68,7 +68,7 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
             ordering=ordering,
             renderer_data_template=renderer_data_template,
             state_definition_id=state_definition_id,
-            followup_definition=followup_definition,
+            followup_definition=json.loads(followup_definition),
             renderer_followup_data_template=renderer_followup_data_template,
         )
         return AdminReportTypeCreateMutation(result=report_type)
