@@ -23,7 +23,9 @@ class CategoryType(DjangoObjectType):
         )
 
     def resolve_icon(self, info):
-        return self.icon.url
+        if self.icon:
+            return self.icon.url
+        return None
 
 
 class ReportTypeType(DjangoObjectType):
@@ -167,8 +169,10 @@ class AdminCategoryQueryType(DjangoObjectType):
             "name": ["istartswith", "exact"],
         }
 
-    def resolve_icon(self):
-        return self.icon.url
+    def resolve_icon(self, info):
+        if self.icon:
+            return self.icon.url
+        return None
 
 
 class AdminCategoryCreateSuccess(DjangoObjectType):

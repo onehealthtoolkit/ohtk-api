@@ -72,7 +72,12 @@ class AdminReportTypeUpdateMutation(graphene.Mutation):
         report_type.ordering = ordering
         report_type.state_definition_id = state_definition_id
         report_type.renderer_data_template = renderer_data_template
-        report_type.followup_definition = followup_definition,
+
+        if followup_definition:
+            report_type.followup_definition = json.loads(followup_definition)
+        else:
+            report_type.followup_definition = None
+
         report_type.renderer_followup_data_template = renderer_followup_data_template
         report_type.save()
         return AdminReportTypeUpdateMutation(
