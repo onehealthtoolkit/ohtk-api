@@ -243,6 +243,7 @@ if USE_S3:
     )
 else:
     MEDIA_URL = "/medias/"
+    MEDIA_DOMAIN = "opensur.test"
     MEDIA_BUCKET_NAME = ""
     DEFAULT_FILE_STORAGE = "common.storage.SimpleFileMediaStorage"
     THUMBNAIL_DEFAULT_STORAGE = "common.storage.SimpleFileMediaStorage"
