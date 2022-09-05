@@ -25,7 +25,7 @@ class CategoryType(DjangoObjectType):
     def resolve_icon(self, info):
         if self.icon:
             return self.icon.url
-        return None
+        return ""
 
 
 class ReportTypeType(DjangoObjectType):
@@ -130,9 +130,9 @@ class FollowupReportType(DjangoObjectType):
             "data",
             "renderer_data",
             "images",
-            "gps_location",
             "incident",
             "test_flag",
+            "created_at",
         ]
 
     def resolve_gps_location(self, info):
@@ -172,7 +172,7 @@ class AdminCategoryQueryType(DjangoObjectType):
     def resolve_icon(self, info):
         if self.icon:
             return self.icon.url
-        return None
+        return ""
 
 
 class AdminCategoryCreateSuccess(DjangoObjectType):

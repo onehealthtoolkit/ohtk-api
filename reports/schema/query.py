@@ -47,6 +47,10 @@ class Query(graphene.ObjectType):
         AdminReporterNotificationQueryType
     )
 
+    followups = graphene.List(
+        FollowupReportType, incident_id=graphene.ID(required=True)
+    )
+
     @staticmethod
     @login_required
     def resolve_my_report_types(root, info):
@@ -125,3 +129,8 @@ class Query(graphene.ObjectType):
             .order_by("-created_at")
             .prefetch_related("images", "reported_by", "report_type")
         )
+
+    @staticmethod
+    @login_required
+    def resolve_followups(root, info, incident_id):
+        return FollowUpReport.objects.filter(incident__id=incident_id)
