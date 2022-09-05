@@ -28,7 +28,7 @@ urlpatterns = [
     path("api/servers/", tenants.views.tenants),
     path(
         "graphql/",
-        jwt_cookie(csrf_exempt(FileUploadGraphQLView.as_view(graphiql=True))),
+        jwt_cookie(csrf_exempt(FileUploadGraphQLView.as_view(graphiql=settings.DEBUG))),
     ),
 ]
 
