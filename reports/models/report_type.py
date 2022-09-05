@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import List
 
 from django.contrib.gis.db import models
+from django.db.models import Q
 from django.template import Template, Context
 from django.template.defaultfilters import striptags
 
@@ -40,7 +41,9 @@ class ReportType(BaseModel):
 
     @staticmethod
     def filter_by_authority(authority: Authority):
-        return ReportType.objects.filter(authorities__in=authority.all_inherits_up())
+        return ReportType.objects.filter(
+            Q(authorities__in=authority.all_inherits_up()) | Q(authorities__isnull=True)
+        )
 
     @staticmethod
     def check_updated_report_types_by_authority(
