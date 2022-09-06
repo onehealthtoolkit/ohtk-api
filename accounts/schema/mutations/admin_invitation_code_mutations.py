@@ -78,6 +78,7 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True)
         code = graphene.String(required=True)
+        authority_id = graphene.Int(required=False)
         from_date = graphene.DateTime(required=False)
         through_date = graphene.DateTime(required=False)
         role = graphene.String(required=False)
@@ -87,7 +88,7 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
     @staticmethod
     @login_required
     @user_passes_test(fn_or(is_superuser, is_officer_role))
-    def mutate(root, info, id, code, from_date, through_date, role):
+    def mutate(root, info, id, code, authority_id, from_date, through_date, role):
         user = info.context.user
 
         try:
@@ -120,6 +121,8 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
             )
 
         invitation_code.code = code
+        if authority_id:
+            invitation_code.authority = Authority.objects.get(pk=authority_id)
         if from_date is not None:
             invitation_code.from_date = from_date
         if through_date is not None:
