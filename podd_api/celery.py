@@ -1,6 +1,5 @@
 import os
 
-from celery import Celery
 from django.conf import settings
 from tenant_schemas_celery.app import CeleryApp as TenantAwareCeleryApp
 
