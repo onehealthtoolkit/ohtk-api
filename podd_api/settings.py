@@ -263,6 +263,9 @@ THUMBNAIL_ALIASES = {
     },
 }
 
+SENDER_EMAIL_DOMAIN = "opensur.test"
+DASHBOARD_URL = "http://localhost:3000"
+
 FCM_DRY_RUN = True
 
 try:

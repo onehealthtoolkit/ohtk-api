@@ -1,5 +1,4 @@
 import graphene
-from django.core.exceptions import PermissionDenied
 from graphql_jwt.decorators import login_required, user_passes_test, superuser_required
 
 from accounts.models import Authority

@@ -1,28 +1,20 @@
 import graphene
 
-from accounts.schema.mutations.admin_authority_mutations import (
+from accounts.schema.mutations import (
+    AuthorityUserRegisterMutation,
+    AdminUserChangePasswordMutation,
+    AdminUserUploadAvatarMutation,
     AdminAuthorityCreateMutation,
     AdminAuthorityUpdateMutation,
     AdminAuthorityDeleteMutation,
-)
-from accounts.schema.mutations.admin_authority_user_mutations import (
     AdminAuthorityUserCreateMutation,
     AdminAuthorityUserUpdateMutation,
     AdminAuthorityUserDeleteMutation,
-)
-from accounts.schema.mutations.admin_invitation_code_mutations import (
     AdminInvitationCodeCreateMutation,
     AdminInvitationCodeUpdateMutation,
     AdminInvitationCodeDeleteMutation,
-)
-from accounts.schema.mutations.admin_user_change_password_mutation import (
-    AdminUserChangePasswordMutation,
-)
-from accounts.schema.mutations.admin_user_upload_avatar_mutation import (
-    AdminUserUploadAvatarMutation,
-)
-from accounts.schema.mutations.authority_user_mutations import (
-    AuthorityUserRegisterMutation,
+    ResetPasswordRequestMutation,
+    ResetPasswordMutation,
 )
 
 
@@ -39,3 +31,5 @@ class Mutation(graphene.ObjectType):
     admin_invitation_code_create = AdminInvitationCodeCreateMutation.Field()
     admin_invitation_code_update = AdminInvitationCodeUpdateMutation.Field()
     admin_invitation_code_delete = AdminInvitationCodeDeleteMutation.Field()
+    reset_password_request = ResetPasswordRequestMutation.Field()
+    reset_password = ResetPasswordMutation.Field()

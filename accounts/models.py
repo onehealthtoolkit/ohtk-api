@@ -144,3 +144,9 @@ class Feature(BaseModel):
 
     key = models.CharField(max_length=100, primary_key=True)
     value = models.CharField(max_length=100)
+
+
+class PasswordResetToken(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    token = models.CharField(max_length=128)
+    token_expiry = models.DateTimeField()
