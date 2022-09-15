@@ -18,7 +18,9 @@ class NewReportConsumers(TenantConsumers):
     async def connect(self):
         self.authority_id = self.scope["url_route"]["kwargs"]["authority_id"]
         await self.get_tenant()
-        self.group_name = new_report_group_name(self.tenant.schema, self.authority_id)
+        self.group_name = new_report_group_name(
+            self.tenant.schema_name, self.authority_id
+        )
         payload = extract_jwt_payload_from_asgi_scope(self.scope)
         self.username = payload["username"]
 
