@@ -14,7 +14,7 @@ from django.db import connection
 @receiver(
     m2m_changed,
     sender=IncidentReport.relevant_authorities.through,
-    dispatch_id="report_signal_to_ws",
+    dispatch_uid="report_signal_to_ws",
 )
 def on_create_report(sender, instance, action, reverse, model, pk_set, **kwargs):
     if action == "post_add":
@@ -27,6 +27,6 @@ def on_create_report(sender, instance, action, reverse, model, pk_set, **kwargs)
                     group_name,
                     {
                         "type": "new.report",
-                        "text": json.dumps(instance.template_context()),
+                        "text": json.dumps(instance.template_context(), default=str),
                     },
                 )

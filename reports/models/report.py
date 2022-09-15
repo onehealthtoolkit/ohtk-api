@@ -133,6 +133,7 @@ class IncidentReport(AbstractIncidentReport):
             "report_date": self.created_at,
             "incident_date": self.incident_date,
             "gps_location": self.gps_location,
+            "renderer_data": self.renderer_data,
             "report_id": self.id,
             "report_type": {
                 "id": self.report_type.id,
