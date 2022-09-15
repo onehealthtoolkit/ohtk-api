@@ -117,7 +117,11 @@ def connection_from_list_ordering(items_list, ordering):
     orderings = ordering.split(" ")
     order_bys = []
     for item in orderings:
-        field, order = item.split(",")
+        if "," in item:
+            field, order = item.split(",")
+        else:
+            field = item
+            order = "asc"
         order = "-" if order == "desc" else ""
         field = re.sub(r"(?<!^)(?=[A-Z])", "_", field).lower()
         order_bys.append(f"{order}{field}")
