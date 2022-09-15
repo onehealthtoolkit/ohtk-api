@@ -49,6 +49,20 @@ class AuthorityType(DjangoObjectType):
         return results
 
 
+class AdminAuthorityQueryFilter(django_filters.FilterSet):
+    q = django_filters.CharFilter(
+        method="filter_q",
+        label="Search",
+    )
+
+    class Meta:
+        model = Authority
+        fields = ["q"]
+
+    def filter_q(self, queryset, name, value):
+        return queryset.filter(Q(name__icontains=value) | Q(code__icontains=value))
+
+
 class AdminAuthorityQueryType(DjangoObjectType):
     class Meta:
         model = Authority
@@ -57,17 +71,42 @@ class AdminAuthorityQueryType(DjangoObjectType):
             "code",
             "name",
         )
-        filter_fields = {"name": ["istartswith", "exact"]}
+        filterset_class = AdminAuthorityQueryFilter
+
+
+class AdminAuthorityInheritLookupFilter(django_filters.FilterSet):
+    q = django_filters.CharFilter(
+        method="filter_q",
+        label="Search",
+    )
+
+    class Meta:
+        model = Authority
+        fields = ["q"]
+
+    def filter_q(self, queryset, name, value):
+        return queryset.filter(Q(name__icontains=value) | Q(code__icontains=value))
+
+
+class AdminAuthorityInheritLookupType(DjangoObjectType):
+    class Meta:
+        model = Authority
+        fields = (
+            "id",
+            "code",
+            "name",
+        )
+        filterset_class = AdminAuthorityInheritLookupFilter
 
 
 class AdminAuthorityUserQueryFilter(django_filters.FilterSet):
-    q = django_filters.CharFilter(method="q_filter")
+    q = django_filters.CharFilter(method="filter_q")
 
     class Meta:
         model = AuthorityUser
         fields = []
 
-    def q_filter(self, queryset, name, value):
+    def filter_q(self, queryset, name, value):
         return queryset.filter(
             Q(first_name__icontains=value)
             | Q(last_name__icontains=value)

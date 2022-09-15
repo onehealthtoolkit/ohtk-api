@@ -13,6 +13,7 @@ from accounts.schema.types import (
     AuthorityType,
     AdminAuthorityQueryType,
     AdminAuthorityUserQueryType,
+    AdminAuthorityInheritLookupType,
 )
 from accounts.schema.types import CheckInvitationCodeType
 from pagination import DjangoPaginationConnectionField
@@ -33,7 +34,9 @@ class Query(graphene.ObjectType):
         AdminAuthorityQueryType, id=graphene.ID(required=True)
     )
     admin_authority_query = DjangoPaginationConnectionField(AdminAuthorityQueryType)
-    admin_authority_inherit_lookup = DjangoPaginationConnectionField(AuthorityType)
+    admin_authority_inherit_lookup = DjangoPaginationConnectionField(
+        AdminAuthorityInheritLookupType
+    )
     admin_authority_user_query = DjangoPaginationConnectionField(
         AdminAuthorityUserQueryType
     )
