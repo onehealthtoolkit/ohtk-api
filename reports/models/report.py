@@ -56,6 +56,9 @@ class Image(BaseModel):
     report_id = models.UUIDField()
     report = GenericForeignKey("report_type", "report_id")
 
+    def generate_thumbnails(self):
+        self.file.generate_all_thumbnails()
+
 
 class AbstractIncidentReport(BaseReport):
     class Meta:

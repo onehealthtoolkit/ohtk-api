@@ -4,11 +4,13 @@ import channels
 from asgiref.sync import async_to_sync
 from django.db.models.signals import m2m_changed
 from django.dispatch import receiver
+from easy_thumbnails.signals import saved_file
 
 from accounts.models import Authority
 from reports.consumers import new_report_group_name
-from reports.models import IncidentReport
+from reports.models import IncidentReport, Image
 from django.db import connection
+from . import tasks
 
 
 @receiver(
@@ -30,3 +32,12 @@ def on_create_report(sender, instance, action, reverse, model, pk_set, **kwargs)
                         "text": json.dumps(instance.template_context(), default=str),
                     },
                 )
+
+
+@receiver(
+    saved_file,
+    sender=Image,
+    dispatch_uid="report_image_signal_to_generate_thumbnail",
+)
+def on_report_image_update(sender, fieldfile, **kwargs):
+    tasks.generate_report_image.delay(fieldfile.instance.id)
