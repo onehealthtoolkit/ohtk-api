@@ -324,3 +324,7 @@ class AdminInvitationCodeUpdateResult(graphene.Union):
             AdminInvitationCodeUpdateSuccess,
             AdminInvitationCodeUpdateProblem,
         )
+
+
+class LoginQrTokenType(graphene.ObjectType):
+    token = graphene.String(required=True)

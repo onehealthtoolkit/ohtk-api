@@ -267,6 +267,7 @@ THUMBNAIL_ALIASES = {
 SENDER_EMAIL_DOMAIN = "opensur.test"
 DASHBOARD_URL = "http://localhost:3000"
 
+QR_CODE_LOGIN_EXPIRATION_DAYS = timedelta(days=7)
 
 FCM_DRY_RUN = True
 
