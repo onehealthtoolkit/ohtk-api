@@ -96,7 +96,9 @@ class IncidentReport(AbstractIncidentReport):
     @property
     def gps_location_str(self):
         if self.gps_location:
-            return f"{self.gps_location.x},{self.gps_location.y}"
+            x = self.gps_location.x
+            y = self.gps_location.y
+            return f"{x:.5f},{y:.5f}"
         else:
             return ""
 
