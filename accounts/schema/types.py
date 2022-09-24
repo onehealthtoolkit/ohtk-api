@@ -184,6 +184,7 @@ class UserProfileType(graphene.ObjectType):
     username = graphene.String(required=True)
     first_name = graphene.String(required=True)
     last_name = graphene.String(required=True)
+    telephone = graphene.String(required=False)
     email = graphene.String()
     authority_name = graphene.String(required=False)
     authority_id = graphene.Int(required=False)
