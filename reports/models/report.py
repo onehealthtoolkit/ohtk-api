@@ -57,7 +57,8 @@ class Image(BaseModel):
     report = GenericForeignKey("report_type", "report_id")
 
     def generate_thumbnails(self):
-        self.file.generate_all_thumbnails()
+        if hasattr(self.file, "generate_all_thumbnails"):
+            self.file.generate_all_thumbnails()
 
 
 class AbstractIncidentReport(BaseReport):
