@@ -39,12 +39,16 @@ class ReportTypeType(DjangoObjectType):
 
 class ImageType(DjangoObjectType):
     thumbnail = graphene.String()
+    image_url = graphene.String()
 
     class Meta:
         model = Image
 
     def resolve_thumbnail(self, info):
         return get_thumbnailer(self.file)["thumbnail"].url
+
+    def resolve_image_url(self, info):
+        return self.file.url
 
 
 class FollowupType(DjangoObjectType):
