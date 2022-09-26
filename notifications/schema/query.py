@@ -16,12 +16,12 @@ class Query(graphene.ObjectType):
     @login_required
     def resolve_my_messages(root, info, **kwargs):
         user = info.context.user
-        return UserMessage.objects.filter(user=user)
+        return UserMessage.objects.filter(user=user).order_by("-created_at")
 
     @staticmethod
     @login_required
     def resolve_my_message(root, info, id):
         user = info.context.user
-        user_message = UserMessage.objects.get(user=user, message_id=id)
-        update_is_seen.delay(user_message.id)
+        user_message = UserMessage.objects.get(user=user, id=id)
+        update_is_seen.delay(id)
         return user_message
