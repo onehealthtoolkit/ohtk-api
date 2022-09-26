@@ -2,11 +2,15 @@ import graphene
 from graphql_jwt.decorators import login_required
 from graphene.types.generic import GenericScalar
 
-from cases.tasks import evaluate_case_definition
+from cases.tasks import (
+    evaluate_case_definition,
+    evaluate_notification_template_after_receive_report,
+)
 from reports.models.report import IncidentReport
 from django.contrib.gis.geos import Point
 from reports.models.report_type import ReportType
 from reports.schema.types import IncidentReportType
+from reports.signals import incident_report_submitted
 from reports.tasks import evaluate_reporter_notification
 from threads.models import Thread
 
@@ -61,7 +65,6 @@ class SubmitIncidentReport(graphene.Mutation):
         else:
             report.resolve_relevant_authorities_by_area()
 
-        evaluate_reporter_notification.delay(report.id)
-        evaluate_case_definition.delay(report.id)
+        incident_report_submitted.send(sender=IncidentReport, report=report)
 
         return SubmitIncidentReport(result=report)

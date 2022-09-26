@@ -138,6 +138,10 @@ class Case(BaseModel):
         report.case_id = case.id
         report.save(update_fields=["case_id"])
 
+        from cases.signals import case_promoted
+
+        case_promoted.send(sender=cls, case=case)
+
         return case
 
     def forward_state(self, from_step_id, to_step_id, form_data, created_by):

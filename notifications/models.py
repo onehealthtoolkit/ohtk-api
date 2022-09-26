@@ -1,5 +1,7 @@
 from typing import List
 from dataclasses import dataclass
+
+from django.core.mail import send_mail
 from django.db import models
 from firebase_admin import messaging
 from firebase_admin.messaging import ApsAlert
@@ -33,7 +35,16 @@ class Message(BaseModel):
         UserMessage.objects.create(message=self, user=user, is_seen=False).send()
 
     def send_email(self, email: str):
-        print(f"send email: {email}, {self.body}")
+        if settings.DEBUG:
+            print(f"send email: {email}, {self.body}")
+        else:
+            send_mail(
+                self.title,
+                self.body,
+                f"noreply@{settings.SENDER_EMAIL_DOMAIN}",
+                [email],
+                fail_silently=False,
+            )
 
     def send_sms(self, sms: str):
         print(f"send sms: {sms}, {self.body}")
