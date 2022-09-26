@@ -195,9 +195,9 @@ class CaseDefinition(BaseModel):
 
 class NotificationTemplate(BaseModel):
     class Type(models.TextChoices):
-        REPORT = "rep", "Report"
-        PROMOTE_TO_CASE = "ptc", "Promote to case"
-        CASE_TRANSITION = "cas", "Case transition"
+        REPORT = "REP", "Report"
+        PROMOTE_TO_CASE = "PTC", "Promote to case"
+        CASE_TRANSITION = "CAS", "Case transition"
 
     objects = BaseModelManager()
 
