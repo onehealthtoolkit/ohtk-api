@@ -3,6 +3,7 @@ import graphene
 from accounts.schema.mutations import (
     AuthorityUserRegisterMutation,
     AdminUserChangePasswordMutation,
+    AdminUserUpdateProfileMutation,
     AdminUserUploadAvatarMutation,
     AdminAuthorityCreateMutation,
     AdminAuthorityUpdateMutation,
@@ -21,6 +22,7 @@ from accounts.schema.mutations import (
 class Mutation(graphene.ObjectType):
     authority_user_register = AuthorityUserRegisterMutation.Field()
     admin_user_change_password = AdminUserChangePasswordMutation.Field()
+    admin_user_update_profile = AdminUserUpdateProfileMutation.Field()
     admin_user_upload_avatar = AdminUserUploadAvatarMutation.Field()
     admin_authority_create = AdminAuthorityCreateMutation.Field()
     admin_authority_update = AdminAuthorityUpdateMutation.Field()
