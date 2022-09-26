@@ -15,7 +15,7 @@ case_promoted = django.dispatch.Signal()
     dispatch_uid="evaluate_notification_template_after_receive_report",
 )
 def evaluate_notification_template_after_receive_report(sender, report, **kwargs):
-    tasks.evaluate_notification_template_after_receive_report(report.id)
+    tasks.evaluate_notification_template_after_receive_report.delay(report.id)
 
 
 @receiver(
@@ -24,7 +24,7 @@ def evaluate_notification_template_after_receive_report(sender, report, **kwargs
     dispatch_uid="evaluate_case_definition_after_receive_report",
 )
 def evaluate_case_definition_after_receive_report(sender, report, **kwargs):
-    tasks.evaluate_case_definition(report.id)
+    tasks.evaluate_case_definition.delay(report.id)
 
 
 @receiver(
@@ -33,4 +33,4 @@ def evaluate_case_definition_after_receive_report(sender, report, **kwargs):
     dispatch_uid="promote_to_case_notification",
 )
 def promote_to_case_notification(sender, case, **kwargs):
-    tasks.evaluate_promote_to_case_notification(case.id)
+    tasks.evaluate_promote_to_case_notification.delay(case.id)

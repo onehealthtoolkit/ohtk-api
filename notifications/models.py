@@ -1,5 +1,6 @@
-from typing import List
+import logging
 from dataclasses import dataclass
+from typing import List
 
 from django.core.mail import send_mail
 from django.db import models
@@ -8,6 +9,8 @@ from firebase_admin.messaging import ApsAlert
 
 from accounts.models import BaseModel, User, BaseModelManager
 from podd_api import settings
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -19,8 +22,11 @@ class Receiver:
     def parse(receivers: str) -> List["Receiver"]:
         results = []
         for receiver in receivers.split(","):
-            [method, to] = receiver.strip().split(":")
-            results.append(Receiver(method=method, to=to))
+            try:
+                [method, to] = receiver.strip().split(":")
+                results.append(Receiver(method=method, to=to))
+            except:
+                logger.error(f"Error unpack receiver {receiver}", exc_info=True)
         return results
 
 
@@ -62,8 +68,9 @@ class Message(BaseModel):
             self.send_sms(receiver.to)
 
     def send(self, receivers: str):
-        for receiver in Receiver.parse(receivers):
-            self.send_by(receiver)
+        if receivers:
+            for receiver in Receiver.parse(receivers):
+                self.send_by(receiver)
 
 
 class UserMessage(BaseModel):

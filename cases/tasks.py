@@ -1,6 +1,9 @@
 from cases.models import CaseDefinition, Case, NotificationTemplate
 from podd_api.celery import app
 from reports.models import IncidentReport
+from celery.utils.log import get_task_logger
+
+logger = get_task_logger(__name__)
 
 
 @app.task
@@ -13,7 +16,10 @@ def evaluate_case_definition(report_id):
                 Case.promote_from_incident_report(report_id)
                 return  # do only one promote
         except:
-            pass
+            logger.error(
+                f"Error evaluating case definition {definition.condition}",
+                exc_info=True,
+            )
 
 
 @app.task
@@ -28,7 +34,10 @@ def evaluate_notification_template_after_receive_report(report_id):
                 if eval_context.eval(template.condition):
                     template.send_report_notification(report_id)
             except:
-                pass
+                logger.error(
+                    f"Error evaluating notification template condition {template.condition}",
+                    exc_info=True,
+                )
         else:
             template.send_report_notification(report_id)
 
@@ -45,6 +54,9 @@ def evaluate_promote_to_case_notification(case_id):
                 if eval_context.eval(template.condition):
                     template.send_report_notification(case.report.id)
             except:
-                pass
+                logger.error(
+                    f"Error evaluating promote to case notification condition {template.condition}",
+                    exc_info=True,
+                )
         else:
-            template.send_case_notification(case_id)
+            template.send_report_notification(case.report.id)

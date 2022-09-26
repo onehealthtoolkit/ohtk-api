@@ -228,10 +228,14 @@ class NotificationTemplate(BaseModel):
     def get_notifications_with_authorities(
         self, authorities: Union[List[Authority], QuerySet]
     ) -> QuerySet:
-        return self.authoritynotification_set.filter(authority__in=authorities)
+        involve_authorities = []
+        for authority in authorities:
+            ups = authority.all_inherits_up()
+            involve_authorities.extend(ups)
+        return self.authoritynotification_set.filter(authority__in=involve_authorities)
 
     @staticmethod
-    def send_message(self, notifications: QuerySet, message: Message):
+    def send_message(notifications: QuerySet, message: Message):
         for notification in notifications:
             message.send(notification.to)
 
@@ -241,7 +245,8 @@ class NotificationTemplate(BaseModel):
         notifications = self.get_notifications_with_authorities(
             report.relevant_authorities.all()
         )
-        self.send_message(notifications, message)
+        for notification in notifications:
+            message.send(notification.to)
 
 
 class AuthorityNotification(BaseModel):
