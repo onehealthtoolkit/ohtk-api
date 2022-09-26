@@ -6,8 +6,10 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from threads.consumers import new_comment_group_name
-from threads.models import Comment
+from threads.models import Comment, CommentAttachment
 from django.db import connection
+from easy_thumbnails.signals import saved_file
+from . import tasks
 
 
 @receiver(post_save, sender=Comment, dispatch_uid="comment_signal_to_ws")
@@ -27,3 +29,12 @@ def on_comment_update(sender, instance, **kwargs):
             ),
         },
     )
+
+
+@receiver(
+    saved_file,
+    sender=CommentAttachment,
+    dispatch_uid="comment_attachment_signal_to_generate_thumbnail",
+)
+def on_comment_attachment_update(sender, fieldfile, **kwargs):
+    tasks.generate_comment_attachment.delay(fieldfile.instance.id)

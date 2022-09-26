@@ -56,6 +56,9 @@ class Image(BaseModel):
     report_id = models.UUIDField()
     report = GenericForeignKey("report_type", "report_id")
 
+    def generate_thumbnails(self):
+        self.file.generate_all_thumbnails()
+
 
 class AbstractIncidentReport(BaseReport):
     class Meta:
@@ -96,7 +99,9 @@ class IncidentReport(AbstractIncidentReport):
     @property
     def gps_location_str(self):
         if self.gps_location:
-            return f"{self.gps_location.x},{self.gps_location.y}"
+            x = self.gps_location.x
+            y = self.gps_location.y
+            return f"{x:.5f},{y:.5f}"
         else:
             return ""
 
@@ -132,7 +137,7 @@ class IncidentReport(AbstractIncidentReport):
             "data": self.data,
             "report_date": self.created_at,
             "incident_date": self.incident_date,
-            "gps_location": self.gps_location,
+            "gps_location": self.gps_location_str,
             "renderer_data": self.renderer_data,
             "report_id": self.id,
             "report_type": {

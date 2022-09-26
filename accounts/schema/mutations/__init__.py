@@ -6,3 +6,4 @@ from .admin_user_update_profile_mutation import *
 from .admin_user_upload_avatar_mutation import *
 from .authority_user_mutations import *
 from .reset_password_mutation import *
+from .verify_login_qr_token_mutation import *

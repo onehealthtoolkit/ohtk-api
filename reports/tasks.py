@@ -1,5 +1,5 @@
 from podd_api.celery import app
-from reports.models import IncidentReport, ReporterNotification
+from reports.models import IncidentReport, ReporterNotification, Image
 
 
 @app.task
@@ -16,3 +16,8 @@ def evaluate_reporter_notification(report_id):
         if should_send_msg:
             definition.send_message(report.template_context(), report.reported_by)
             return
+
+
+@app.task
+def generate_report_image(report_id):
+    Image.objects.get(pk=report_id).generate_thumbnails()

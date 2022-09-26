@@ -29,3 +29,22 @@ def evaluate_notification_template_after_receive_report(report_id):
                     template.send_report_notification(report_id)
             except:
                 pass
+        else:
+            template.send_report_notification(report_id)
+
+
+@app.task
+def evaluate_promote_to_case_notification(case_id):
+    case = Case.objects.get(pk=case_id)
+    eval_context = case.report.evaluate_context()
+    for template in NotificationTemplate.objects.filter(
+        type=NotificationTemplate.Type.PROMOTE_TO_CASE
+    ):
+        if template.condition:
+            try:
+                if eval_context.eval(template.condition):
+                    template.send_report_notification(case.report.id)
+            except:
+                pass
+        else:
+            template.send_case_notification(case_id)

@@ -16,6 +16,7 @@ from accounts.schema.mutations import (
     AdminInvitationCodeDeleteMutation,
     ResetPasswordRequestMutation,
     ResetPasswordMutation,
+    VerifyLoginQRTokenMutation,
 )
 
 
@@ -35,3 +36,4 @@ class Mutation(graphene.ObjectType):
     admin_invitation_code_delete = AdminInvitationCodeDeleteMutation.Field()
     reset_password_request = ResetPasswordRequestMutation.Field()
     reset_password = ResetPasswordMutation.Field()
+    verify_login_qr_token = VerifyLoginQRTokenMutation.Field()
