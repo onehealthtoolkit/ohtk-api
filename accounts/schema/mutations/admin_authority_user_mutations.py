@@ -36,7 +36,6 @@ class AdminAuthorityUserCreateMutation(graphene.Mutation):
 
     @staticmethod
     @login_required
-    @user_passes_test(fn_or(is_superuser, is_officer_role))
     def mutate(
         root,
         info,
@@ -52,10 +51,12 @@ class AdminAuthorityUserCreateMutation(graphene.Mutation):
         user = info.context.user
         if not user.is_superuser:
             if authority_id:
-                if user.is_staff:
+                if user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
                     check_permission_on_inherits_down(authority_id)
-                else:
+                elif user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
                     check_permission_authority_must_be_the_same(user, authority_id)
+                else:
+                    raise GraphQLError("Permission denied")
             else:
                 authority_id = user.authorityuser.authority_id
 

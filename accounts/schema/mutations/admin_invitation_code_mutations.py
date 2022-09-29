@@ -35,7 +35,6 @@ class AdminInvitationCodeCreateMutation(graphene.Mutation):
 
     @staticmethod
     @login_required
-    @user_passes_test(fn_or(is_superuser, is_officer_role))
     def mutate(
         root, info, code, authority_id, from_date, through_date, inherits, role=None
     ):
@@ -58,11 +57,14 @@ class AdminInvitationCodeCreateMutation(graphene.Mutation):
 
         if authority_id != 0:
             if not user.is_superuser:
-                if user.is_staff:
+                if user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
                     check_permission_on_inherits_down(user, [authority_id])
+                elif user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
+                    check_permission_authority_must_be_the_same(user, authority_id)
                 else:
-                    check_permission_authority_must_be_the_same(user, [authority_id])
-
+                    raise GraphQLError(
+                        "You are not authorized to create invitation code"
+                    )
             authority = Authority.objects.get(pk=authority_id)
 
         invitation_code = InvitationCode.objects.create(
@@ -88,7 +90,6 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
 
     @staticmethod
     @login_required
-    @user_passes_test(fn_or(is_superuser, is_officer_role))
     def mutate(root, info, id, code, authority_id, from_date, through_date, role):
         user = info.context.user
 
