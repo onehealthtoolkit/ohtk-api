@@ -6,6 +6,7 @@ from graphene_django import DjangoObjectType
 
 from django.contrib.gis.db import models
 from graphene_django.converter import convert_django_field
+from graphql import GraphQLError
 
 from accounts.models import Authority, AuthorityUser, InvitationCode, Feature, User
 from common.converter import GeoJSON
@@ -121,6 +122,19 @@ class AdminAuthorityUserQueryType(DjangoObjectType):
         fields = ("id", "username", "first_name", "last_name", "email", "role")
         filterset_class = AdminAuthorityUserQueryFilter
 
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        user = info.context.user
+        if user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
+            queryset = queryset.filter(authority_id=user.authorityuser.authority)
+        elif user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
+            queryset = queryset.filter(
+                authority_id__in=user.authorityuser.authority.all_inherits_down()
+            )
+        elif user.is_authority_role_in([AuthorityUser.Role.REPORTER]):
+            raise GraphQLError("Permission denied")
+        return queryset
+
 
 class AdminInvitationCodeQueryType(DjangoObjectType):
     class Meta:
@@ -129,6 +143,19 @@ class AdminInvitationCodeQueryType(DjangoObjectType):
         filter_fields = {
             "code": ["istartswith", "exact"],
         }
+
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        user = info.context.user
+        if user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
+            queryset = queryset.filter(authority_id=user.authorityuser.authority)
+        elif user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
+            queryset = queryset.filter(
+                authority_id__in=user.authorityuser.authority.all_inherits_down()
+            )
+        elif user.is_authority_role_in([AuthorityUser.Role.REPORTER]):
+            raise GraphQLError("Permission denied")
+        return queryset
 
 
 class InvitationCodeType(DjangoObjectType):

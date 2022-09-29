@@ -5,6 +5,7 @@ from typing import Callable
 from crum import get_current_user
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
+from graphql import GraphQLError
 from graphql_jwt.utils import jwt_payload
 
 from accounts.models import User, AuthorityUser
@@ -92,3 +93,17 @@ def check_permission_on_inherits_up(user: User, authority_ids: list):
     if user.is_authority_user:
         if not user.authorityuser.authority.is_in_inherits_up(authority_ids):
             raise PermissionDenied(f"p003: user: {user.id}, ids: {authority_ids}")
+
+
+def filter_authority_permission(user, query):
+    if user.is_superuser:
+        pass
+    elif user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
+        query = query.filter(authority=user.authorityuser.authority)
+    elif user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
+        query = query.filter(
+            authority__in=user.authorityuser.authority.all_inherits_down()
+        )
+    else:
+        raise GraphQLError("Permission denied.")
+    return query

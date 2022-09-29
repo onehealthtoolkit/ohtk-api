@@ -22,6 +22,7 @@ from accounts.schema.types import (
     LoginQrTokenType,
 )
 from accounts.schema.types import CheckInvitationCodeType
+from accounts.utils import filter_authority_permission
 from pagination import DjangoPaginationConnectionField
 
 
@@ -110,17 +111,17 @@ class Query(graphene.ObjectType):
     @login_required
     def resolve_authority_user(root, info, id):
         user = info.context.user
-        if not user.is_superuser:
-            raise GraphQLError("Permission denied.")
-        return AuthorityUser.objects.get(id=id)
+        query = AuthorityUser.objects.all()
+        query = filter_authority_permission(user, query)
+        return query.get(id=id)
 
     @staticmethod
     @login_required
     def resolve_invitation_code(root, info, id):
         user = info.context.user
-        if not user.is_superuser:
-            raise GraphQLError("Permission denied.")
-        return InvitationCode.objects.get(id=id)
+        query = InvitationCode.objects.all()
+        query = filter_authority_permission(user, query)
+        return query.get(id=id)
 
     @staticmethod
     @login_required

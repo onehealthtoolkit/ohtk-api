@@ -1,4 +1,5 @@
 import graphene
+from graphql import GraphQLError
 from graphql_jwt.decorators import login_required, user_passes_test, superuser_required
 
 from accounts.models import Authority, InvitationCode, AuthorityUser
@@ -101,11 +102,14 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
             )
 
         if not user.is_superuser:
-            authority_id = invitation_code.authority_id
-            if user.is_staff:
-                check_permission_on_inherits_down(user, [authority_id])
+            if user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
+                check_permission_on_inherits_down(user, [invitation_code.authority_id])
+            elif user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
+                check_permission_authority_must_be_the_same(
+                    user, invitation_code.authority_id
+                )
             else:
-                check_permission_authority_must_be_the_same(user, [authority_id])
+                raise GraphQLError("Permission denied.")
 
         problems = []
         if invitation_code.code != code:

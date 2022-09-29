@@ -1,4 +1,5 @@
 import graphene
+from graphql import GraphQLError
 from graphql_jwt.decorators import login_required, user_passes_test, superuser_required
 
 from accounts.models import AuthorityUser, Authority, User
@@ -110,7 +111,6 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
 
     @staticmethod
     @login_required
-    @user_passes_test(fn_or(is_superuser, is_officer_role))
     def mutate(
         root,
         info,
@@ -134,22 +134,14 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
         user = info.context.user
 
         if not user.is_superuser:
-            # check on update_user value
-            if not user.is_staff:
-                # can update only their own user
+            if user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
+                check_permission_on_inherits_down(user, [update_user.authority_id])
+            elif user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
                 check_permission_authority_must_be_the_same(
                     user, update_user.authority_id
                 )
             else:
-                # can update all user of their children authorities
-                check_permission_on_inherits_down([update_user.authority_id])
-
-            # check on parameter authority_id
-            if authority_id:
-                if user.is_staff:
-                    check_permission_authority_must_be_the_same(user, authority_id)
-                else:
-                    check_permission_on_inherits_down([authority_id])
+                raise GraphQLError("Permission denied.")
 
         problems = []
         if update_user.username != username:
