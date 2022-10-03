@@ -52,6 +52,9 @@ class AuthorityUserRegisterMutation(graphene.Mutation):
             if settings.AUTO_LOGIN_AFTER_REGISTER:
                 token = get_token(authority_user)
                 refresh_token = create_refresh_token(authority_user)
+                # delegate cookie setting to jwt_cookie that config at podd_api/urls.py
+                info.context.jwt_token = token
+                info.context.jwt_refresh_token = refresh_token
 
             return AuthorityUserRegisterMutation(
                 me=authority_user, token=token, refresh_token=refresh_token
