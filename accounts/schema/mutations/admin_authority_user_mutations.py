@@ -202,6 +202,61 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
         )
 
 
+class AdminAuthorityUserUpdatePasswordMutation(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+        password = graphene.String(required=True)
+
+    result = graphene.Field(AdminAuthorityUserUpdateResult)
+
+    @staticmethod
+    @login_required
+    def mutate(
+        root,
+        info,
+        id,
+        password,
+    ):
+        try:
+            update_user = AuthorityUser.objects.get(pk=id)
+        except AuthorityUser.DoesNotExist:
+            return AdminAuthorityUserUpdateMutation(
+                result=AdminAuthorityUserUpdateProblem(
+                    fields=[], message="Object not found"
+                )
+            )
+        user = info.context.user
+
+        if not user.is_superuser:
+            if user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
+                check_permission_on_inherits_down(user, [update_user.authority_id])
+            elif user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
+                check_permission_authority_must_be_the_same(
+                    user, update_user.authority_id
+                )
+            else:
+                raise GraphQLError("Permission denied.")
+
+        problems = []
+
+        if password_problem := is_not_empty(
+            "password", password, "Password must not be empty"
+        ):
+            problems.append(password_problem)
+
+        if len(problems) > 0:
+            return AdminAuthorityUserUpdateMutation(
+                result=AdminAuthorityUserUpdateProblem(fields=problems)
+            )
+
+        update_user.set_password(password)
+        update_user.save(update_fields=("password",))
+        update_user.save()
+        return AdminAuthorityUserUpdateMutation(
+            result=AdminAuthorityUserUpdateSuccess(authority_user=update_user)
+        )
+
+
 class AdminAuthorityUserDeleteMutation(graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True)

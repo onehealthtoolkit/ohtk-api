@@ -227,3 +227,83 @@ class AdminAuthorityUserTests(JSONWebTokenTestCase):
             ],
             "another3",
         )
+
+    def test_update_password_with_error(self):
+        mutation = """
+        mutation adminAuthorityUserUpdatePassword($id: ID!, $password: String!) {
+            adminAuthorityUserUpdatePassword(id: $id, password: $password) {
+                result {
+                  __typename
+                  ... on AdminAuthorityUserUpdateSuccess {
+                    authorityUser {
+                        id
+                        username
+                        firstName
+                    }
+                  }
+                  ... on AdminAuthorityUserUpdateProblem {
+                    message
+                    fields {
+                      name
+                      message
+                    }
+                  }
+                }
+            }
+        }
+        """
+        result = self.client.execute(
+            mutation,
+            {
+                "id": self.authorityUser1.id,
+                "password": "",
+            },
+        )
+        self.assertIsNotNone(result.data["adminAuthorityUserUpdatePassword"]["result"])
+        self.assertIsNotNone(
+            result.data["adminAuthorityUserUpdatePassword"]["result"]["fields"]
+        )
+        self.assertEqual(
+            result.data["adminAuthorityUserUpdatePassword"]["result"]["fields"][0][
+                "name"
+            ],
+            "password",
+        )
+
+    def test_update_password_success(self):
+        mutation = """
+        mutation adminAuthorityUserUpdatePassword($id: ID!, $password: String!) {
+            adminAuthorityUserUpdatePassword(id: $id, password: $password) {
+                result {
+                  __typename
+                  ... on AdminAuthorityUserUpdateSuccess {
+                    authorityUser {
+                        id
+                        username
+                        firstName
+                    }
+                  }
+                  ... on AdminAuthorityUserUpdateProblem {
+                    message
+                    fields {
+                      name
+                      message
+                    }
+                  }
+                }
+            }
+        }
+        """
+        result = self.client.execute(
+            mutation,
+            {
+                "id": self.authorityUser1.id,
+                "password": "password123",
+            },
+        )
+        self.assertIsNotNone(result.data["adminAuthorityUserUpdatePassword"]["result"])
+        self.assertIsNotNone(
+            result.data["adminAuthorityUserUpdatePassword"]["result"]["authorityUser"][
+                "id"
+            ]
+        )

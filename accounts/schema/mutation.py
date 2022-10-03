@@ -10,6 +10,7 @@ from accounts.schema.mutations import (
     AdminAuthorityDeleteMutation,
     AdminAuthorityUserCreateMutation,
     AdminAuthorityUserUpdateMutation,
+    AdminAuthorityUserUpdatePasswordMutation,
     AdminAuthorityUserDeleteMutation,
     AdminInvitationCodeCreateMutation,
     AdminInvitationCodeUpdateMutation,
@@ -30,6 +31,9 @@ class Mutation(graphene.ObjectType):
     admin_authority_delete = AdminAuthorityDeleteMutation.Field()
     admin_authority_user_create = AdminAuthorityUserCreateMutation.Field()
     admin_authority_user_update = AdminAuthorityUserUpdateMutation.Field()
+    admin_authority_user_update_password = (
+        AdminAuthorityUserUpdatePasswordMutation.Field()
+    )
     admin_authority_user_delete = AdminAuthorityUserDeleteMutation.Field()
     admin_invitation_code_create = AdminInvitationCodeCreateMutation.Field()
     admin_invitation_code_update = AdminInvitationCodeUpdateMutation.Field()
