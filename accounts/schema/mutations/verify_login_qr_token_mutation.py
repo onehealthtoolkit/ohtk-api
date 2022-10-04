@@ -28,6 +28,10 @@ class VerifyLoginQRTokenMutation(graphene.Mutation):
         token = get_token(login_user)
         refresh_token = create_refresh_token(login_user)
 
+        # delegate cookie setting to jwt_cookie that config at podd_api/urls.py
+        info.context.jwt_token = token
+        info.context.jwt_refresh_token = refresh_token
+
         return {
             "token": token,
             "refresh_token": refresh_token,
