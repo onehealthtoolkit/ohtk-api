@@ -16,3 +16,4 @@ from .admin_notification_template_create_mutation import *
 from .admin_notification_template_update_mutation import *
 from .admin_notification_template_delete_mutation import *
 from .admin_authority_notification_upsert_mutation import *
+from .admin_authority_notification_delete_mutation import *

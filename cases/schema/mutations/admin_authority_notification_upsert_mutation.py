@@ -17,7 +17,6 @@ class AdminAuthorityNotificationUpsertMutation(graphene.Mutation):
     @staticmethod
     def mutate(root, info, notification_template_id, to):
         user = info.context.user
-        print(user)
         problems = []
         notification_template, problem = check_and_get(
             "notification_template_id", notification_template_id, NotificationTemplate

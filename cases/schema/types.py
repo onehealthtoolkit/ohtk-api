@@ -295,6 +295,7 @@ class CaseType(DjangoObjectType):
 class AdminNotificationTemplateAuthorityType(graphene.ObjectType):
     notification_template_id = graphene.ID(required=True)
     notification_template_name = graphene.String(required=True)
+    notification_id = graphene.Int(required=False)
     to = graphene.String(required=False)
 
 

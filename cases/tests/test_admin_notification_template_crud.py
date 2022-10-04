@@ -1,5 +1,6 @@
 import uuid
 from graphql_jwt.testcases import JSONWebTokenTestCase
+from accounts.models import Authority
 
 from cases.models import (
     AuthorityNotification,
@@ -58,6 +59,13 @@ class AdminNotificationTemplateTests(BaseTestCase):
             report_type=self.reportType,
             title_template="Notification from podd2",
             body_template="You job is close {{total}}",
+        )
+
+        self.authority = Authority.objects.create(name="test", code="1")
+        self.authority_notification = AuthorityNotification(
+            authority=self.authority,
+            template=self.notification_template,
+            to="to@mail.com",
         )
 
     def test_simple_query(self):
@@ -341,3 +349,7 @@ class AdminNotificationTemplateTests(BaseTestCase):
         self.assertEqual(1, cnt)
         cnt = AuthorityNotification.objects.filter(to="notify@podd.com").count()
         self.assertEqual(0, cnt)
+
+    def test_delete_authority_notification(self):
+        self.authority_notification.delete()
+        self.assertEqual(AuthorityNotification.objects.count(), 0)
