@@ -53,7 +53,7 @@ class AdminReporterNotificationCreateMutation(graphene.Mutation):
             problems.append(condition_problem)
 
         if title_template_problem := is_not_empty(
-            "title_template", title_template, "Title template must not be empty"
+            "titleTemplate", title_template, "Title template must not be empty"
         ):
             problems.append(title_template_problem)
 
