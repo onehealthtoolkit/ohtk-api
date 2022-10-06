@@ -17,6 +17,7 @@ class AdminReporterNotificationUpdateMutation(graphene.Mutation):
         report_type_id = graphene.UUID(required=True)
         description = graphene.String(required=True)
         condition = graphene.String(required=True)
+        title_template = graphene.String(required=True)
         template = graphene.String(required=True)
         is_active = graphene.Boolean(required=None, default_value=True)
 
@@ -32,6 +33,7 @@ class AdminReporterNotificationUpdateMutation(graphene.Mutation):
         report_type_id,
         description,
         condition,
+        title_template,
         template,
         is_active,
         problems=None,
@@ -62,6 +64,16 @@ class AdminReporterNotificationUpdateMutation(graphene.Mutation):
         ):
             problems.append(condition_problem)
 
+        if title_template_problem := is_not_empty(
+            "title_template", title_template, "Title template must not be empty"
+        ):
+            problems.append(title_template_problem)
+
+        if template_problem := is_not_empty(
+            "template", template, "Template must not be empty"
+        ):
+            problems.append(template_problem)
+
         if len(problems) > 0:
             return AdminReporterNotificationUpdateMutation(
                 result=AdminReporterNotificationUpdateProblem(fields=problems)
@@ -69,6 +81,7 @@ class AdminReporterNotificationUpdateMutation(graphene.Mutation):
 
         reporter_notification.description = description
         reporter_notification.condition = condition
+        reporter_notification.title_template = title_template
         reporter_notification.template = template
         reporter_notification.is_active = is_active
         if report_type:

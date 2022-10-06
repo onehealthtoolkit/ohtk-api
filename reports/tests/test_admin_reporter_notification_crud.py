@@ -57,8 +57,8 @@ class AdminReporterNotificationTests(BaseTestCase):
 
     def test_create_with_error(self):
         mutation = """
-        mutation adminReporterNotificationCreate($reportTypeId: UUID!, $condition: String!, $description: String!, $template: String!) {
-            adminReporterNotificationCreate(reportTypeId: $reportTypeId, condition: $condition, description: $description, template: $template) {
+        mutation adminReporterNotificationCreate($reportTypeId: UUID!, $condition: String!, $description: String!, $titleTemplate: String!, $template: String!) {
+            adminReporterNotificationCreate(reportTypeId: $reportTypeId, condition: $condition, description: $description, titleTemplate: $titleTemplate, template: $template) {
                 result {
                   __typename
                   ... on AdminReporterNotificationCreateSuccess {
@@ -80,6 +80,7 @@ class AdminReporterNotificationTests(BaseTestCase):
             mutation,
             {
                 "reportTypeId": str(self.mers_report_type.id),
+                "titleTemplate": "title_template1",
                 "template": "template1",
                 "description": "",
                 "condition": "f",
@@ -99,8 +100,8 @@ class AdminReporterNotificationTests(BaseTestCase):
 
     def test_create_success(self):
         mutation = """
-        mutation adminReporterNotificationCreate($reportTypeId: UUID!, $condition: String!, $description: String!, $template: String!) {
-            adminReporterNotificationCreate(reportTypeId: $reportTypeId, condition: $condition, description: $description, template: $template) {
+        mutation adminReporterNotificationCreate($reportTypeId: UUID!, $condition: String!, $description: String!, $titleTemplate: String!, $template: String!) {
+            adminReporterNotificationCreate(reportTypeId: $reportTypeId, condition: $condition, description: $description, titleTemplate: $titleTemplate, template: $template) {
                 result {
                   __typename
                   ... on AdminReporterNotificationCreateSuccess {
@@ -122,6 +123,7 @@ class AdminReporterNotificationTests(BaseTestCase):
             mutation,
             {
                 "reportTypeId": str(self.mers_report_type.id),
+                "titleTemplate": "title_template1",
                 "template": "template1",
                 "description": "description",
                 "condition": "f",
@@ -138,8 +140,8 @@ class AdminReporterNotificationTests(BaseTestCase):
 
     def test_update_with_error(self):
         mutation = """
-        mutation adminReporterNotificationUpdate($id: ID!, $condition: String!, $description: String!, $template: String!) {
-            adminReporterNotificationUpdate(id: $id, condition: $condition, description: $description, template: $template) {
+        mutation adminReporterNotificationUpdate($id: ID!, $condition: String!, $description: String!, $titleTemplate: String!, $template: String!) {
+            adminReporterNotificationUpdate(id: $id, condition: $condition, description: $description, titleTemplate: $titleTemplate, template: $template) {
                 result {
                   __typename
                   ... on AdminReporterNotificationUpdateSuccess {
@@ -165,6 +167,7 @@ class AdminReporterNotificationTests(BaseTestCase):
                 "id": self.reporterNotification1.id,
                 "description": "",
                 "condition": "no",
+                "titleTemplate": "title_template1",
                 "template": "template1",
             },
         )
@@ -180,8 +183,8 @@ class AdminReporterNotificationTests(BaseTestCase):
 
     def test_update_success(self):
         mutation = """
-        mutation adminReporterNotificationUpdate($id: ID!, $reportTypeId: UUID!, $condition: String!, $description: String!, $template: String!) {
-            adminReporterNotificationUpdate(id: $id, reportTypeId: $reportTypeId, condition: $condition, description: $description, template: $template) {
+        mutation adminReporterNotificationUpdate($id: ID!, $reportTypeId: UUID!, $condition: String!, $description: String!, $titleTemplate: String!, $template: String!) {
+            adminReporterNotificationUpdate(id: $id, reportTypeId: $reportTypeId, condition: $condition, description: $description, titleTemplate: $titleTemplate, template: $template) {
                 result {
                   __typename
                   ... on AdminReporterNotificationUpdateSuccess {
@@ -208,6 +211,7 @@ class AdminReporterNotificationTests(BaseTestCase):
                 "reportTypeId": str(self.mers_report_type.id),
                 "description": "reporterNotification2",
                 "condition": "no",
+                "titleTemplate": "title_template1",
                 "template": "template1",
             },
         )
