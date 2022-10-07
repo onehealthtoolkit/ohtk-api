@@ -285,7 +285,14 @@ class AdminReporterNotificationQueryType(DjangoObjectType):
 
     class Meta:
         model = ReporterNotification
-        fields = ("id", "description", "condition", "template", "report_type")
+        fields = (
+            "id",
+            "description",
+            "condition",
+            "title_template",
+            "template",
+            "report_type",
+        )
         filter_fields = {
             "description": ["istartswith", "exact"],
         }
