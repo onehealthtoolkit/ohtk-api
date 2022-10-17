@@ -5,7 +5,7 @@ from graphene.types.generic import GenericScalar
 from graphene_django import DjangoObjectType
 from django.db.models import Q
 
-from accounts.schema.types import UserType
+from accounts.schema.types import UserType, AuthorityType
 from common.types import AdminValidationProblem
 
 from reports.models import ReportType, Category, IncidentReport, ReporterNotification
@@ -76,6 +76,7 @@ class IncidentReportType(DjangoObjectType):
     report_type = graphene.Field(ReportTypeType)
     thread_id = graphene.Int()
     followups = graphene.List(FollowupType)
+    authorities = graphene.List(AuthorityType)
 
     class Meta:
         model = IncidentReport
@@ -116,6 +117,9 @@ class IncidentReportType(DjangoObjectType):
 
     def resolve_followups(self, info):
         return self.followups.all()
+
+    def resolve_authorities(self, info):
+        return self.relevant_authorities.all()
 
 
 class FollowupReportType(DjangoObjectType):
