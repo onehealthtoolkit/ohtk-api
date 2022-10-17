@@ -1,7 +1,6 @@
 import graphene
 from graphene_django import DjangoObjectType
 
-from accounts.models import User
 from accounts.schema.types import UserType
 from notifications.models import UserMessage, Message
 
@@ -18,5 +17,5 @@ class UserMessageType(DjangoObjectType):
 
     class Meta:
         model = UserMessage
-        fields = ["id", "message", "user", "is_seen"]
+        fields = ["id", "message", "user", "is_seen", "created_at"]
         filter_fields = {}
