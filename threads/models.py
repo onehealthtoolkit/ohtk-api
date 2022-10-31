@@ -35,3 +35,6 @@ class CommentAttachment(BaseModel):
         Comment, on_delete=models.CASCADE, related_name="attachments"
     )
     file = ThumbnailerField(upload_to="attachments")
+
+    def generate_thumbnails(self):
+        self.file.generate_all_thumbnails()

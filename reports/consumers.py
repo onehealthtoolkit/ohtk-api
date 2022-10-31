@@ -1,14 +1,14 @@
 from channels.exceptions import DenyConnection
-from channels.generic.websocket import AsyncWebsocketConsumer
 
+from common.consumers import TenantConsumers
 from common.utils import extract_jwt_payload_from_asgi_scope
 
 
-def new_report_group_name(authority_id):
-    return f"rp_{authority_id}"
+def new_report_group_name(schema_name, authority_id):
+    return f"rp_{schema_name}_{authority_id}"
 
 
-class NewReportConsumers(AsyncWebsocketConsumer):
+class NewReportConsumers(TenantConsumers):
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
         self.username = None
@@ -17,7 +17,10 @@ class NewReportConsumers(AsyncWebsocketConsumer):
 
     async def connect(self):
         self.authority_id = self.scope["url_route"]["kwargs"]["authority_id"]
-        self.group_name = new_report_group_name(self.authority_id)
+        await self.get_tenant()
+        self.group_name = new_report_group_name(
+            self.tenant.schema_name, self.authority_id
+        )
         payload = extract_jwt_payload_from_asgi_scope(self.scope)
         self.username = payload["username"]
 

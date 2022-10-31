@@ -15,6 +15,7 @@ class AdminReporterNotificationCreateMutation(graphene.Mutation):
         report_type_id = graphene.UUID(required=True)
         description = graphene.String(required=True)
         condition = graphene.String(required=True)
+        title_template = graphene.String(required=True)
         template = graphene.String(required=True)
         is_active = graphene.Boolean(required=None, default_value=True)
 
@@ -23,7 +24,16 @@ class AdminReporterNotificationCreateMutation(graphene.Mutation):
     @staticmethod
     @login_required
     @user_passes_test(is_superuser)
-    def mutate(root, info, report_type_id, description, condition, template, is_active):
+    def mutate(
+        root,
+        info,
+        report_type_id,
+        description,
+        condition,
+        title_template,
+        template,
+        is_active,
+    ):
         problems = []
 
         report_type, problem = check_and_get(
@@ -42,6 +52,16 @@ class AdminReporterNotificationCreateMutation(graphene.Mutation):
         ):
             problems.append(condition_problem)
 
+        if title_template_problem := is_not_empty(
+            "titleTemplate", title_template, "Title template must not be empty"
+        ):
+            problems.append(title_template_problem)
+
+        if template_problem := is_not_empty(
+            "template", template, "Template must not be empty"
+        ):
+            problems.append(template_problem)
+
         if len(problems) > 0:
             return AdminReporterNotificationCreateMutation(
                 result=AdminReporterNotificationCreateProblem(fields=problems)
@@ -51,6 +71,7 @@ class AdminReporterNotificationCreateMutation(graphene.Mutation):
             report_type=report_type,
             description=description,
             condition=condition,
+            title_template=title_template,
             template=template,
             is_active=is_active,
         )

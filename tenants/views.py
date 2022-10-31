@@ -1,3 +1,16 @@
-from django.shortcuts import render
+from django.http import JsonResponse
 
-# Create your views here.
+from tenants.models import Client
+
+
+def tenants(request):
+    clients = Client.objects.filter(deleted_at__isnull=True)
+    results = []
+    for client in clients:
+        results.append(
+            {
+                "label": client.name,
+                "domain": client.domains.first().domain,
+            }
+        )
+    return JsonResponse({"tenants": results})

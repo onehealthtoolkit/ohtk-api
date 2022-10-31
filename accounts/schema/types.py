@@ -6,6 +6,7 @@ from graphene_django import DjangoObjectType
 
 from django.contrib.gis.db import models
 from graphene_django.converter import convert_django_field
+from graphql import GraphQLError
 
 from accounts.models import Authority, AuthorityUser, InvitationCode, Feature, User
 from common.converter import GeoJSON
@@ -49,6 +50,20 @@ class AuthorityType(DjangoObjectType):
         return results
 
 
+class AdminAuthorityQueryFilter(django_filters.FilterSet):
+    q = django_filters.CharFilter(
+        method="filter_q",
+        label="Search",
+    )
+
+    class Meta:
+        model = Authority
+        fields = ["q"]
+
+    def filter_q(self, queryset, name, value):
+        return queryset.filter(Q(name__icontains=value) | Q(code__icontains=value))
+
+
 class AdminAuthorityQueryType(DjangoObjectType):
     class Meta:
         model = Authority
@@ -57,17 +72,42 @@ class AdminAuthorityQueryType(DjangoObjectType):
             "code",
             "name",
         )
-        filter_fields = {"name": ["istartswith", "exact"]}
+        filterset_class = AdminAuthorityQueryFilter
+
+
+class AdminAuthorityInheritLookupFilter(django_filters.FilterSet):
+    q = django_filters.CharFilter(
+        method="filter_q",
+        label="Search",
+    )
+
+    class Meta:
+        model = Authority
+        fields = ["q"]
+
+    def filter_q(self, queryset, name, value):
+        return queryset.filter(Q(name__icontains=value) | Q(code__icontains=value))
+
+
+class AdminAuthorityInheritLookupType(DjangoObjectType):
+    class Meta:
+        model = Authority
+        fields = (
+            "id",
+            "code",
+            "name",
+        )
+        filterset_class = AdminAuthorityInheritLookupFilter
 
 
 class AdminAuthorityUserQueryFilter(django_filters.FilterSet):
-    q = django_filters.CharFilter(method="q_filter")
+    q = django_filters.CharFilter(method="filter_q")
 
     class Meta:
         model = AuthorityUser
         fields = []
 
-    def q_filter(self, queryset, name, value):
+    def filter_q(self, queryset, name, value):
         return queryset.filter(
             Q(first_name__icontains=value)
             | Q(last_name__icontains=value)
@@ -82,6 +122,19 @@ class AdminAuthorityUserQueryType(DjangoObjectType):
         fields = ("id", "username", "first_name", "last_name", "email", "role")
         filterset_class = AdminAuthorityUserQueryFilter
 
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        user = info.context.user
+        if user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
+            queryset = queryset.filter(authority_id=user.authorityuser.authority)
+        elif user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
+            queryset = queryset.filter(
+                authority_id__in=user.authorityuser.authority.all_inherits_down()
+            )
+        elif user.is_authority_role_in([AuthorityUser.Role.REPORTER]):
+            raise GraphQLError("Permission denied")
+        return queryset
+
 
 class AdminInvitationCodeQueryType(DjangoObjectType):
     class Meta:
@@ -90,6 +143,19 @@ class AdminInvitationCodeQueryType(DjangoObjectType):
         filter_fields = {
             "code": ["istartswith", "exact"],
         }
+
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        user = info.context.user
+        if user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
+            queryset = queryset.filter(authority_id=user.authorityuser.authority)
+        elif user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
+            queryset = queryset.filter(
+                authority_id__in=user.authorityuser.authority.all_inherits_down()
+            )
+        elif user.is_authority_role_in([AuthorityUser.Role.REPORTER]):
+            raise GraphQLError("Permission denied")
+        return queryset
 
 
 class InvitationCodeType(DjangoObjectType):
@@ -145,6 +211,7 @@ class UserProfileType(graphene.ObjectType):
     username = graphene.String(required=True)
     first_name = graphene.String(required=True)
     last_name = graphene.String(required=True)
+    telephone = graphene.String(required=False)
     email = graphene.String()
     authority_name = graphene.String(required=False)
     authority_id = graphene.Int(required=False)
@@ -285,3 +352,7 @@ class AdminInvitationCodeUpdateResult(graphene.Union):
             AdminInvitationCodeUpdateSuccess,
             AdminInvitationCodeUpdateProblem,
         )
+
+
+class LoginQrTokenType(graphene.ObjectType):
+    token = graphene.String(required=True)

@@ -1,4 +1,5 @@
 import graphene
+from graphql import GraphQLError
 from graphql_jwt.decorators import login_required, user_passes_test, superuser_required
 
 from accounts.models import Authority, InvitationCode, AuthorityUser
@@ -34,7 +35,6 @@ class AdminInvitationCodeCreateMutation(graphene.Mutation):
 
     @staticmethod
     @login_required
-    @user_passes_test(fn_or(is_superuser, is_officer_role))
     def mutate(
         root, info, code, authority_id, from_date, through_date, inherits, role=None
     ):
@@ -57,11 +57,14 @@ class AdminInvitationCodeCreateMutation(graphene.Mutation):
 
         if authority_id != 0:
             if not user.is_superuser:
-                if user.is_staff:
+                if user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
                     check_permission_on_inherits_down(user, [authority_id])
+                elif user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
+                    check_permission_authority_must_be_the_same(user, authority_id)
                 else:
-                    check_permission_authority_must_be_the_same(user, [authority_id])
-
+                    raise GraphQLError(
+                        "You are not authorized to create invitation code"
+                    )
             authority = Authority.objects.get(pk=authority_id)
 
         invitation_code = InvitationCode.objects.create(
@@ -78,6 +81,7 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True)
         code = graphene.String(required=True)
+        authority_id = graphene.Int(required=False)
         from_date = graphene.DateTime(required=False)
         through_date = graphene.DateTime(required=False)
         role = graphene.String(required=False)
@@ -86,8 +90,7 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
 
     @staticmethod
     @login_required
-    @user_passes_test(fn_or(is_superuser, is_officer_role))
-    def mutate(root, info, id, code, from_date, through_date, role):
+    def mutate(root, info, id, code, authority_id, from_date, through_date, role):
         user = info.context.user
 
         try:
@@ -100,11 +103,14 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
             )
 
         if not user.is_superuser:
-            authority_id = invitation_code.authority_id
-            if user.is_staff:
-                check_permission_on_inherits_down(user, [authority_id])
+            if user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
+                check_permission_on_inherits_down(user, [invitation_code.authority_id])
+            elif user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
+                check_permission_authority_must_be_the_same(
+                    user, invitation_code.authority_id
+                )
             else:
-                check_permission_authority_must_be_the_same(user, [authority_id])
+                raise GraphQLError("Permission denied.")
 
         problems = []
         if invitation_code.code != code:
@@ -120,6 +126,8 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
             )
 
         invitation_code.code = code
+        if authority_id:
+            invitation_code.authority = Authority.objects.get(pk=authority_id)
         if from_date is not None:
             invitation_code.from_date = from_date
         if through_date is not None:

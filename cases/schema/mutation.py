@@ -17,6 +17,7 @@ from .mutations import (
     AdminNotificationTemplateUpdateMutation,
     AdminNotificationTemplateDeleteMutation,
     AdminAuthorityNotificationUpsertMutation,
+    AdminAuthorityNotificationDeleteMutation,
     PromoteToCaseMutation,
     ForwardStateMutation,
 )
@@ -42,4 +43,9 @@ class Mutation(graphene.ObjectType):
     admin_authority_notification_upsert = (
         AdminAuthorityNotificationUpsertMutation.Field()
     )
+    admin_authority_notification_delete = (
+        AdminAuthorityNotificationDeleteMutation.Field()
+    )
+
+    AdminAuthorityNotificationDeleteMutation
     forward_state = ForwardStateMutation.Field()

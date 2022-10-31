@@ -1,7 +1,12 @@
+from calendar import timegm
+from datetime import datetime
+
 import graphene
+from django.conf import settings
 from django.utils.timezone import now
 from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
+from graphql_jwt.utils import jwt_encode
 
 from accounts.models import AuthorityUser, InvitationCode, Feature, Authority
 from accounts.schema.types import (
@@ -13,8 +18,11 @@ from accounts.schema.types import (
     AuthorityType,
     AdminAuthorityQueryType,
     AdminAuthorityUserQueryType,
+    AdminAuthorityInheritLookupType,
+    LoginQrTokenType,
 )
 from accounts.schema.types import CheckInvitationCodeType
+from accounts.utils import filter_authority_permission
 from pagination import DjangoPaginationConnectionField
 
 
@@ -33,7 +41,9 @@ class Query(graphene.ObjectType):
         AdminAuthorityQueryType, id=graphene.ID(required=True)
     )
     admin_authority_query = DjangoPaginationConnectionField(AdminAuthorityQueryType)
-    admin_authority_inherit_lookup = DjangoPaginationConnectionField(AuthorityType)
+    admin_authority_inherit_lookup = DjangoPaginationConnectionField(
+        AdminAuthorityInheritLookupType
+    )
     admin_authority_user_query = DjangoPaginationConnectionField(
         AdminAuthorityUserQueryType
     )
@@ -42,6 +52,10 @@ class Query(graphene.ObjectType):
     )
     invitation_code = graphene.Field(InvitationCodeType, id=graphene.ID(required=True))
     authority_user = graphene.Field(AuthorityUserType, id=graphene.ID(required=True))
+
+    get_login_qr_token = graphene.Field(
+        LoginQrTokenType, user_id=graphene.ID(required=True)
+    )
 
     @staticmethod
     @login_required
@@ -97,14 +111,38 @@ class Query(graphene.ObjectType):
     @login_required
     def resolve_authority_user(root, info, id):
         user = info.context.user
-        if not user.is_superuser:
-            raise GraphQLError("Permission denied.")
-        return AuthorityUser.objects.get(id=id)
+        query = AuthorityUser.objects.all()
+        query = filter_authority_permission(user, query)
+        return query.get(id=id)
 
     @staticmethod
     @login_required
     def resolve_invitation_code(root, info, id):
         user = info.context.user
-        if not user.is_superuser:
+        query = InvitationCode.objects.all()
+        query = filter_authority_permission(user, query)
+        return query.get(id=id)
+
+    @staticmethod
+    @login_required
+    def resolve_get_login_qr_token(root, info, user_id):
+        user = info.context.user
+        if not (user.is_authority_user or user.is_superuser):
             raise GraphQLError("Permission denied.")
-        return InvitationCode.objects.get(id=id)
+
+        target_user = AuthorityUser.objects.get(id=user_id)
+        if target_user.role != AuthorityUser.Role.REPORTER:
+            raise GraphQLError("Permission denied.")
+
+        exp = datetime.utcnow() + settings.QR_CODE_LOGIN_EXPIRATION_DAYS
+        payload = {
+            "username": target_user.username,
+            "domain": info.context.tenant.domain_url,
+            "exp": timegm(exp.utctimetuple()),
+        }
+
+        token = jwt_encode(payload, info.context)
+
+        return {
+            "token": token,
+        }

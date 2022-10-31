@@ -1,11 +1,16 @@
-from typing import List
+import logging
 from dataclasses import dataclass
+from typing import List
+
+from django.core.mail import send_mail
 from django.db import models
 from firebase_admin import messaging
 from firebase_admin.messaging import ApsAlert
 
 from accounts.models import BaseModel, User, BaseModelManager
 from podd_api import settings
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -17,8 +22,11 @@ class Receiver:
     def parse(receivers: str) -> List["Receiver"]:
         results = []
         for receiver in receivers.split(","):
-            [method, to] = receiver.strip().split(":")
-            results.append(Receiver(method=method, to=to))
+            try:
+                [method, to] = receiver.strip().split(":")
+                results.append(Receiver(method=method, to=to))
+            except:
+                logger.error(f"Error unpack receiver {receiver}", exc_info=True)
         return results
 
 
@@ -33,7 +41,16 @@ class Message(BaseModel):
         UserMessage.objects.create(message=self, user=user, is_seen=False).send()
 
     def send_email(self, email: str):
-        print(f"send email: {email}, {self.body}")
+        if settings.DEBUG:
+            print(f"send email: {email}, {self.body}")
+        else:
+            send_mail(
+                self.title,
+                self.body,
+                f"noreply@{settings.SENDER_EMAIL_DOMAIN}",
+                [email],
+                fail_silently=False,
+            )
 
     def send_sms(self, sms: str):
         print(f"send sms: {sms}, {self.body}")
@@ -51,8 +68,9 @@ class Message(BaseModel):
             self.send_sms(receiver.to)
 
     def send(self, receivers: str):
-        for receiver in Receiver.parse(receivers):
-            self.send_by(receiver)
+        if receivers:
+            for receiver in Receiver.parse(receivers):
+                self.send_by(receiver)
 
 
 class UserMessage(BaseModel):

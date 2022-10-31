@@ -59,9 +59,8 @@ class QuerySyncReportTestCase(BaseTestCase):
         self.assertEqual(0, len(result.data["syncReportTypes"]["removedList"]))
 
     def test_sync_report_with_some_type_was_removed(self):
-        self.mers_report_type.authorities.clear()
+        self.mers_report_type.delete()
         result = self.client.execute(query, self.query_params)
         self.assertIsNone(result.errors)
-
         self.assertEqual(0, len(result.data["syncReportTypes"]["updatedList"]))
         self.assertEqual(1, len(result.data["syncReportTypes"]["removedList"]))

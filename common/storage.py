@@ -11,4 +11,4 @@ class S3MediaStorage(S3Boto3Storage):
 
 class SimpleFileMediaStorage(FileSystemStorage):
     def url(self, name):
-        return f"https://opensur.test{settings.MEDIA_URL}{name}"
+        return f"https://{settings.MEDIA_DOMAIN}{settings.MEDIA_URL}{name}"

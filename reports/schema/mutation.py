@@ -7,10 +7,13 @@ from .mutations import (
     SubmitImage,
     AdminCategoryCreateMutation,
     AdminCategoryUpdateMutation,
+    AdminCategoryDeleteMutation,
     AdminReportTypeCreateMutation,
     AdminReportTypeUpdateMutation,
+    AdminReportTypeDeleteMutation,
     AdminReporterNotificationCreateMutation,
     AdminReporterNotificationUpdateMutation,
+    AdminReporterNotificationDeleteMutation,
 )
 
 
@@ -21,7 +24,10 @@ class Mutation(graphene.ObjectType):
     submit_image = SubmitImage.Field()
     admin_category_create = AdminCategoryCreateMutation.Field()
     admin_category_update = AdminCategoryUpdateMutation.Field()
+    admin_category_delete = AdminCategoryDeleteMutation.Field()
     admin_report_type_create = AdminReportTypeCreateMutation.Field()
     admin_report_type_update = AdminReportTypeUpdateMutation.Field()
+    admin_report_type_delete = AdminReportTypeDeleteMutation.Field()
     admin_reporter_notification_create = AdminReporterNotificationCreateMutation.Field()
     admin_reporter_notification_update = AdminReporterNotificationUpdateMutation.Field()
+    admin_reporter_notification_delete = AdminReporterNotificationDeleteMutation.Field()

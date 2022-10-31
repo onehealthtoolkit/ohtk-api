@@ -1,5 +1,4 @@
 import graphene
-from django.core.exceptions import PermissionDenied
 from graphql_jwt.decorators import login_required, user_passes_test, superuser_required
 
 from accounts.models import Authority
@@ -112,7 +111,7 @@ class AdminAuthorityUpdateMutation(graphene.Mutation):
         authority.name = name
         if area:
             authority.area = area
-        if inherits:
+        if inherits != None:
             authority.inherits.set(Authority.objects.filter(pk__in=inherits))
 
         authority.save()

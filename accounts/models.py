@@ -59,8 +59,14 @@ class Authority(BaseModel):
         return Authority.objects.raw(f"select * from inherit_authority_down({self.id})")
 
     def is_in_inherits_down(self, ids):
-        child_ids = self.all_inherits_down().values_list("id")
-        return set(ids).issubset(set(child_ids))
+        ids_str = ",".join([str(id) for id in ids])
+        sql = f"""
+            select id from bon.inherit_authority_down({self.id}) where id in ({ids_str})
+        """
+        auth = Authority.objects.raw(sql)
+        if len(auth) > 0:
+            return True
+        return False
 
 
 class User(AbstractUser):
@@ -70,6 +76,17 @@ class User(AbstractUser):
     @property
     def is_authority_user(self):
         return hasattr(self, "authorityuser")
+
+    @property
+    def authority_role(self):
+        if self.is_authority_user:
+            return self.authorityuser.role
+        return None
+
+    def is_authority_role_in(self, roles):
+        if self.is_authority_user and self.authority_role in roles:
+            return True
+        return False
 
 
 class AuthorityUser(User):
@@ -144,3 +161,9 @@ class Feature(BaseModel):
 
     key = models.CharField(max_length=100, primary_key=True)
     value = models.CharField(max_length=100)
+
+
+class PasswordResetToken(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    token = models.CharField(max_length=128)
+    token_expiry = models.DateTimeField()

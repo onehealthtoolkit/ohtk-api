@@ -28,7 +28,7 @@ class SyncReportTypeTestCase(BaseTestCase):
         self.assertIn(self.mers_report_type, result["updated_list"])
 
     def test_something_has_removed(self):
-        self.mers_report_type.authorities.clear()
+        self.mers_report_type.delete()
         result = ReportType.check_updated_report_types_by_authority(
             self.thailand,
             self.thailand_reports,

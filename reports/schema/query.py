@@ -47,6 +47,10 @@ class Query(graphene.ObjectType):
         AdminReporterNotificationQueryType
     )
 
+    followups = graphene.List(
+        FollowupReportType, incident_id=graphene.ID(required=True)
+    )
+
     @staticmethod
     @login_required
     def resolve_my_report_types(root, info):
@@ -70,24 +74,21 @@ class Query(graphene.ObjectType):
         )
 
     @staticmethod
+    @login_required
     def resolve_category(root, info, id):
         user = info.context.user
-        if not user.is_superuser:
-            raise GraphQLError("Permission denied.")
         return Category.objects.get(id=id)
 
     @staticmethod
+    @login_required
     def resolve_report_type(root, info, id):
         user = info.context.user
-        if not user.is_superuser:
-            raise GraphQLError("Permission denied.")
         return ReportType.objects.get(id=id)
 
     @staticmethod
+    @login_required
     def resolve_incident_report(root, info, id):
         user = info.context.user
-        if not user.is_superuser:
-            raise GraphQLError("Permission denied.")
         return IncidentReport.objects.get(id=id)
 
     @staticmethod
@@ -115,7 +116,7 @@ class Query(graphene.ObjectType):
         if user.is_authority_user:
             authority = info.context.user.authorityuser.authority
             child_authorities = authority.all_inherits_down()
-            query = query.filter(relevant_authorities__in=child_authorities)
+            query = query.filter(relevant_authorities__in=child_authorities).distinct()
 
         return query
 
@@ -128,3 +129,8 @@ class Query(graphene.ObjectType):
             .order_by("-created_at")
             .prefetch_related("images", "reported_by", "report_type")
         )
+
+    @staticmethod
+    @login_required
+    def resolve_followups(root, info, incident_id):
+        return FollowUpReport.objects.filter(incident__id=incident_id)

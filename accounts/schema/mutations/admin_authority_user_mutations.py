@@ -1,4 +1,5 @@
 import graphene
+from graphql import GraphQLError
 from graphql_jwt.decorators import login_required, user_passes_test, superuser_required
 
 from accounts.models import AuthorityUser, Authority, User
@@ -35,7 +36,6 @@ class AdminAuthorityUserCreateMutation(graphene.Mutation):
 
     @staticmethod
     @login_required
-    @user_passes_test(fn_or(is_superuser, is_officer_role))
     def mutate(
         root,
         info,
@@ -51,10 +51,12 @@ class AdminAuthorityUserCreateMutation(graphene.Mutation):
         user = info.context.user
         if not user.is_superuser:
             if authority_id:
-                if user.is_staff:
+                if user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
                     check_permission_on_inherits_down(authority_id)
-                else:
+                elif user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
                     check_permission_authority_must_be_the_same(user, authority_id)
+                else:
+                    raise GraphQLError("Permission denied")
             else:
                 authority_id = user.authorityuser.authority_id
 
@@ -110,7 +112,6 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
 
     @staticmethod
     @login_required
-    @user_passes_test(fn_or(is_superuser, is_officer_role))
     def mutate(
         root,
         info,
@@ -134,22 +135,14 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
         user = info.context.user
 
         if not user.is_superuser:
-            # check on update_user value
-            if not user.is_staff:
-                # can update only their own user
+            if user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
+                check_permission_on_inherits_down(user, [update_user.authority_id])
+            elif user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
                 check_permission_authority_must_be_the_same(
                     user, update_user.authority_id
                 )
             else:
-                # can update all user of their children authorities
-                check_permission_on_inherits_down([update_user.authority_id])
-
-            # check on parameter authority_id
-            if authority_id:
-                if user.is_staff:
-                    check_permission_authority_must_be_the_same(user, authority_id)
-                else:
-                    check_permission_on_inherits_down([authority_id])
+                raise GraphQLError("Permission denied.")
 
         problems = []
         if update_user.username != username:
@@ -203,6 +196,61 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
         update_user.email = email
         update_user.telephone = telephone
         update_user.role = role
+        update_user.save()
+        return AdminAuthorityUserUpdateMutation(
+            result=AdminAuthorityUserUpdateSuccess(authority_user=update_user)
+        )
+
+
+class AdminAuthorityUserUpdatePasswordMutation(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+        password = graphene.String(required=True)
+
+    result = graphene.Field(AdminAuthorityUserUpdateResult)
+
+    @staticmethod
+    @login_required
+    def mutate(
+        root,
+        info,
+        id,
+        password,
+    ):
+        try:
+            update_user = AuthorityUser.objects.get(pk=id)
+        except AuthorityUser.DoesNotExist:
+            return AdminAuthorityUserUpdateMutation(
+                result=AdminAuthorityUserUpdateProblem(
+                    fields=[], message="Object not found"
+                )
+            )
+        user = info.context.user
+
+        if not user.is_superuser:
+            if user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
+                check_permission_on_inherits_down(user, [update_user.authority_id])
+            elif user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
+                check_permission_authority_must_be_the_same(
+                    user, update_user.authority_id
+                )
+            else:
+                raise GraphQLError("Permission denied.")
+
+        problems = []
+
+        if password_problem := is_not_empty(
+            "password", password, "Password must not be empty"
+        ):
+            problems.append(password_problem)
+
+        if len(problems) > 0:
+            return AdminAuthorityUserUpdateMutation(
+                result=AdminAuthorityUserUpdateProblem(fields=problems)
+            )
+
+        update_user.set_password(password)
+        update_user.save(update_fields=("password",))
         update_user.save()
         return AdminAuthorityUserUpdateMutation(
             result=AdminAuthorityUserUpdateSuccess(authority_user=update_user)

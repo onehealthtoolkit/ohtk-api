@@ -134,7 +134,7 @@ class Query(graphene.ObjectType):
         user = info.context.user
         if user.is_authority_user:
             notifications = NotificationTemplate.objects.raw(
-                """select nt.id, nt.name, an.to
+                """select nt.id, nt.name, an.id as notification_id, an.to
                    from cases_notificationtemplate nt left join
                         cases_authoritynotification an on nt.id = an.template_id and an.authority_id = %s
                    where nt.report_type_id = %s     
@@ -145,6 +145,7 @@ class Query(graphene.ObjectType):
                 {
                     "notification_template_id": n.id,
                     "notification_template_name": n.name,
+                    "notification_id": n.notification_id,
                     "to": n.to,
                 }
                 for n in notifications

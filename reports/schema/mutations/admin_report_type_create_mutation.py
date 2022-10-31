@@ -61,6 +61,9 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
                 result=AdminReportTypeCreateProblem(fields=problems)
             )
 
+        followup_definition_json = None
+        if followup_definition:
+            followup_definition_json = json.loads(followup_definition)
         report_type = ReportType.objects.create(
             name=name,
             category=Category.objects.get(pk=category_id),
@@ -68,7 +71,7 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
             ordering=ordering,
             renderer_data_template=renderer_data_template,
             state_definition_id=state_definition_id,
-            followup_definition=followup_definition,
+            followup_definition=followup_definition_json,
             renderer_followup_data_template=renderer_followup_data_template,
         )
         return AdminReportTypeCreateMutation(result=report_type)

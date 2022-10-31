@@ -64,6 +64,7 @@ SHARED_APPS = (
 
 TENANT_APPS = (
     "django.contrib.contenttypes",
+    "graphql_jwt.refresh_token.apps.RefreshTokenConfig",
     "accounts",
     "reports",
     "cases",
@@ -196,7 +197,7 @@ GRAPHENE = {
 }
 
 AUTHENTICATION_BACKENDS = [
-    "graphql_jwt.backends.JSONWebTokenBackend",
+    "accounts.backends.MyJSONWebTokenBackend",
     "django.contrib.auth.backends.ModelBackend",
 ]
 
@@ -243,6 +244,7 @@ if USE_S3:
     )
 else:
     MEDIA_URL = "/medias/"
+    MEDIA_DOMAIN = "opensur.test"
     MEDIA_BUCKET_NAME = ""
     DEFAULT_FILE_STORAGE = "common.storage.SimpleFileMediaStorage"
     THUMBNAIL_DEFAULT_STORAGE = "common.storage.SimpleFileMediaStorage"
@@ -261,6 +263,11 @@ THUMBNAIL_ALIASES = {
         "thumbnail": {"size": (200, 200), "crop": "smart"},
     },
 }
+
+SENDER_EMAIL_DOMAIN = "opensur.test"
+DASHBOARD_URL = "http://localhost:3000"
+
+QR_CODE_LOGIN_EXPIRATION_DAYS = timedelta(days=7)
 
 FCM_DRY_RUN = True
 

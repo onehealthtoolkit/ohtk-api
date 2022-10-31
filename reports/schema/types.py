@@ -5,7 +5,7 @@ from graphene.types.generic import GenericScalar
 from graphene_django import DjangoObjectType
 from django.db.models import Q
 
-from accounts.schema.types import UserType
+from accounts.schema.types import UserType, AuthorityType
 from common.types import AdminValidationProblem
 
 from reports.models import ReportType, Category, IncidentReport, ReporterNotification
@@ -23,7 +23,9 @@ class CategoryType(DjangoObjectType):
         )
 
     def resolve_icon(self, info):
-        return self.icon.url
+        if self.icon:
+            return self.icon.url
+        return ""
 
 
 class ReportTypeType(DjangoObjectType):
@@ -37,12 +39,16 @@ class ReportTypeType(DjangoObjectType):
 
 class ImageType(DjangoObjectType):
     thumbnail = graphene.String()
+    image_url = graphene.String()
 
     class Meta:
         model = Image
 
     def resolve_thumbnail(self, info):
         return get_thumbnailer(self.file)["thumbnail"].url
+
+    def resolve_image_url(self, info):
+        return self.file.url
 
 
 class FollowupType(DjangoObjectType):
@@ -70,6 +76,7 @@ class IncidentReportType(DjangoObjectType):
     report_type = graphene.Field(ReportTypeType)
     thread_id = graphene.Int()
     followups = graphene.List(FollowupType)
+    authorities = graphene.List(AuthorityType)
 
     class Meta:
         model = IncidentReport
@@ -111,6 +118,9 @@ class IncidentReportType(DjangoObjectType):
     def resolve_followups(self, info):
         return self.followups.all()
 
+    def resolve_authorities(self, info):
+        return self.relevant_authorities.all()
+
 
 class FollowupReportType(DjangoObjectType):
     data = GenericScalar()
@@ -128,9 +138,9 @@ class FollowupReportType(DjangoObjectType):
             "data",
             "renderer_data",
             "images",
-            "gps_location",
             "incident",
             "test_flag",
+            "created_at",
         ]
 
     def resolve_gps_location(self, info):
@@ -167,8 +177,10 @@ class AdminCategoryQueryType(DjangoObjectType):
             "name": ["istartswith", "exact"],
         }
 
-    def resolve_icon(self):
-        return self.icon.url
+    def resolve_icon(self, info):
+        if self.icon:
+            return self.icon.url
+        return ""
 
 
 class AdminCategoryCreateSuccess(DjangoObjectType):
@@ -277,7 +289,14 @@ class AdminReporterNotificationQueryType(DjangoObjectType):
 
     class Meta:
         model = ReporterNotification
-        fields = ("id", "description", "condition", "template", "report_type")
+        fields = (
+            "id",
+            "description",
+            "condition",
+            "title_template",
+            "template",
+            "report_type",
+        )
         filter_fields = {
             "description": ["istartswith", "exact"],
         }

@@ -12,6 +12,7 @@ class ReporterNotification(BaseModel):
 
     description = models.TextField(default="", blank=True)
     condition = models.TextField()
+    title_template = models.TextField(blank=True)
     template = models.TextField()
     is_active = models.BooleanField(default=True, blank=True)
     report_type = models.ForeignKey(
@@ -19,12 +20,16 @@ class ReporterNotification(BaseModel):
     )
 
     def send_message(self, context: dict, user: User):
+        template_context = Context(context)
+        title = ""
+        message = ""
+        if self.title_template:
+            title_template = Template(self.title_template)
+            title = striptags(title_template.render(template_context))
+
         if self.template:
             t = Template(self.template)
-            c = Context(context)
-            message = striptags(t.render(c))
-        else:
-            message = ""
+            message = striptags(t.render(template_context))
 
-        reporter_message = Message.objects.create(title="", body=message)
+        reporter_message = Message.objects.create(title=title, body=message)
         reporter_message.send_user(user)

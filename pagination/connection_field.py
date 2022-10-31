@@ -114,9 +114,15 @@ def connection_from_list_slice(
 
 
 def connection_from_list_ordering(items_list, ordering):
-    field, order = ordering.split(",")
-
-    order = "-" if order == "desc" else ""
-    field = re.sub(r"(?<!^)(?=[A-Z])", "_", field).lower()
-
-    return items_list.order_by(f"{order}{field}")
+    orderings = ordering.split(" ")
+    order_bys = []
+    for item in orderings:
+        if "," in item:
+            field, order = item.split(",")
+        else:
+            field = item
+            order = "asc"
+        order = "-" if order == "desc" else ""
+        field = re.sub(r"(?<!^)(?=[A-Z])", "_", field).lower()
+        order_bys.append(f"{order}{field}")
+    return items_list.order_by(*order_bys)
