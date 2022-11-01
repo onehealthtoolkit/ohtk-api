@@ -44,7 +44,7 @@ class AdminCaseDefinitionQueryType(DjangoObjectType):
         model = CaseDefinition
         fields = ("id", "report_type", "description", "condition")
         filter_fields = {
-            "description": ["istartswith", "exact"],
+            "description": ["contains", "istartswith", "exact"],
         }
 
 
@@ -87,7 +87,7 @@ class AdminStateDefinitionQueryType(DjangoObjectType):
         model = StateDefinition
         fields = ("id", "name", "is_default")
         filter_fields = {
-            "name": ["istartswith", "exact"],
+            "name": ["contains", "istartswith", "exact"],
         }
 
 

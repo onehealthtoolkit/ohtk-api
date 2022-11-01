@@ -174,7 +174,7 @@ class AdminCategoryQueryType(DjangoObjectType):
         model = Category
         fields = ("id", "name", "icon", "ordering")
         filter_fields = {
-            "name": ["istartswith", "exact"],
+            "name": ["contains", "istartswith", "exact"],
         }
 
     def resolve_icon(self, info):
@@ -298,7 +298,7 @@ class AdminReporterNotificationQueryType(DjangoObjectType):
             "report_type",
         )
         filter_fields = {
-            "description": ["istartswith", "exact"],
+            "description": ["contains", "istartswith", "exact"],
         }
 
 
