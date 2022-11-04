@@ -141,7 +141,7 @@ class AdminInvitationCodeQueryType(DjangoObjectType):
         model = InvitationCode
         fields = ("id", "code", "authority", "from_date", "through_date", "role")
         filter_fields = {
-            "code": ["istartswith", "exact"],
+            "role": ["contains", "istartswith", "exact"],
         }
 
     @classmethod
