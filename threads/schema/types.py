@@ -8,9 +8,13 @@ from threads.models import Comment, CommentAttachment
 
 class CommentAttachmentType(DjangoObjectType):
     thumbnail = graphene.String()
+    file = graphene.String()
 
     class Meta:
         model = CommentAttachment
+
+    def resolve_file(self, info):
+        return self.file.url
 
     def resolve_thumbnail(self, info):
         return get_thumbnailer(self.file)["thumbnail"].url
