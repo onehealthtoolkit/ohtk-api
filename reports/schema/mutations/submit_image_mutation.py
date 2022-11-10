@@ -18,6 +18,7 @@ class SubmitImage(graphene.Mutation):
     id = graphene.UUID()
     file = graphene.String()
     thumbnail = graphene.String()
+    image_url = graphene.String()
 
     @staticmethod
     @login_required
@@ -40,4 +41,5 @@ class SubmitImage(graphene.Mutation):
             id=image.id,
             file=image.file.url,
             thumbnail=get_thumbnailer(image.file)["thumbnail"].url,
+            image_url=image.file.url,
         )
