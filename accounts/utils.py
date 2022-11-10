@@ -70,6 +70,12 @@ def is_officer_role(user: User) -> bool:
     )
 
 
+def is_admin_role(user: User) -> bool:
+    return (
+        user.is_authority_user and user.authorityuser.role == AuthorityUser.Role.ADMIN
+    )
+
+
 def fn_and(left_fn, right_fn) -> Callable[[User], bool]:
     return lambda user: left_fn(user) and right_fn(user)
 
