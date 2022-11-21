@@ -219,6 +219,7 @@ class UserProfileType(graphene.ObjectType):
     is_staff = graphene.Boolean()
     is_superuser = graphene.Boolean()
     role = graphene.String()
+    consent = graphene.Boolean()
 
     def resolve_authority_name(self, info):
         if self.is_authority_user:
@@ -241,6 +242,12 @@ class UserProfileType(graphene.ObjectType):
             return get_thumbnailer(self.avatar)["thumbnail"].url
         else:
             return None
+
+    def resolve_consent(self, info):
+        if self.is_authority_user:
+            return self.consent
+        else:
+            return True
 
 
 class CheckInvitationCodeType(DjangoObjectType):

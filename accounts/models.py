@@ -107,6 +107,7 @@ class AuthorityUser(User):
     role = models.CharField(
         choices=Role.choices, max_length=3, blank=True, default=Role.REPORTER
     )
+    consent = models.BooleanField(default=False)
 
     def __str__(self):
         return self.username
@@ -167,3 +168,17 @@ class PasswordResetToken(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     token = models.CharField(max_length=128)
     token_expiry = models.DateTimeField()
+
+
+class Configuration(BaseModel):
+    objects = BaseModelManager()
+
+    key = models.CharField(max_length=100, primary_key=True)
+    value = models.CharField(max_length=100)
+
+    @staticmethod
+    def get(key):
+        try:
+            return Configuration.objects.get(key=key).value
+        except Configuration.DoesNotExist:
+            return None

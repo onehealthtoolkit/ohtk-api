@@ -1,7 +1,15 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django import forms
 
-from accounts.models import AuthorityUser, User, Authority, InvitationCode
+from accounts.forms import ConfigurationForm
+from accounts.models import (
+    AuthorityUser,
+    User,
+    Authority,
+    InvitationCode,
+    Configuration,
+)
 
 
 class BaseModelAdmin(admin.ModelAdmin):
@@ -34,3 +42,9 @@ class InvitationCodeAdmin(BaseModelAdmin):
         "code",
         "authority",
     )
+
+
+@admin.register(Configuration)
+class ConfigurationAdmin(BaseModelAdmin):
+    list_display = ("key",)
+    form = ConfigurationForm
