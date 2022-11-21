@@ -160,6 +160,10 @@ class Case(BaseModel):
             self.is_finished = True
             self.save(update_fields=("is_finished",))
 
+        from cases import tasks
+
+        tasks.evaluate_case_transition.delay(self.id, from_step_id, to_step_id)
+
         return CaseState.objects.create(
             case_id=self.id,
             state_id=to_step_id,
