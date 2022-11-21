@@ -27,7 +27,8 @@ def evaluate_notification_template_after_receive_report(report_id):
     report = IncidentReport.objects.get(pk=report_id)
     eval_context = report.evaluate_context()
     for template in NotificationTemplate.objects.filter(
-        type=NotificationTemplate.Type.REPORT
+        type=NotificationTemplate.Type.REPORT,
+        report_type=report.report_type,
     ):
         if template.condition:
             try:
@@ -47,7 +48,8 @@ def evaluate_promote_to_case_notification(case_id):
     case = Case.objects.get(pk=case_id)
     eval_context = case.report.evaluate_context()
     for template in NotificationTemplate.objects.filter(
-        type=NotificationTemplate.Type.PROMOTE_TO_CASE
+        type=NotificationTemplate.Type.PROMOTE_TO_CASE,
+        report_type=case.report.report_type,
     ):
         if template.condition:
             try:
