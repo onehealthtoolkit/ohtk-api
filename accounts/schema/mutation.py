@@ -18,6 +18,7 @@ from accounts.schema.mutations import (
     ResetPasswordRequestMutation,
     ResetPasswordMutation,
     VerifyLoginQRTokenMutation,
+    ConfirmConsentMutation,
 )
 
 
@@ -41,3 +42,4 @@ class Mutation(graphene.ObjectType):
     reset_password_request = ResetPasswordRequestMutation.Field()
     reset_password = ResetPasswordMutation.Field()
     verify_login_qr_token = VerifyLoginQRTokenMutation.Field()
+    confirm_consent = ConfirmConsentMutation.Field()
