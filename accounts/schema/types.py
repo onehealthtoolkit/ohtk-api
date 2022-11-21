@@ -8,7 +8,14 @@ from django.contrib.gis.db import models
 from graphene_django.converter import convert_django_field
 from graphql import GraphQLError
 
-from accounts.models import Authority, AuthorityUser, InvitationCode, Feature, User
+from accounts.models import (
+    Authority,
+    AuthorityUser,
+    InvitationCode,
+    Feature,
+    User,
+    Configuration,
+)
 from common.converter import GeoJSON
 from common.types import AdminValidationProblem
 
@@ -259,6 +266,11 @@ class CheckInvitationCodeType(DjangoObjectType):
 class FeatureType(DjangoObjectType):
     class Meta:
         model = Feature
+
+
+class ConfigurationType(DjangoObjectType):
+    class Meta:
+        model = Configuration
 
 
 class AdminAuthorityCreateSuccess(DjangoObjectType):

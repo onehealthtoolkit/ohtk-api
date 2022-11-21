@@ -8,7 +8,13 @@ from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
 from graphql_jwt.utils import jwt_encode
 
-from accounts.models import AuthorityUser, InvitationCode, Feature, Authority
+from accounts.models import (
+    AuthorityUser,
+    InvitationCode,
+    Feature,
+    Authority,
+    Configuration,
+)
 from accounts.schema.types import (
     AdminInvitationCodeQueryType,
     AuthorityUserType,
@@ -20,6 +26,7 @@ from accounts.schema.types import (
     AdminAuthorityUserQueryType,
     AdminAuthorityInheritLookupType,
     LoginQrTokenType,
+    ConfigurationType,
 )
 from accounts.schema.types import CheckInvitationCodeType
 from accounts.utils import filter_authority_permission
@@ -32,6 +39,7 @@ class Query(graphene.ObjectType):
         CheckInvitationCodeType, code=graphene.String(required=True)
     )
     features = graphene.List(FeatureType)
+    configurations = graphene.List(ConfigurationType)
     authorities = DjangoPaginationConnectionField(AuthorityType)
     authority = graphene.Field(AuthorityType, id=graphene.ID(required=True))
     authority_inherits_down = graphene.List(
@@ -77,6 +85,10 @@ class Query(graphene.ObjectType):
     @staticmethod
     def resolve_features(root, info):
         return Feature.objects.all()
+
+    @staticmethod
+    def resolve_configurations(root, info):
+        return Configuration.objects.filter(key__startswith="mobile")
 
     @staticmethod
     @login_required
