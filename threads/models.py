@@ -1,7 +1,8 @@
 from django.db import models
 from easy_thumbnails.fields import ThumbnailerField
 
-from accounts.models import BaseModel, User, BaseModelManager
+from accounts.models import User
+from common.models import BaseModel, BaseModelManager
 
 
 class Thread(BaseModel):

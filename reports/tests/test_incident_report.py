@@ -99,7 +99,7 @@ class IncidentReportTestCase(BaseTestCase):
                     }
                 """
         report_id = uuid.uuid4()
-        LOCATION = "101.003,13.233"  # longitude, latitude
+        LOCATION = "101.00300,13.23300"  # longitude, latitude
         result = self.client.execute(
             mutation,
             {

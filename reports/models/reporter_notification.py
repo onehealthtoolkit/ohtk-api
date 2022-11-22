@@ -2,7 +2,8 @@ from django.db import models
 from django.template import Template, Context
 from django.template.defaultfilters import striptags
 
-from accounts.models import BaseModel, User, BaseModelManager
+from accounts.models import User
+from common.models import BaseModel, BaseModelManager
 from notifications.models import Message, UserMessage
 from reports.models import ReportType
 

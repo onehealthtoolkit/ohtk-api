@@ -21,7 +21,6 @@ class AdminUserUpdateProfileTests(JSONWebTokenTestCase):
         result = self.client.execute(
             query, variables={"firstName": "first_name", "lastName": "last_mame"}
         )
-        print(result)
         self.assertTrue(result.data["adminUserUpdateProfile"]["success"])
 
         query = """

@@ -144,6 +144,7 @@
       <option name="ignoredIdentifiers">
         <list>
           <option value="cases.schema.types.*" />
+          <option value="reports.schema.types.FollowupReportType" />
         </list>
       </option>
     </inspection_tool>

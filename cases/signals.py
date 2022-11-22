@@ -7,6 +7,7 @@ from reports.models import IncidentReport
 from reports.signals import incident_report_submitted
 
 case_promoted = django.dispatch.Signal()
+case_state_forwarded = django.dispatch.Signal()
 
 
 @receiver(
@@ -34,3 +35,12 @@ def evaluate_case_definition_after_receive_report(sender, report, **kwargs):
 )
 def promote_to_case_notification(sender, case, **kwargs):
     tasks.evaluate_promote_to_case_notification.delay(case.id)
+
+
+@receiver(
+    case_state_forwarded,
+    sender=Case,
+    dispatch_uid="evaluate_case_state_forwarded_notification",
+)
+def transition_notification(sender, case, from_step_id, to_step_id, **kwargs):
+    tasks.evaluate_case_transition.delay(case.id, from_step_id, to_step_id)

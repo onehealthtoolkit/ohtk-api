@@ -43,7 +43,7 @@ class MyMessageTestCase(TestCase):
         data = result.data["myMessages"]["results"]
         self.assertEqual(2, len(data))
 
-    def test_my_messsage(self):
+    def test_my_message(self):
         query = """
                 query myMessage($id: String!) {
                     myMessage(id: $id) {
@@ -56,7 +56,7 @@ class MyMessageTestCase(TestCase):
                     }
                 }
                 """
-        result = self.client.execute(query, {"id": str(self.msg1.id)})
+        result = self.client.execute(query, {"id": str(self.user_msg1.id)})
         data = result.data["myMessage"]
         self.assertFalse(data["isSeen"])
 
@@ -73,11 +73,11 @@ class MyMessageTestCase(TestCase):
                     }
                 }
                 """
-        result = self.client.execute(query, {"id": str(self.msg1.id)})
+        result = self.client.execute(query, {"id": str(self.user_msg1.id)})
         data = result.data["myMessage"]
         self.assertFalse(data["isSeen"])
 
         # is_seen will change to True
-        result = self.client.execute(query, {"id": str(self.msg1.id)})
+        result = self.client.execute(query, {"id": str(self.user_msg1.id)})
         data = result.data["myMessage"]
         self.assertTrue(data["isSeen"])

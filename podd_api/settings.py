@@ -54,17 +54,20 @@ SHARED_APPS = (
     "graphql_jwt.refresh_token.apps.RefreshTokenConfig",
     "graphql_playground",
     "channels",
+    "common",
     "reports",
     "cases",
     "notifications",
     "summaries",
     "threads",
     "easy_thumbnails",
+    "outbreaks",
 )
 
 TENANT_APPS = (
     "django.contrib.contenttypes",
     "graphql_jwt.refresh_token.apps.RefreshTokenConfig",
+    "common",
     "accounts",
     "reports",
     "cases",
@@ -72,6 +75,7 @@ TENANT_APPS = (
     "summaries",
     "threads",
     "easy_thumbnails",
+    "outbreaks",
 )
 
 INSTALLED_APPS = list(SHARED_APPS) + [

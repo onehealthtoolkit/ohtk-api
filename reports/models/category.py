@@ -1,6 +1,6 @@
 from django.contrib.gis.db import models
 
-from accounts.models import BaseModel, BaseModelManager
+from common.models import BaseModel, BaseModelManager
 
 
 class Category(BaseModel):

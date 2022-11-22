@@ -15,6 +15,7 @@ from accounts.models import (
     Feature,
     User,
     Configuration,
+    Place,
 )
 from common.converter import GeoJSON
 from common.types import AdminValidationProblem
@@ -375,3 +376,49 @@ class AdminInvitationCodeUpdateResult(graphene.Union):
 
 class LoginQrTokenType(graphene.ObjectType):
     token = graphene.String(required=True)
+
+
+class AdminPlaceQueryFilter(django_filters.FilterSet):
+    q = django_filters.CharFilter(method="filter_q")
+
+    class Meta:
+        model = Place
+        fields = []
+
+    def filter_q(self, queryset, name, value):
+        return queryset.filter(Q(name__icontains=value))
+
+
+class AdminPlaceQueryType(DjangoObjectType):
+    class Meta:
+        model = Place
+        fields = ("id", "name", "authority", "notification_to")
+        filterset_class = AdminPlaceQueryFilter
+
+
+class AdminPlaceCreateSuccess(DjangoObjectType):
+    class Meta:
+        model = Place
+
+
+class AdminPlaceCreateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminPlaceCreateResult(graphene.Union):
+    class Meta:
+        types = (AdminPlaceCreateSuccess, AdminPlaceCreateProblem)
+
+
+class AdminPlaceUpdateSuccess(DjangoObjectType):
+    class Meta:
+        model = Place
+
+
+class AdminPlaceUpdateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminPlaceUpdateResult(graphene.Union):
+    class Meta:
+        types = (AdminPlaceUpdateSuccess, AdminPlaceUpdateProblem)

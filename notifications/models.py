@@ -7,7 +7,8 @@ from django.db import models
 from firebase_admin import messaging
 from firebase_admin.messaging import ApsAlert
 
-from accounts.models import BaseModel, User, BaseModelManager
+from accounts.models import User
+from common.models import BaseModel, BaseModelManager
 from podd_api import settings
 
 logger = logging.getLogger(__name__)

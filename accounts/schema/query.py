@@ -26,7 +26,7 @@ from accounts.schema.types import (
     AdminAuthorityUserQueryType,
     AdminAuthorityInheritLookupType,
     LoginQrTokenType,
-    ConfigurationType,
+    ConfigurationType, AdminPlaceQueryType,
 )
 from accounts.schema.types import CheckInvitationCodeType
 from accounts.utils import filter_authority_permission
@@ -58,6 +58,7 @@ class Query(graphene.ObjectType):
     admin_invitation_code_query = DjangoPaginationConnectionField(
         AdminInvitationCodeQueryType
     )
+    admin_place_query = DjangoPaginationConnectionField(AdminPlaceQueryType)
     invitation_code = graphene.Field(InvitationCodeType, id=graphene.ID(required=True))
     authority_user = graphene.Field(AuthorityUserType, id=graphene.ID(required=True))
 

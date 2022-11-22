@@ -6,30 +6,7 @@ from django.contrib.gis.db import models
 from django.utils.timezone import now
 from easy_thumbnails.fields import ThumbnailerImageField
 
-
-class BaseModel(models.Model):
-    class Meta:
-        abstract = True
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    deleted_at = models.DateTimeField(blank=True, null=True, default=None)
-
-    def delete(self, hard=False, **kwargs):
-        if hard:
-            super().delete()
-        else:
-            self.deleted_at = now()
-            self.save(update_fields=("deleted_at",))
-
-    def restore(self):
-        self.deleted_at = None
-        self.save(update_fields=("deleted_at",))
-
-
-class BaseModelManager(models.Manager):
-    def get_queryset(self):
-        return super().get_queryset().filter(deleted_at__isnull=True)
+from common.models import BaseModel, BaseModelManager
 
 
 class Authority(BaseModel):
@@ -182,3 +159,13 @@ class Configuration(BaseModel):
             return Configuration.objects.get(key=key).value
         except Configuration.DoesNotExist:
             return None
+
+
+class Place(BaseModel):
+    objects = BaseModelManager()
+    name = models.CharField(max_length=200)
+    authority = models.ForeignKey(
+        Authority, on_delete=models.CASCADE, related_name="places"
+    )
+    location = models.PointField(null=True, blank=True)
+    notification_to = models.TextField(blank=True)

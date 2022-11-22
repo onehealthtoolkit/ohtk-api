@@ -8,7 +8,8 @@ from django.db.models import Q
 from django.template import Template, Context
 from django.template.defaultfilters import striptags
 
-from accounts.models import BaseModel, Authority, BaseModelManager
+from accounts.models import Authority
+from common.models import BaseModel, BaseModelManager
 from . import Category
 
 

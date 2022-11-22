@@ -5,7 +5,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
 from easy_thumbnails.fields import ThumbnailerImageField
 
-from accounts.models import BaseModel, User, Authority, BaseModelManager
+from accounts.models import User, Authority
+from common.models import BaseModel, BaseModelManager
 from common.eval import build_eval_obj
 from threads.models import Thread
 from . import ReportType

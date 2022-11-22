@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from cases.models import NotificationTemplate, AuthorityNotification
 from cases.tests.base_testcase import BaseTestCase
+from notifications.models import Message
 
 
 class NotificationTemplateTestCase(BaseTestCase):
@@ -35,7 +36,7 @@ class NotificationTemplateTestCase(BaseTestCase):
         self.assertIn(self.jatujak_notification, notifications)
 
     def test_send_report_notification(self):
-        with patch.object(NotificationTemplate, "send_message") as mock_send_message:
+        with patch.object(Message, "send_email") as mock_send_message:
             self.notification_template.send_report_notification(
                 self.dengue_report_jatujak.id
             )

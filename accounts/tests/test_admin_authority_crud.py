@@ -59,7 +59,7 @@ class AdminAuthorityTests(JSONWebTokenTestCase):
     def test_query_with_name(self):
         query = """
         query adminAuthorityQuery($name: String) {
-            adminAuthorityQuery(name: $name) {
+            adminAuthorityQuery(q: $name) {
                 results {
                     id
                     code

@@ -300,7 +300,6 @@ class AdminReportTypeTests(JSONWebTokenTestCase):
                 "rendererFollowupDataTemplate": "hello",
             },
         )
-        print(result)
 
         self.assertIsNotNone(result.data["adminReportTypeUpdate"]["result"])
         self.assertIsNotNone(

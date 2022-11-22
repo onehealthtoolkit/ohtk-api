@@ -1,17 +1,18 @@
 from django.contrib.auth import get_user_model
 from graphql_jwt.testcases import JSONWebTokenTestCase
 
-from accounts.models import Authority, InvitationCode
+from accounts.models import Authority, InvitationCode, AuthorityUser
 
 
 class AdminInvitationCodeTests(JSONWebTokenTestCase):
     def setUp(self):
         self.authority = Authority.objects.create(name="test", code="1")
-        self.InvitationCode1 = InvitationCode(
-            authority=self.authority, code="11112"
-        ).save()
-        self.InvitationCode2 = InvitationCode(authority=self.authority)
-        self.InvitationCode2.save()
+        self.InvitationCode1 = InvitationCode.objects.create(
+            authority=self.authority, code="11112", role=AuthorityUser.Role.REPORTER
+        )
+        self.InvitationCode2 = InvitationCode.objects.create(
+            authority=self.authority, code="234343", role=AuthorityUser.Role.ADMIN
+        )
 
         self.user = get_user_model().objects.create(username="test", is_superuser=True)
         self.client.authenticate(self.user)
@@ -30,10 +31,10 @@ class AdminInvitationCodeTests(JSONWebTokenTestCase):
         result = self.client.execute(query, {})
         self.assertEqual(len(result.data["adminInvitationCodeQuery"]["results"]), 2)
 
-    def test_query_with_code(self):
+    def test_query_with_role(self):
         query = """
-        query adminInvitationCodeQuery($code: String) {
-            adminInvitationCodeQuery(code: $code) {
+        query adminInvitationCodeQuery($role: String) {
+            adminInvitationCodeQuery(role_Contains: $role) {
                 results {
                     id
                     code
@@ -41,7 +42,7 @@ class AdminInvitationCodeTests(JSONWebTokenTestCase):
             }
         }
         """
-        result = self.client.execute(query, {"code": "11112"})
+        result = self.client.execute(query, {"role": "REP"})
         self.assertEqual(len(result.data["adminInvitationCodeQuery"]["results"]), 1)
 
     def test_create_with_error(self):

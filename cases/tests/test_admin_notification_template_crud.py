@@ -62,9 +62,9 @@ class AdminNotificationTemplateTests(BaseTestCase):
         )
 
         self.authority = Authority.objects.create(name="test", code="1")
-        self.authority_notification = AuthorityNotification(
+        self.authority_notification = AuthorityNotification.objects.create(
             authority=self.authority,
-            template=self.notification_template,
+            template=self.notification_template1,
             to="to@mail.com",
         )
 

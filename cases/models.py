@@ -7,7 +7,8 @@ from django.db.models import QuerySet
 from django.template import Template, Context
 from django.template.defaultfilters import striptags
 
-from accounts.models import Authority, BaseModel, User, BaseModelManager
+from accounts.models import Authority, User
+from common.models import BaseModel, BaseModelManager
 from notifications.models import Message
 from reports.models import IncidentReport, ReportType
 from threads.models import Thread
@@ -111,6 +112,8 @@ class Case(BaseModel):
         blank=True,
         null=True,
     )
+    # circle radius information that use to render outbreak on map
+    outbreak_plan_info = models.JSONField(blank=True, null=True)
 
     @property
     def current_states(self):
@@ -160,9 +163,14 @@ class Case(BaseModel):
             self.is_finished = True
             self.save(update_fields=("is_finished",))
 
-        from cases import tasks
+        from cases.signals import case_state_forwarded
 
-        tasks.evaluate_case_transition.delay(self.id, from_step_id, to_step_id)
+        case_state_forwarded.send(
+            sender=self.__class__,
+            case=self,
+            from_step_id=from_step_id,
+            to_step_id=to_step_id,
+        )
 
         return CaseState.objects.create(
             case_id=self.id,
