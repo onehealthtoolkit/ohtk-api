@@ -18,6 +18,7 @@ def evaluate_outbreak_plan(case_id, to_step_id):
     center = case.report.gps_location
     for plan in plans:
         previous_distance = None
+        outbreak_plan_info = {"zones": []}
         for zone_number in range(1, 4):
             prefix = f"zone{zone_number}_"
             radius_attr = f"{prefix}radius"
@@ -27,8 +28,18 @@ def evaluate_outbreak_plan(case_id, to_step_id):
                 distance = Distance(m=radius)
                 title_attr = f"{prefix}message_title"
                 body_attr = f"{prefix}message_body"
-                title = getattr(plan, title_attr)
-                body = getattr(plan, body_attr)
+                color_attr = f"{prefix}color"
+
+                title = getattr(plan, title_attr, None)
+                body = getattr(plan, body_attr, None)
+                color = getattr(plan, color_attr, None)
+
+                outbreak_plan_info["zones"].append(
+                    {
+                        "radius": radius,
+                        "color": color,
+                    }
+                )
 
                 notification_message = None
                 if body:
@@ -54,10 +65,13 @@ def evaluate_outbreak_plan(case_id, to_step_id):
 
                 for place in query.all():
                     # for each place, create outbreak.models.Place
-                    color_attr = f"{prefix}color"
-                    color = getattr(plan, color_attr)
                     Place.create_outbreak_place(case, plan, place, zone_number, color)
-                    if place.notification_to:
+                    if place.notification_to and message:
                         message.send_to(place.notification_to)
 
             previous_distance = distance
+
+        # update oubreak_plan_info field in case table
+        if len(outbreak_plan_info["zones"]) > 0:
+            case.outbreak_plan_info = outbreak_plan_info
+            case.save()
