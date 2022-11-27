@@ -263,6 +263,7 @@ class CaseType(DjangoObjectType):
     authorities = graphene.List(AuthorityType)
     states = graphene.List(CaseStateType)
     thread_id = graphene.Int()
+    outbreak_plan_info = graphene.JSONString()
 
     class Meta:
         model = Case
@@ -274,6 +275,7 @@ class CaseType(DjangoObjectType):
             "authorities",
             "is_finished",
             "thread_id",
+            "outbreak_plan_info",
         ]
         filter_fields = {
             "report__created_at": ["lte", "gte"],

@@ -47,7 +47,7 @@ class Place(BaseModel):
     place = models.ForeignKey(
         CommonPlace, on_delete=models.CASCADE, related_name="outbreak_places"
     )
-    zone = models.IntegerChoices("zone", "1 2 3")
+    zone = models.IntegerField(null=True, blank=True)
     color = models.CharField(max_length=7)
 
     @classmethod

@@ -275,8 +275,30 @@ class ConfigurationType(DjangoObjectType):
 
 
 class PlaceType(DjangoObjectType):
+    latitude = graphene.Float()
+    longitude = graphene.Float()
+
     class Meta:
         model = Place
+        fields = (
+            "id",
+            "name",
+            "location",
+            "authority",
+            "notification_to",
+        )
+
+    def resolve_latitude(self, info):
+        if self.location:
+            return self.location.y
+        else:
+            return None
+
+    def resolve_longitude(self, info):
+        if self.location:
+            return self.location.x
+        else:
+            return None
 
 
 class AdminAuthorityCreateSuccess(DjangoObjectType):
@@ -416,8 +438,23 @@ class AdminPlaceCreateResult(graphene.Union):
 
 
 class AdminPlaceUpdateSuccess(DjangoObjectType):
+    latitude = graphene.Float()
+    longitude = graphene.Float()
+
     class Meta:
         model = Place
+
+    def resolve_latitude(self, info):
+        if self.location:
+            return self.location.y
+        else:
+            return None
+
+    def resolve_longitude(self, info):
+        if self.location:
+            return self.location.x
+        else:
+            return None
 
 
 class AdminPlaceUpdateProblem(AdminValidationProblem):

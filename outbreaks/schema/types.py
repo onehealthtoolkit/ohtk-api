@@ -4,7 +4,7 @@ from django.db.models import Q
 from graphene_django import DjangoObjectType
 
 from common.types import AdminValidationProblem
-from outbreaks.models import Plan
+from outbreaks.models import Plan, Place
 
 
 class OutbreakPlanType(DjangoObjectType):
@@ -61,3 +61,11 @@ class AdminOutbreakPlanUpdateProblem(AdminValidationProblem):
 class AdminOutbreakPlanUpdateResult(graphene.Union):
     class Meta:
         types = (AdminOutbreakPlanUpdateSuccess, AdminOutbreakPlanUpdateProblem)
+
+
+class OutbreakPlaceType(DjangoObjectType):
+    place = graphene.Field("accounts.schema.types.PlaceType")
+
+    class Meta:
+        model = Place
+        fields = "__all__"
