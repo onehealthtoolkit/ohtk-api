@@ -22,6 +22,9 @@ from accounts.schema.mutations import (
     AdminPlaceCreateMutation,
     AdminPlaceUpdateMutation,
     AdminPlaceDeleteMutation,
+    AdminConfigurationCreateMutation,
+    AdminConfigurationUpdateMutation,
+    AdminConfigurationDeleteMutation,
 )
 
 
@@ -49,3 +52,6 @@ class Mutation(graphene.ObjectType):
     admin_place_create = AdminPlaceCreateMutation.Field()
     admin_place_update = AdminPlaceUpdateMutation.Field()
     admin_place_delete = AdminPlaceDeleteMutation.Field()
+    admin_configuration_create = AdminConfigurationCreateMutation.Field()
+    admin_configuration_update = AdminConfigurationUpdateMutation.Field()
+    admin_configuration_delete = AdminConfigurationDeleteMutation.Field()

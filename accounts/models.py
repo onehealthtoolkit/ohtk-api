@@ -38,7 +38,7 @@ class Authority(BaseModel):
     def is_in_inherits_down(self, ids):
         ids_str = ",".join([str(id) for id in ids])
         sql = f"""
-            select id from bon.inherit_authority_down({self.id}) where id in ({ids_str})
+            select id from inherit_authority_down({self.id}) where id in ({ids_str})
         """
         auth = Authority.objects.raw(sql)
         if len(auth) > 0:

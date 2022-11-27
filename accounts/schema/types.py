@@ -274,6 +274,11 @@ class ConfigurationType(DjangoObjectType):
         model = Configuration
 
 
+class PlaceType(DjangoObjectType):
+    class Meta:
+        model = Place
+
+
 class AdminAuthorityCreateSuccess(DjangoObjectType):
     class Meta:
         model = Authority
@@ -422,3 +427,49 @@ class AdminPlaceUpdateProblem(AdminValidationProblem):
 class AdminPlaceUpdateResult(graphene.Union):
     class Meta:
         types = (AdminPlaceUpdateSuccess, AdminPlaceUpdateProblem)
+
+
+class AdminConfigurationQueryFilter(django_filters.FilterSet):
+    q = django_filters.CharFilter(method="filter_q")
+
+    class Meta:
+        model = Configuration
+        fields = []
+
+    def filter_q(self, queryset, name, value):
+        return queryset.filter(Q(key__icontains=value))
+
+
+class AdminConfigurationQueryType(DjangoObjectType):
+    class Meta:
+        model = Configuration
+        fields = ("key", "value")
+        filterset_class = AdminConfigurationQueryFilter
+
+
+class AdminConfigurationCreateSuccess(DjangoObjectType):
+    class Meta:
+        model = Configuration
+
+
+class AdminConfigurationCreateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminConfigurationCreateResult(graphene.Union):
+    class Meta:
+        types = (AdminConfigurationCreateSuccess, AdminConfigurationCreateProblem)
+
+
+class AdminConfigurationUpdateSuccess(DjangoObjectType):
+    class Meta:
+        model = Configuration
+
+
+class AdminConfigurationUpdateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminConfigurationUpdateResult(graphene.Union):
+    class Meta:
+        types = (AdminConfigurationUpdateSuccess, AdminConfigurationUpdateProblem)
