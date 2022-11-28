@@ -14,11 +14,14 @@ from accounts.models import (
     Feature,
     Authority,
     Configuration,
+    Place,
 )
 from accounts.schema.types import (
+    AdminConfigurationQueryType,
     AdminInvitationCodeQueryType,
     AuthorityUserType,
     InvitationCodeType,
+    PlaceType,
     UserProfileType,
     FeatureType,
     AuthorityType,
@@ -26,7 +29,8 @@ from accounts.schema.types import (
     AdminAuthorityUserQueryType,
     AdminAuthorityInheritLookupType,
     LoginQrTokenType,
-    ConfigurationType, AdminPlaceQueryType,
+    ConfigurationType,
+    AdminPlaceQueryType,
 )
 from accounts.schema.types import CheckInvitationCodeType
 from accounts.utils import filter_authority_permission
@@ -59,8 +63,17 @@ class Query(graphene.ObjectType):
         AdminInvitationCodeQueryType
     )
     admin_place_query = DjangoPaginationConnectionField(AdminPlaceQueryType)
+    place_get = graphene.Field(PlaceType, id=graphene.Int(required=True))
+
     invitation_code = graphene.Field(InvitationCodeType, id=graphene.ID(required=True))
     authority_user = graphene.Field(AuthorityUserType, id=graphene.ID(required=True))
+
+    admin_configuration_query = DjangoPaginationConnectionField(
+        AdminConfigurationQueryType
+    )
+    configuration_get = graphene.Field(
+        ConfigurationType, key=graphene.String(required=True)
+    )
 
     get_login_qr_token = graphene.Field(
         LoginQrTokenType, user_id=graphene.ID(required=True)
@@ -159,3 +172,13 @@ class Query(graphene.ObjectType):
         return {
             "token": token,
         }
+
+    @staticmethod
+    @login_required
+    def resolve_place_get(root, info, id):
+        return Place.objects.get(id=id)
+
+    @staticmethod
+    @login_required
+    def resolve_configuration_get(root, info, key):
+        return Configuration.objects.get(key=key)

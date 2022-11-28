@@ -4,7 +4,7 @@ from graphql_jwt.decorators import login_required, superuser_required
 from outbreaks.models import Plan
 from outbreaks.schema.types import (
     AdminOutbreakPlanCreateResult,
-    AdminOutbreakPlanUpateResult,
+    AdminOutbreakPlanUpdateResult,
 )
 
 
@@ -93,7 +93,7 @@ class AdminOutbreakPlanUpdateMutation(graphene.Mutation):
         zone2_message_body = graphene.String(required=False, default_value="")
         zone3_message_body = graphene.String(required=False, default_value="")
 
-    result = graphene.Field(AdminOutbreakPlanUpateResult)
+    result = graphene.Field(AdminOutbreakPlanUpdateResult)
 
     @staticmethod
     @login_required

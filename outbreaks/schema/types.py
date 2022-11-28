@@ -7,6 +7,12 @@ from common.types import AdminValidationProblem
 from outbreaks.models import Plan, Place
 
 
+class OutbreakPlanType(DjangoObjectType):
+    class Meta:
+        model = Plan
+        fields = "__all__"
+
+
 class AdminOutbreakPlanQueryFilterSet(django_filters.FilterSet):
     q = django_filters.CharFilter(method="filter_q")
 
@@ -23,7 +29,7 @@ class AdminOutbreakPlanQueryFilterSet(django_filters.FilterSet):
 class AdminOutbreakPlanQueryType(DjangoObjectType):
     class Meta:
         model = Plan
-        fields = ("id", "name", "description")
+        fields = ("id", "name", "description", "report_type")
         filterset_class = AdminOutbreakPlanQueryFilterSet
 
 
@@ -52,7 +58,7 @@ class AdminOutbreakPlanUpdateProblem(AdminValidationProblem):
     pass
 
 
-class AdminOutbreakPlanUpateResult(graphene.Union):
+class AdminOutbreakPlanUpdateResult(graphene.Union):
     class Meta:
         types = (AdminOutbreakPlanUpdateSuccess, AdminOutbreakPlanUpdateProblem)
 

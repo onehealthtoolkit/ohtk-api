@@ -42,6 +42,10 @@ class Query(graphene.ObjectType):
         AdminStateDefinitionQueryType
     )
     state_step_get = graphene.Field(StateStepType, id=graphene.ID(required=True))
+    state_step_list_by_report_type = graphene.List(
+        graphene.NonNull(StateStepType), report_type_id=graphene.ID(required=True)
+    )
+
     admin_state_step_query = graphene.List(
         StateStepType, definition_id=graphene.ID(required=True)
     )
@@ -90,6 +94,14 @@ class Query(graphene.ObjectType):
     @login_required
     def resolve_state_step_get(root, info, id):
         return StateStep.objects.get(pk=id)
+
+    @staticmethod
+    @login_required
+    def resolve_state_step_list_by_report_type(root, info, report_type_id):
+        state_definition = ReportType.objects.get(pk=report_type_id).state_definition
+        if not state_definition:
+            state_definition = StateDefinition.objects.filter(is_default=True).first()
+        return StateStep.objects.filter(state_definition=state_definition)
 
     @staticmethod
     @login_required

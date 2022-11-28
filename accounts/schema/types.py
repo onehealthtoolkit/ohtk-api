@@ -274,6 +274,33 @@ class ConfigurationType(DjangoObjectType):
         model = Configuration
 
 
+class PlaceType(DjangoObjectType):
+    latitude = graphene.Float()
+    longitude = graphene.Float()
+
+    class Meta:
+        model = Place
+        fields = (
+            "id",
+            "name",
+            "location",
+            "authority",
+            "notification_to",
+        )
+
+    def resolve_latitude(self, info):
+        if self.location:
+            return self.location.y
+        else:
+            return None
+
+    def resolve_longitude(self, info):
+        if self.location:
+            return self.location.x
+        else:
+            return None
+
+
 class AdminAuthorityCreateSuccess(DjangoObjectType):
     class Meta:
         model = Authority
@@ -411,32 +438,11 @@ class AdminPlaceCreateResult(graphene.Union):
 
 
 class AdminPlaceUpdateSuccess(DjangoObjectType):
-    class Meta:
-        model = Place
-
-
-class AdminPlaceUpdateProblem(AdminValidationProblem):
-    pass
-
-
-class AdminPlaceUpdateResult(graphene.Union):
-    class Meta:
-        types = (AdminPlaceUpdateSuccess, AdminPlaceUpdateProblem)
-
-
-class PlaceType(DjangoObjectType):
     latitude = graphene.Float()
     longitude = graphene.Float()
 
     class Meta:
         model = Place
-        fields = (
-            "id",
-            "name",
-            "location",
-            "authority",
-            "notification_to",
-        )
 
     def resolve_latitude(self, info):
         if self.location:
@@ -449,3 +455,58 @@ class PlaceType(DjangoObjectType):
             return self.location.x
         else:
             return None
+
+
+class AdminPlaceUpdateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminPlaceUpdateResult(graphene.Union):
+    class Meta:
+        types = (AdminPlaceUpdateSuccess, AdminPlaceUpdateProblem)
+
+
+class AdminConfigurationQueryFilter(django_filters.FilterSet):
+    q = django_filters.CharFilter(method="filter_q")
+
+    class Meta:
+        model = Configuration
+        fields = []
+
+    def filter_q(self, queryset, name, value):
+        return queryset.filter(Q(key__icontains=value))
+
+
+class AdminConfigurationQueryType(DjangoObjectType):
+    class Meta:
+        model = Configuration
+        fields = ("key", "value")
+        filterset_class = AdminConfigurationQueryFilter
+
+
+class AdminConfigurationCreateSuccess(DjangoObjectType):
+    class Meta:
+        model = Configuration
+
+
+class AdminConfigurationCreateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminConfigurationCreateResult(graphene.Union):
+    class Meta:
+        types = (AdminConfigurationCreateSuccess, AdminConfigurationCreateProblem)
+
+
+class AdminConfigurationUpdateSuccess(DjangoObjectType):
+    class Meta:
+        model = Configuration
+
+
+class AdminConfigurationUpdateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminConfigurationUpdateResult(graphene.Union):
+    class Meta:
+        types = (AdminConfigurationUpdateSuccess, AdminConfigurationUpdateProblem)
