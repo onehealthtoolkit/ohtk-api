@@ -35,7 +35,7 @@ class Authority(BaseModel):
         """find all child authority that has recursive inherit up to this.(include self)"""
         return Authority.objects.raw(f"select * from inherit_authority_down({self.id})")
 
-    def inherits_down_first(self):
+    def inherits_down_shallow(self):
         return Authority.objects.raw(
             f"select from_authority_id as id from accounts_authority_inherits where to_authority_id={self.id}"
         )
