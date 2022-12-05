@@ -1,7 +1,6 @@
 from django.db import models
 
 from common.models import BaseModel
-from reports.models import IncidentReport
 
 
 #
