@@ -11,6 +11,7 @@ from accounts.models import Authority, AuthorityUser, User
 from cases.models import Case
 from cases.schema import CaseType
 from reports.models import IncidentReport
+from reports.models.report import ReportAggregateView
 from reports.schema.types import IncidentReportType
 from django.db.models import F
 
@@ -203,7 +204,7 @@ class Query(graphene.ObjectType):
         user = User.objects.get(pk=user_id)
         if user:
             q = (
-                IncidentReport.objects.annotate(day=TruncDay("created_at"))
+                ReportAggregateView.objects.annotate(day=TruncDay("created_at"))
                 .filter(reported_by=user)
                 .values("day")
                 .annotate(total=Count("id"))
