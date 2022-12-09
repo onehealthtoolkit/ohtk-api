@@ -7,6 +7,11 @@ from common.types import AdminValidationProblem
 from observations.models import Definition, MonitoringDefinition
 
 
+class ObservationDefinitionType(DjangoObjectType):
+    class Meta:
+        model = Definition
+
+
 class AdminDefinitionQueryFilterSet(django_filters.FilterSet):
     q = django_filters.CharFilter(method="filter_q")
 
@@ -51,7 +56,7 @@ class AdminObservationDefinitionCreateResult(graphene.Union):
 
 
 class AdminObservationDefinitionUpdateSuccess(graphene.ObjectType):
-    definition = graphene.Field(AdminDefinitionQueryType)
+    definition = graphene.Field(ObservationDefinitionType)
 
 
 class AdminObservationDefinitionUpdateProblem(AdminValidationProblem):

@@ -1,6 +1,6 @@
 from django.db import models
 
-from common.models import BaseModel
+from common.models import BaseModel, BaseModelManager
 
 
 #
@@ -24,6 +24,7 @@ from common.models import BaseModel
 
 
 class Definition(BaseModel):
+    objects = BaseModelManager()
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
@@ -42,7 +43,8 @@ class Subject(BaseModel):
     form_data = models.JSONField()
 
 
-class MonitoringDefinition(BaseModel):
+class c(BaseModel):
+    objects = BaseModelManager()
     definition = models.ForeignKey(Definition, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
