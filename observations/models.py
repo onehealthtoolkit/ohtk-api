@@ -43,7 +43,7 @@ class Subject(BaseModel):
     form_data = models.JSONField()
 
 
-class c(BaseModel):
+class MonitoringDefinition(BaseModel):
     objects = BaseModelManager()
     definition = models.ForeignKey(Definition, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
