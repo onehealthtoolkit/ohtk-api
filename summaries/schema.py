@@ -7,10 +7,11 @@ from django.utils.timezone import now
 from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
 
-from accounts.models import Authority, AuthorityUser
+from accounts.models import Authority, AuthorityUser, User
 from cases.models import Case
 from cases.schema import CaseType
 from reports.models import IncidentReport
+from reports.models.report import ReportAggregateView
 from reports.schema.types import IncidentReportType
 from django.db.models import F
 
@@ -33,6 +34,11 @@ class SummaryByCategoryType(graphene.ObjectType):
     total = graphene.Int(required=True)
 
 
+class SummaryContributionType(graphene.ObjectType):
+    day = graphene.Date(required=True)
+    total = graphene.Int(required=True)
+
+
 class Query(graphene.ObjectType):
     stat_query = graphene.Field(StatType, authority_id=graphene.Int(required=True))
     events_query = graphene.Field(EventType, authority_id=graphene.Int(required=True))
@@ -45,6 +51,13 @@ class Query(graphene.ObjectType):
     summary_case_by_category_query = graphene.List(
         graphene.NonNull(SummaryByCategoryType),
         authority_id=graphene.Int(required=True),
+        from_date=graphene.DateTime(required=False),
+        to_date=graphene.DateTime(required=False),
+    )
+
+    summary_contribution_query = graphene.List(
+        graphene.NonNull(SummaryContributionType),
+        user_id=graphene.Int(required=True),
         from_date=graphene.DateTime(required=False),
         to_date=graphene.DateTime(required=False),
     )
@@ -184,3 +197,26 @@ class Query(graphene.ObjectType):
             return q
         else:
             raise GraphQLError("Permission denied.")
+
+    @staticmethod
+    @login_required
+    def resolve_summary_contribution_query(root, info, user_id, from_date, to_date):
+        user = User.objects.get(pk=user_id)
+        if user:
+            q = (
+                ReportAggregateView.objects.annotate(day=TruncDay("created_at"))
+                .filter(reported_by=user)
+                .values("day")
+                .annotate(total=Count("id"))
+                .order_by("day")
+            )
+            # print(q.query)
+            if from_date:
+                q = q.filter(created_at__gte=from_date)
+
+            if to_date:
+                q = q.filter(created_at__lte=to_date)
+
+            return q
+        else:
+            raise GraphQLError("User not founded.")

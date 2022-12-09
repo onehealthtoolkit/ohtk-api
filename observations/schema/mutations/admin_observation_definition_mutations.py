@@ -28,7 +28,7 @@ class AdminObservationDefinitionCreateMutation(graphene.Mutation):
 
     class Arguments:
         name = graphene.String(required=True)
-        description = graphene.String(required=True)
+        description = graphene.String()
         register_form_definition = graphene.JSONString(required=True)
         title_template = graphene.String(required=True)
         description_template = graphene.String(required=True)
@@ -78,7 +78,7 @@ class AdminObservationDefinitionUpdateMutation(graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True)
         name = graphene.String(required=True)
-        description = graphene.String(required=True)
+        description = graphene.String()
         register_form_definition = graphene.JSONString(required=True)
         title_template = graphene.String(required=True)
         description_template = graphene.String(required=True)
@@ -130,6 +130,11 @@ class AdminObservationDefinitionUpdateMutation(graphene.Mutation):
             )
 
         definition.name = name
+        definition.description = description
+        definition.register_form_definition = register_form_definition
+        definition.title_template = title_template
+        definition.description_template = description_template
+        definition.identity_template = identity_template
 
         definition.save()
 

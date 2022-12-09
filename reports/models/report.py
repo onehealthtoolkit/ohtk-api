@@ -171,3 +171,13 @@ class FollowUpReport(AbstractIncidentReport):
             self.render_data_context()
         )
         super().save(*args, **kwargs)
+
+
+class ReportAggregateView(models.Model):
+    id = models.BigIntegerField(primary_key=True)
+    created_at = models.DateTimeField()
+    reported_by = models.ForeignKey(User, on_delete=models.DO_NOTHING)
+
+    class Meta:
+        managed = False
+        db_table = "reports_aggregate_view"
