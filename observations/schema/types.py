@@ -20,11 +20,22 @@ class AdminDefinitionQueryFilterSet(django_filters.FilterSet):
         )
 
 
+class AdminMonitoringDefinitionType(DjangoObjectType):
+    class Meta:
+        model = MonitoringDefinition
+        fields = ("id", "name", "description", "is_active", "form_definition")
+
+
 class AdminDefinitionQueryType(DjangoObjectType):
+    monitoring_definitions = graphene.List(AdminMonitoringDefinitionType)
+
     class Meta:
         model = Definition
-        fields = ("id", "name", "description", "is_active")
+        fields = ("id", "name", "description", "is_active", "register_form_definition")
         filterset_class = AdminDefinitionQueryFilterSet
+
+    def resolve_monitoring_definitions(self, info):
+        return self.monitoringdefinition_set.all()
 
 
 class AdminMonitoringDefinitionQueryType(DjangoObjectType):
