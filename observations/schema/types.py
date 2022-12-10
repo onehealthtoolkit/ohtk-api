@@ -12,6 +12,11 @@ class ObservationDefinitionType(DjangoObjectType):
         model = Definition
 
 
+class ObservationMonitoringDefinitionDefinitionType(DjangoObjectType):
+    class Meta:
+        model = MonitoringDefinition
+
+
 class AdminDefinitionQueryFilterSet(django_filters.FilterSet):
     q = django_filters.CharFilter(method="filter_q")
 
@@ -89,7 +94,9 @@ class AdminObservationMonitoringDefinitionCreateResult(graphene.Union):
 
 
 class AdminObservationMonitoringDefinitionUpdateSuccess(graphene.ObjectType):
-    monitoring_definition = graphene.Field(AdminMonitoringDefinitionQueryType)
+    monitoring_definition = graphene.Field(
+        ObservationMonitoringDefinitionDefinitionType
+    )
 
 
 class AdminObservationMonitoringDefinitionUpdateProblem(AdminValidationProblem):
