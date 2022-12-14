@@ -11,6 +11,10 @@ from observations.schema.mutations.admin_observation_monitoring_definition_mutat
     AdminObservationMonitoringDefinitionUpdateMutation,
 )
 
+from observations.schema.mutations.submit_observation_subject_mutation import (
+    SubmitObservationSubject,
+)
+
 
 class Mutation(graphene.ObjectType):
     admin_observation_definition_create = (
@@ -32,3 +36,4 @@ class Mutation(graphene.ObjectType):
     admin_observation_monitoring_definition_delete = (
         AdminObservationMonitoringDefinitionDeleteMutation.Field()
     )
+    submit_observation_subject = SubmitObservationSubject.Field()
