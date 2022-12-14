@@ -31,6 +31,7 @@ class ObservationSubjectMonitoringRecordType(DjangoObjectType):
 class ObservationSubjectType(DjangoObjectType):
     form_data = GenericScalar()
     monitoring_records = graphene.List(ObservationSubjectMonitoringRecordType)
+    definition_id = graphene.Int()
 
     class Meta:
         model = Subject
@@ -44,6 +45,7 @@ class ObservationSubjectType(DjangoObjectType):
             "monitoringRecords",
         ]
         filter_fields = {
+            "definition__id": ["in"],
             "created_at": ["lte", "gte"],
         }
 
