@@ -1,6 +1,7 @@
 import graphene
 from graphql_jwt.decorators import login_required
 from observations.models import Definition, MonitoringDefinition
+from observations.schema.types import ObservationSubjectType
 from graphql import GraphQLError
 
 from observations.schema.types import (
@@ -27,6 +28,8 @@ class Query(graphene.ObjectType):
     admin_observation_monitoring_definition_query = graphene.List(
         AdminMonitoringDefinitionQueryType, definition_id=graphene.ID(required=True)
     )
+
+    observation_subjects = DjangoPaginationConnectionField(ObservationSubjectType)
 
     @staticmethod
     @login_required

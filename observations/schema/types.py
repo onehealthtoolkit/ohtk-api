@@ -2,9 +2,15 @@ import graphene
 import django_filters
 from django.db.models import Q
 from graphene_django import DjangoObjectType
+from graphene.types.generic import GenericScalar
 from common.types import AdminValidationProblem
 
-from observations.models import Definition, MonitoringDefinition
+from observations.models import (
+    Definition,
+    MonitoringDefinition,
+    Subject,
+    SubjectMonitoringRecord,
+)
 
 
 class ObservationDefinitionType(DjangoObjectType):
@@ -15,6 +21,34 @@ class ObservationDefinitionType(DjangoObjectType):
 class ObservationMonitoringDefinitionDefinitionType(DjangoObjectType):
     class Meta:
         model = MonitoringDefinition
+
+
+class ObservationSubjectMonitoringRecordType(DjangoObjectType):
+    class Meta:
+        model = SubjectMonitoringRecord
+
+
+class ObservationSubjectType(DjangoObjectType):
+    form_data = GenericScalar()
+    monitoring_records = graphene.List(ObservationSubjectMonitoringRecordType)
+
+    class Meta:
+        model = Subject
+        fields = [
+            "id",
+            "title",
+            "description",
+            "identity",
+            "form_data",
+            "is_active",
+            "monitoringRecords",
+        ]
+        filter_fields = {
+            "created_at": ["lte", "gte"],
+        }
+
+    def resolve_monitoring_records(self, info):
+        return SubjectMonitoringRecord.objects.filter(subject=self)
 
 
 class AdminDefinitionQueryFilterSet(django_filters.FilterSet):
