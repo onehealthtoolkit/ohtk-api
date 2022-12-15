@@ -62,6 +62,7 @@ SHARED_APPS = (
     "threads",
     "easy_thumbnails",
     "outbreaks",
+    "observations",
 )
 
 TENANT_APPS = (
@@ -76,6 +77,7 @@ TENANT_APPS = (
     "threads",
     "easy_thumbnails",
     "outbreaks",
+    "observations",
 )
 
 INSTALLED_APPS = list(SHARED_APPS) + [
