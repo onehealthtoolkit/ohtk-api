@@ -89,6 +89,23 @@ class MonitoringDefinition(BaseModel):
     title_template = models.TextField()
     description_template = models.TextField()
 
+    def render_title(self, data):
+        template = self.title_template
+        return Definition.render_template(template, data)
+
+    def render_description(self, data):
+        template = self.description_template
+        return Definition.render_template(template, data)
+
+    @staticmethod
+    def render_template(template, data):
+        if template:
+            t = Template(template)
+            c = Context(data)
+            return striptags(t.render(c))
+        else:
+            return ""
+
 
 class SubjectMonitoringRecord(BaseModel):
     monitoring_definition = models.ForeignKey(
@@ -99,3 +116,15 @@ class SubjectMonitoringRecord(BaseModel):
     description = models.TextField()
     is_active = models.BooleanField(default=True)
     form_data = models.JSONField()
+
+    def render_data_context(self):
+        return {
+            "data": self.form_data,
+        }
+
+    def save(self, *args, **kwargs):
+        self.title = self.monitoring_definition.render_title(self.render_data_context())
+        self.description = self.monitoring_definition.render_description(
+            self.render_data_context()
+        )
+        super().save(*args, **kwargs)

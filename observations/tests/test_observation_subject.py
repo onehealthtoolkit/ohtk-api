@@ -26,7 +26,6 @@ class ObservationSubjectTests(JSONWebTokenTestCase):
         self.assertEqual("description treeoak", subject.description)
 
     def test_mutation_submit_observation_subject(self):
-        self.client.authenticate(self.user)
         mutation = """
             mutation submitObservationSubject($data: GenericScalar!, $definitionId: Int!) {
                 submitObservationSubject(data: $data, definitionId: $definitionId) {
