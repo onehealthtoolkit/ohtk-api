@@ -22,10 +22,17 @@ class ObservationMonitoringDefinitionDefinitionType(DjangoObjectType):
     class Meta:
         model = MonitoringDefinition
 
-
 class ObservationSubjectMonitoringRecordType(DjangoObjectType):
+    form_data = GenericScalar()
+    monitoring_definition_id = graphene.Int()
+    subject_id = graphene.Int()
+    
     class Meta:
         model = SubjectMonitoringRecord
+        filter_fields = {
+            "subject__id": ["in"],
+            "created_at": ["lte", "gte"],
+        }
 
 
 class ObservationSubjectType(DjangoObjectType):

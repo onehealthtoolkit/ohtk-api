@@ -1,7 +1,11 @@
 import graphene
 from graphql_jwt.decorators import login_required
-from observations.models import Definition, MonitoringDefinition, Subject
-from observations.schema.types import ObservationSubjectType
+from observations.models import (
+    Definition,
+    MonitoringDefinition,
+    Subject,
+    SubjectMonitoringRecord,
+)
 from graphql import GraphQLError
 
 from observations.schema.types import (
@@ -9,6 +13,8 @@ from observations.schema.types import (
     AdminMonitoringDefinitionQueryType,
     ObservationDefinitionType,
     ObservationMonitoringDefinitionDefinitionType,
+    ObservationSubjectType,
+    ObservationSubjectMonitoringRecordType,
 )
 from pagination import DjangoPaginationConnectionField
 
@@ -32,6 +38,13 @@ class Query(graphene.ObjectType):
     observation_subjects = DjangoPaginationConnectionField(ObservationSubjectType)
     observation_subject = graphene.Field(
         ObservationSubjectType, id=graphene.ID(required=True)
+    )
+
+    observation_subject_monitoring_records = DjangoPaginationConnectionField(
+        ObservationSubjectMonitoringRecordType
+    )
+    observation_subject_monitoring_record = graphene.Field(
+        ObservationSubjectMonitoringRecordType, id=graphene.ID(required=True)
     )
 
     @staticmethod
@@ -62,3 +75,9 @@ class Query(graphene.ObjectType):
     def resolve_observation_subject(root, info, id):
         user = info.context.user
         return Subject.objects.get(id=id)
+
+    @staticmethod
+    @login_required
+    def resolve_observation_subject_monitoring_record(root, info, id):
+        user = info.context.user
+        return SubjectMonitoringRecord.objects.get(id=id)
