@@ -14,6 +14,8 @@ from observations.models import (
 
 
 class ObservationDefinitionType(DjangoObjectType):
+    register_form_definition = GenericScalar()
+
     class Meta:
         model = Definition
 
@@ -22,11 +24,12 @@ class ObservationMonitoringDefinitionDefinitionType(DjangoObjectType):
     class Meta:
         model = MonitoringDefinition
 
+
 class ObservationSubjectMonitoringRecordType(DjangoObjectType):
     form_data = GenericScalar()
     monitoring_definition_id = graphene.Int()
     subject_id = graphene.Int()
-    
+
     class Meta:
         model = SubjectMonitoringRecord
         filter_fields = {
@@ -39,6 +42,7 @@ class ObservationSubjectType(DjangoObjectType):
     form_data = GenericScalar()
     monitoring_records = graphene.List(ObservationSubjectMonitoringRecordType)
     definition_id = graphene.Int()
+    definition = graphene.Field(ObservationDefinitionType)
 
     class Meta:
         model = Subject
@@ -50,9 +54,11 @@ class ObservationSubjectType(DjangoObjectType):
             "form_data",
             "is_active",
             "monitoringRecords",
+            "created_at",
+            "definition",
         ]
         filter_fields = {
-            "definition__id": ["in"],
+            "definition__id": ["in", "exact"],
             "created_at": ["lte", "gte"],
         }
 
