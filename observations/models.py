@@ -1,4 +1,4 @@
-from django.db import models
+from django.contrib.gis.db import models
 from django.template import Template, Context
 from django.template.defaultfilters import striptags
 
@@ -59,24 +59,41 @@ class Definition(BaseModel):
 
 class Subject(BaseModel):
     definition = models.ForeignKey(Definition, on_delete=models.CASCADE)
+    gps_location = models.PointField(null=True, blank=True)
     title = models.CharField(max_length=255)
     description = models.TextField()
     identity = models.CharField(max_length=40)
     is_active = models.BooleanField(default=True)
     form_data = models.JSONField()
 
+    @property
+    def gps_location_str(self):
+        if self.gps_location:
+            x = self.gps_location.x
+            y = self.gps_location.y
+            return f"{x:.5f},{y:.5f}"
+        else:
+            return ""
+
     def render_data_context(self):
         return {
             "data": self.form_data,
+            "report_id": self.id,
+            "definition_name": self.definition.name,
+            "report_date": self.created_at,
+            "report_date_str": self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "report_date_no_time_str": self.created_at.strftime("%Y-%m-%d"),
+            "gps_location": self.gps_location_str,
         }
 
     def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
         self.title = self.definition.render_title(self.render_data_context())
         self.description = self.definition.render_description(
             self.render_data_context()
         )
         self.identity = self.definition.render_identity(self.render_data_context())
-        super().save(*args, **kwargs)
+        super().save(update_fields=["title", "description", "identity"])
 
 
 class MonitoringDefinition(BaseModel):

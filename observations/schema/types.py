@@ -21,6 +21,8 @@ class ObservationDefinitionType(DjangoObjectType):
 
 
 class ObservationMonitoringDefinitionDefinitionType(DjangoObjectType):
+    form_definition = GenericScalar()
+
     class Meta:
         model = MonitoringDefinition
 
