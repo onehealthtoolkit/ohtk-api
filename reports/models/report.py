@@ -174,10 +174,15 @@ class FollowUpReport(AbstractIncidentReport):
 
 
 class ReportAggregateView(models.Model):
-    id = models.BigIntegerField(primary_key=True)
+    report_id = models.BigIntegerField()
     created_at = models.DateTimeField()
     reported_by = models.ForeignKey(User, on_delete=models.DO_NOTHING)
 
     class Meta:
         managed = False
         db_table = "reports_aggregate_view"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["created_at", "reported_by", "report_id"], name="unique_report"
+            )
+        ]

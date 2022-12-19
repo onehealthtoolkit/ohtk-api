@@ -48,26 +48,28 @@ def evaluate_outbreak_plan(case_id, to_step_id):
                         body=body,
                     )
                 # create Message
-                message = None
+                outbreak_message = None
                 if notification_message:
-                    message = Message.create_outbreak_message(
+                    outbreak_message = Message.create_outbreak_message(
                         case, plan, zone_number, notification_message
                     )
 
                 # find place that match the radius
-                query = CommonPlace.objects.filter(
+                places = CommonPlace.objects.filter(
                     location__distance_lt=(center, distance)
                 )
                 if previous_distance:
-                    query = query.filter(
+                    places = places.filter(
                         location__distance_gte=(center, previous_distance)
                     )
 
-                for place in query.all():
+                for place in places.all():
                     # for each place, create outbreak.models.Place
-                    Place.create_outbreak_place(case, plan, place, zone_number, color)
-                    if place.notification_to and message:
-                        message.send_to(place.notification_to)
+                    outbreak_place = Place.create_outbreak_place(
+                        case, plan, place, zone_number, color
+                    )
+                    if place.notification_to and outbreak_message:
+                        outbreak_message.message.send(place.notification_to)
 
             previous_distance = distance
 
