@@ -37,6 +37,7 @@ class SubmitObservationSubject(graphene.Mutation):
             definition=definition,
             form_data=data,
             gps_location=location,
+            reported_by=user,
         )
 
         return SubmitObservationSubject(result=subject)

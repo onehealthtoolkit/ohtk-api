@@ -32,6 +32,7 @@ class SubmitObservationSubjectMonitoringRecord(graphene.Mutation):
             monitoring_definition=definition,
             subject=subject,
             form_data=data,
+            reported_by=user,
         )
 
         return SubmitObservationSubjectMonitoringRecord(result=monitoringRecord)

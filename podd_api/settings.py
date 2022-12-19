@@ -268,6 +268,9 @@ THUMBNAIL_ALIASES = {
     "threads.CommentAttachment.file": {
         "thumbnail": {"size": (200, 200), "crop": "smart"},
     },
+    "observations.ObservationImage.file": {
+        "thumbnail": {"size": (200, 0), "crop": "smart"},
+    },
 }
 
 SENDER_EMAIL_DOMAIN = "opensur.test"

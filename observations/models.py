@@ -1,7 +1,13 @@
+import uuid
+
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
 from django.template import Template, Context
 from django.template.defaultfilters import striptags
+from easy_thumbnails.fields import ThumbnailerImageField
 
+from accounts.models import User, Authority
 from common.models import BaseModel, BaseModelManager
 
 
@@ -57,14 +63,64 @@ class Definition(BaseModel):
             return ""
 
 
-class Subject(BaseModel):
+class BaseReport(BaseModel):
+    class Meta:
+        abstract = True
+
+    objects = BaseModelManager()
+
+    reported_by = models.ForeignKey(
+        User,
+        blank=True,
+        null=True,
+        related_name="%(class)s",
+        on_delete=models.PROTECT,
+    )
+
+
+class ObservationImage(BaseModel):
+    objects = BaseModelManager()
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    file = ThumbnailerImageField(upload_to="observations")
+    report_type = models.ForeignKey(
+        ContentType,
+        limit_choices_to={
+            "model__in": [c.__name__ for c in BaseReport.__subclasses__()]
+        },
+        on_delete=models.CASCADE,
+    )
+    report_id = models.BigIntegerField()
+    report = GenericForeignKey("report_type", "report_id")
+
+    def generate_thumbnails(self):
+        if hasattr(self.file, "generate_all_thumbnails"):
+            self.file.generate_all_thumbnails()
+
+
+class AbstractObservationReport(BaseReport):
+    class Meta:
+        abstract = True
+
+    form_data = models.JSONField()
+    images = GenericRelation(
+        ObservationImage,
+        content_type_field="report_type",
+        object_id_field="report_id",
+    )
+    cover_image = models.ForeignKey(
+        ObservationImage, blank=True, null=True, on_delete=models.SET_NULL
+    )
+    is_active = models.BooleanField(default=True)
+    form_data = models.JSONField()
+
+
+class Subject(AbstractObservationReport):
     definition = models.ForeignKey(Definition, on_delete=models.CASCADE)
     gps_location = models.PointField(null=True, blank=True)
     title = models.CharField(max_length=255)
     description = models.TextField()
     identity = models.CharField(max_length=40)
-    is_active = models.BooleanField(default=True)
-    form_data = models.JSONField()
 
     @property
     def gps_location_str(self):
@@ -124,15 +180,13 @@ class MonitoringDefinition(BaseModel):
             return ""
 
 
-class SubjectMonitoringRecord(BaseModel):
+class SubjectMonitoringRecord(AbstractObservationReport):
     monitoring_definition = models.ForeignKey(
         MonitoringDefinition, on_delete=models.CASCADE
     )
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     title = models.TextField()
     description = models.TextField()
-    is_active = models.BooleanField(default=True)
-    form_data = models.JSONField()
 
     def render_data_context(self):
         return {
