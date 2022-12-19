@@ -70,6 +70,12 @@ class ObservationSubjectType(DjangoObjectType):
     def resolve_monitoring_records(self, info):
         return SubjectMonitoringRecord.objects.filter(subject=self)
 
+    def resolve_gps_location(self, info):
+        if self.gps_location:
+            return f"{self.gps_location.x},{self.gps_location.y}"
+        else:
+            return ""
+
 
 class AdminDefinitionQueryFilterSet(django_filters.FilterSet):
     q = django_filters.CharFilter(method="filter_q")
