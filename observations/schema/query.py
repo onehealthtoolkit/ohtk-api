@@ -12,7 +12,7 @@ from observations.schema.types import (
     AdminDefinitionQueryType,
     AdminMonitoringDefinitionQueryType,
     ObservationDefinitionType,
-    ObservationMonitoringDefinitionDefinitionType,
+    ObservationMonitoringDefinitionType,
     ObservationSubjectType,
     ObservationSubjectMonitoringRecordType,
 )
@@ -25,7 +25,7 @@ class Query(graphene.ObjectType):
     )
 
     observation_monitoring_definition_get = graphene.Field(
-        ObservationMonitoringDefinitionDefinitionType, id=graphene.ID(required=True)
+        ObservationMonitoringDefinitionType, id=graphene.ID(required=True)
     )
 
     admin_observation_definition_query = DjangoPaginationConnectionField(

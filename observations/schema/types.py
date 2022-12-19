@@ -20,7 +20,7 @@ class ObservationDefinitionType(DjangoObjectType):
         model = Definition
 
 
-class ObservationMonitoringDefinitionDefinitionType(DjangoObjectType):
+class ObservationMonitoringDefinitionType(DjangoObjectType):
     form_definition = GenericScalar()
 
     class Meta:
@@ -31,6 +31,7 @@ class ObservationSubjectMonitoringRecordType(DjangoObjectType):
     form_data = GenericScalar()
     monitoring_definition_id = graphene.Int()
     subject_id = graphene.Int()
+    monitoring_definition = graphene.Field(ObservationMonitoringDefinitionType)
 
     class Meta:
         model = SubjectMonitoringRecord
@@ -45,6 +46,7 @@ class ObservationSubjectType(DjangoObjectType):
     monitoring_records = graphene.List(ObservationSubjectMonitoringRecordType)
     definition_id = graphene.Int()
     definition = graphene.Field(ObservationDefinitionType)
+    gps_location = graphene.String()
 
     class Meta:
         model = Subject
@@ -58,6 +60,7 @@ class ObservationSubjectType(DjangoObjectType):
             "monitoringRecords",
             "created_at",
             "definition",
+            "gps_location",
         ]
         filter_fields = {
             "definition__id": ["in", "exact"],
@@ -156,9 +159,7 @@ class AdminObservationMonitoringDefinitionCreateResult(graphene.Union):
 
 
 class AdminObservationMonitoringDefinitionUpdateSuccess(graphene.ObjectType):
-    monitoring_definition = graphene.Field(
-        ObservationMonitoringDefinitionDefinitionType
-    )
+    monitoring_definition = graphene.Field(ObservationMonitoringDefinitionType)
 
 
 class AdminObservationMonitoringDefinitionUpdateProblem(AdminValidationProblem):
