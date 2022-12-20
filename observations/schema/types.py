@@ -56,6 +56,7 @@ class ObservationSubjectMonitoringRecordType(DjangoObjectType):
         model = SubjectMonitoringRecord
         fields = [
             "id",
+            "subject",
             "title",
             "description",
             "form_data",
