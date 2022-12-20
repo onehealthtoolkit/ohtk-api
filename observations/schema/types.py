@@ -30,7 +30,7 @@ class ObservationMonitoringDefinitionType(DjangoObjectType):
         model = MonitoringDefinition
 
 
-class ImageType(DjangoObjectType):
+class ObservationImageType(DjangoObjectType):
     thumbnail = graphene.String()
     image_url = graphene.String()
 
@@ -49,7 +49,7 @@ class ObservationSubjectMonitoringRecordType(DjangoObjectType):
     monitoring_definition_id = graphene.Int()
     subject_id = graphene.Int()
     monitoring_definition = graphene.Field(ObservationMonitoringDefinitionType)
-    images = graphene.List(ImageType)
+    images = graphene.List(ObservationImageType)
     reported_by = graphene.Field(UserType)
 
     class Meta:
@@ -80,7 +80,7 @@ class ObservationSubjectType(DjangoObjectType):
     definition_id = graphene.Int()
     definition = graphene.Field(ObservationDefinitionType)
     gps_location = graphene.String()
-    images = graphene.List(ImageType)
+    images = graphene.List(ObservationImageType)
     reported_by = graphene.Field(UserType)
 
     class Meta:
