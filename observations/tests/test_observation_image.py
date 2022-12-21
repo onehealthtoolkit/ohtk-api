@@ -60,8 +60,16 @@ class ObservationImageTestCase(BaseTestCase):
     def test_mutation(self):
         self.client.authenticate(self.user)
         query = """
-            mutation submitObservationImage($reportId: ID!, $image: Upload!) {
-                submitObservationImage(reportId: $reportId, image: $image) {
+            mutation submitObservationImage(
+                $reportId: ID!, 
+                $observationType: ObservationSubmitImageType!,
+                $image: Upload!
+            ) {
+                submitObservationImage(
+                    reportId: $reportId, 
+                    observationType: $observationType,
+                    image: $image
+                ) {
                     id
                     file
                 }
@@ -72,6 +80,7 @@ class ObservationImageTestCase(BaseTestCase):
             {
                 "reportId": str(self.report.id),
                 "image": self.file,
+                "observationType": "subject",
             },
         )
         # self.assertIsNone(result.errors, msg=result.errors)
@@ -83,9 +92,11 @@ class ObservationImageTestCase(BaseTestCase):
         image_id = uuid.uuid4()
         query = """
             mutation submitObservationImage($reportId: ID!, 
+                                $observationType: ObservationSubmitImageType!,
                                 $image: Upload!,
                                 $imageId: UUID) {
                 submitObservationImage(reportId: $reportId, 
+                            observationType: $observationType,
                             image: $image,
                             imageId: $imageId) {
                     id
@@ -99,6 +110,7 @@ class ObservationImageTestCase(BaseTestCase):
                 "reportId": str(self.report.id),
                 "image": self.file,
                 "imageId": str(image_id),
+                "observationType": "subject",
             },
         )
         self.assertIsNone(result.errors, msg=result.errors)

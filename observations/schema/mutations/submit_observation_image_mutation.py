@@ -6,8 +6,14 @@ from graphql_jwt.decorators import login_required
 from observations.models import ObservationImage, Subject, SubjectMonitoringRecord
 
 
+class ObservationSubmitImageType(graphene.Enum):
+    subject = 1
+    monitoring = 2
+
+
 class SubmitObservationImage(graphene.Mutation):
     class Arguments:
+        observation_type = ObservationSubmitImageType(required=True)
         report_id = graphene.ID(required=True)
         image = Upload(
             required=True,
@@ -22,11 +28,13 @@ class SubmitObservationImage(graphene.Mutation):
 
     @staticmethod
     @login_required
-    def mutate(root, info, report_id, image, is_cover, image_id):
-        try:
+    def mutate(root, info, observation_type, report_id, image, is_cover, image_id):
+        if observation_type == ObservationSubmitImageType.subject:
             report = Subject.objects.get(pk=report_id)
-        except Subject.DoesNotExist:
+        elif observation_type == ObservationSubmitImageType.monitoring:
             report = SubjectMonitoringRecord.objects.get(pk=report_id)
+        else:
+            raise ValueError("Not found")
 
         image = ObservationImage.objects.create(
             report=report,
