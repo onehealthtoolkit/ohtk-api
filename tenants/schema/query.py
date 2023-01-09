@@ -1,5 +1,4 @@
 import graphene
-from graphql import GraphQLError
 from graphql_jwt.decorators import superuser_required
 
 from pagination import DjangoPaginationConnectionField

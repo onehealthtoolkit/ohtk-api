@@ -1,6 +1,8 @@
 import graphene
+from django_tenants.utils import tenant_context
 from graphql_jwt.decorators import superuser_required
 
+from accounts.models import User
 from common.utils import is_not_empty
 from tenants.models import Client, Domain
 from tenants.schema.types import (
@@ -43,6 +45,9 @@ class AdminClientCreateMutation(graphene.Mutation):
             name=name,
             schema_name=schema_name,
         )
+
+        with tenant_context(client):
+            User.objects.create_superuser("admin", password="changeme")
 
         return AdminClientCreateMutation(result=client)
 
