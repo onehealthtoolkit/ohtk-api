@@ -1,5 +1,7 @@
 import graphene
 import graphql_jwt
+from tenants.schema import Query as TenantsQuery
+from tenants.schema import Mutation as TenantsMutation
 from accounts.schema import Query as AccountsQuery
 from accounts.schema import Mutation as AccountsMutation
 from threads.schema import Query as ThreadQuery
@@ -18,6 +20,7 @@ from observations.schema import Mutation as ObservationsMutation
 
 
 class Query(
+    TenantsQuery,
     AccountsQuery,
     ReportsQuery,
     CasesQuery,
@@ -32,6 +35,7 @@ class Query(
 
 
 class Mutation(
+    TenantsMutation,
     AccountsMutation,
     ReportsMutation,
     CasesMutation,
