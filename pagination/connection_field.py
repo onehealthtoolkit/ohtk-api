@@ -65,7 +65,7 @@ class DjangoPaginationConnectionField(DjangoFilterConnectionField):
 
         _len = len(iterable)
 
-        ordering = arguments.get("ordering") or "-created_at"
+        ordering = arguments.get("ordering")
 
         if ordering:
             iterable = connection_from_list_ordering(iterable, ordering)

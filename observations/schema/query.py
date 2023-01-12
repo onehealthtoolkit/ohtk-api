@@ -36,7 +36,9 @@ class Query(graphene.ObjectType):
         AdminMonitoringDefinitionQueryType, definition_id=graphene.ID(required=True)
     )
 
-    observation_subjects = DjangoPaginationConnectionField(ObservationSubjectType)
+    observation_subjects = DjangoPaginationConnectionField(
+        ObservationSubjectType, order_by="-created_at"
+    )
     observation_subject = graphene.Field(
         ObservationSubjectType, id=graphene.ID(required=True)
     )
