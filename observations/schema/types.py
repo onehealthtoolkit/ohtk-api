@@ -47,7 +47,7 @@ class ObservationImageType(DjangoObjectType):
 class ObservationSubjectMonitoringRecordType(DjangoObjectType):
     form_data = GenericScalar()
     monitoring_definition_id = graphene.Int()
-    subject_id = graphene.Int()
+    subject_id = graphene.UUID()
     monitoring_definition = graphene.Field(ObservationMonitoringDefinitionType)
     images = graphene.List(ObservationImageType)
     reported_by = graphene.Field(UserType)
