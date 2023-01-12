@@ -3,7 +3,7 @@ from django.contrib.gis.geos import Point
 from graphene.types.generic import GenericScalar
 from graphql_jwt.decorators import login_required
 
-from observations.models import Definition, Subject
+from observations.models import Definition, SubjectRecord
 from observations.schema.types import ObservationSubjectType
 
 
@@ -33,7 +33,7 @@ class SubmitObservationSubject(graphene.Mutation):
             [longitude, latitude] = gps_location.split(",")
             location = Point(float(longitude), float(latitude))
 
-        subject = Subject.objects.create(
+        subject = SubjectRecord.objects.create(
             definition=definition,
             form_data=data,
             gps_location=location,

@@ -10,9 +10,9 @@ from common.types import AdminValidationProblem
 from observations.models import (
     Definition,
     MonitoringDefinition,
-    ObservationImage,
-    Subject,
-    SubjectMonitoringRecord,
+    RecordImage,
+    SubjectRecord,
+    MonitoringRecord,
 )
 
 
@@ -35,7 +35,7 @@ class ObservationImageType(DjangoObjectType):
     image_url = graphene.String()
 
     class Meta:
-        model = ObservationImage
+        model = RecordImage
 
     def resolve_thumbnail(self, info):
         return get_thumbnailer(self.file)["thumbnail"].url
@@ -53,7 +53,7 @@ class ObservationSubjectMonitoringRecordType(DjangoObjectType):
     reported_by = graphene.Field(UserType)
 
     class Meta:
-        model = SubjectMonitoringRecord
+        model = MonitoringRecord
         fields = [
             "id",
             "subject",
@@ -85,7 +85,7 @@ class ObservationSubjectType(DjangoObjectType):
     reported_by = graphene.Field(UserType)
 
     class Meta:
-        model = Subject
+        model = SubjectRecord
         fields = [
             "id",
             "title",
@@ -93,7 +93,6 @@ class ObservationSubjectType(DjangoObjectType):
             "identity",
             "form_data",
             "is_active",
-            "monitoringRecords",
             "created_at",
             "definition",
             "gps_location",
@@ -106,7 +105,7 @@ class ObservationSubjectType(DjangoObjectType):
         }
 
     def resolve_monitoring_records(self, info):
-        return SubjectMonitoringRecord.objects.filter(subject=self)
+        return MonitoringRecord.objects.filter(subject=self)
 
     def resolve_gps_location(self, info):
         if self.gps_location:

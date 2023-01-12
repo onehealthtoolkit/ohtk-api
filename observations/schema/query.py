@@ -4,8 +4,8 @@ from graphql_jwt.decorators import login_required
 from observations.models import (
     Definition,
     MonitoringDefinition,
-    Subject,
-    SubjectMonitoringRecord,
+    SubjectRecord,
+    MonitoringRecord,
 )
 from graphql import GraphQLError
 
@@ -84,13 +84,13 @@ class Query(graphene.ObjectType):
     @login_required
     def resolve_observation_subject(root, info, id):
         user = info.context.user
-        return Subject.objects.get(id=id)
+        return SubjectRecord.objects.get(id=id)
 
     @staticmethod
     @login_required
     def resolve_observation_subject_monitoring_record(root, info, id):
         user = info.context.user
-        return SubjectMonitoringRecord.objects.get(id=id)
+        return MonitoringRecord.objects.get(id=id)
 
     @staticmethod
     @login_required
@@ -107,7 +107,7 @@ class Query(graphene.ObjectType):
         geom = Polygon.from_bbox(
             (top_left_x, top_left_y, bottom_right_x, bottom_right_y)
         )
-        return Subject.objects.filter(
+        return SubjectRecord.objects.filter(
             definition_id=definition_id,
             gps_location__within=geom,
         )

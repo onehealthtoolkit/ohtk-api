@@ -1,11 +1,10 @@
 import uuid
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.utils.timezone import now
 from graphql_jwt.testcases import JSONWebTokenClient
 
 from accounts.models import User
-from observations.models import Definition, ObservationImage, Subject
+from observations.models import Definition, RecordImage, SubjectRecord
 from reports.tests.base_testcase import BaseTestCase
 
 
@@ -24,7 +23,7 @@ class ObservationImageTestCase(BaseTestCase):
             identity_template="identity template",
         )
         self.user = User.objects.create(username="admintest", is_superuser=True)
-        self.report = Subject.objects.create(
+        self.subject = SubjectRecord.objects.create(
             form_data={
                 "common": "oak tree",
                 "state": 1,
@@ -42,32 +41,32 @@ class ObservationImageTestCase(BaseTestCase):
         )
 
     def test_report_image(self):
-        img = ObservationImage.objects.create(file=self.file, report=self.report)
-        self.assertEqual(img.report_id, self.report.id)
+        img = RecordImage.objects.create(file=self.file, record=self.subject)
+        self.assertEqual(img.record_id, self.subject.id)
 
     def test_access_image_from_report_instance(self):
-        img1 = ObservationImage.objects.create(file=self.file, report=self.report)
-        img2 = ObservationImage.objects.create(file=self.file, report=self.report)
-        query_report = Subject.objects.get(pk=self.report.id)
+        img1 = RecordImage.objects.create(file=self.file, record=self.subject)
+        img2 = RecordImage.objects.create(file=self.file, record=self.subject)
+        query_report = SubjectRecord.objects.get(pk=self.subject.id)
         self.assertEqual(2, len(query_report.images.all()))
 
-    def test_query_images_by_report_id(self):
-        img1 = ObservationImage.objects.create(file=self.file, report=self.report)
-        img2 = ObservationImage.objects.create(file=self.file, report=self.report)
-        imgs = ObservationImage.objects.filter(report_id=self.report.id)
+    def test_query_images_by_record_id(self):
+        img1 = RecordImage.objects.create(file=self.file, record=self.subject)
+        img2 = RecordImage.objects.create(file=self.file, record=self.subject)
+        imgs = RecordImage.objects.filter(record_id=self.subject.id)
         self.assertEqual(2, len(imgs))
 
     def test_mutation(self):
         self.client.authenticate(self.user)
         query = """
             mutation submitObservationImage(
-                $reportId: ID!, 
-                $observationType: ObservationSubmitImageType!,
+                $recordId: UUID!, 
+                $recordType: RecordType!,
                 $image: Upload!
             ) {
-                submitObservationImage(
-                    reportId: $reportId, 
-                    observationType: $observationType,
+                submitRecordImage(
+                    recordId: $recordId, 
+                    recordType: $recordType,
                     image: $image
                 ) {
                     id
@@ -78,25 +77,25 @@ class ObservationImageTestCase(BaseTestCase):
         result = self.client.execute(
             query,
             {
-                "reportId": str(self.report.id),
+                "recordId": str(self.subject.id),
                 "image": self.file,
-                "observationType": "subject",
+                "recordType": "subject",
             },
         )
         # self.assertIsNone(result.errors, msg=result.errors)
-        imgs = ObservationImage.objects.filter(report_id=self.report.id)
+        imgs = RecordImage.objects.filter(record_id=self.subject.id)
         self.assertEqual(1, len(imgs))
 
     def test_mutation_with_client_assigned_id(self):
         self.client.authenticate(self.user)
         image_id = uuid.uuid4()
         query = """
-            mutation submitObservationImage($reportId: ID!, 
-                                $observationType: ObservationSubmitImageType!,
+            mutation submitRecordImage($recordId: UUID!, 
+                                $recordType: RecordType!,
                                 $image: Upload!,
                                 $imageId: UUID) {
-                submitObservationImage(reportId: $reportId, 
-                            observationType: $observationType,
+                submitRecordImage(recordId: $recordId, 
+                            recordType: $recordType,
                             image: $image,
                             imageId: $imageId) {
                     id
@@ -107,13 +106,14 @@ class ObservationImageTestCase(BaseTestCase):
         result = self.client.execute(
             query,
             {
-                "reportId": str(self.report.id),
+                "recordId": str(self.subject.id),
                 "image": self.file,
                 "imageId": str(image_id),
-                "observationType": "subject",
+                "recordType": "subject",
             },
         )
+        print(result)
         self.assertIsNone(result.errors, msg=result.errors)
-        imgs = ObservationImage.objects.filter(report_id=self.report.id)
+        imgs = RecordImage.objects.filter(record_id=self.subject.id)
         self.assertEqual(1, len(imgs))
         self.assertEqual(str(image_id), str(imgs[0].id))

@@ -7,7 +7,7 @@ from django.template import Template, Context
 from django.template.defaultfilters import striptags
 from easy_thumbnails.fields import ThumbnailerImageField
 
-from accounts.models import User, Authority
+from accounts.models import User
 from common.models import BaseModel, BaseModelManager
 
 
@@ -15,7 +15,7 @@ from common.models import BaseModel, BaseModelManager
 # ┌─────────────────────────┐             ┌─────────────────────────┐
 # │                         │             │                         │
 # │       Observation       │            ╱│       Observation       │
-# │       Definition        │┼────────────│         Subject         │
+# │       Definition        │┼────────────│         Subject Record  │
 # │                         │            ╲│                         │
 # └─────────────────────────┘             └─────────────────────────┘
 #              │                                       │
@@ -63,11 +63,25 @@ class Definition(BaseModel):
             return ""
 
 
-class BaseReport(BaseModel):
+class AbstractRecord(BaseModel):
+    objects = BaseModelManager()
+
     class Meta:
         abstract = True
 
-    objects = BaseModelManager()
+    images = GenericRelation(
+        "observations.RecordImage",
+        content_type_field="record_type",
+        object_id_field="record_id",
+    )
+    cover_image = models.ForeignKey(
+        "observations.RecordImage",
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+    )
+    is_active = models.BooleanField(default=True)
+    form_data = models.JSONField()
 
     reported_by = models.ForeignKey(
         User,
@@ -78,44 +92,28 @@ class BaseReport(BaseModel):
     )
 
 
-class ObservationImage(BaseModel):
+class RecordImage(BaseModel):
     objects = BaseModelManager()
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     file = ThumbnailerImageField(upload_to="observations")
-    report_type = models.ForeignKey(
+    record_type = models.ForeignKey(
         ContentType,
         limit_choices_to={
-            "model__in": [c.__name__ for c in BaseReport.__subclasses__()]
+            "model__in": [c.__name__ for c in AbstractRecord.__subclasses__()]
         },
         on_delete=models.CASCADE,
     )
-    report_id = models.BigIntegerField()
-    report = GenericForeignKey("report_type", "report_id")
+    record_id = models.UUIDField()
+    record = GenericForeignKey("record_type", "record_id")
 
     def generate_thumbnails(self):
         if hasattr(self.file, "generate_all_thumbnails"):
             self.file.generate_all_thumbnails()
 
 
-class AbstractObservationReport(BaseReport):
-    class Meta:
-        abstract = True
-
-    form_data = models.JSONField()
-    images = GenericRelation(
-        ObservationImage,
-        content_type_field="report_type",
-        object_id_field="report_id",
-    )
-    cover_image = models.ForeignKey(
-        ObservationImage, blank=True, null=True, on_delete=models.SET_NULL
-    )
-    is_active = models.BooleanField(default=True)
-    form_data = models.JSONField()
-
-
-class Subject(AbstractObservationReport):
+class SubjectRecord(AbstractRecord):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     definition = models.ForeignKey(Definition, on_delete=models.CASCADE)
     gps_location = models.PointField(null=True, blank=True)
     title = models.CharField(max_length=255)
@@ -180,11 +178,12 @@ class MonitoringDefinition(BaseModel):
             return ""
 
 
-class SubjectMonitoringRecord(AbstractObservationReport):
+class MonitoringRecord(AbstractRecord):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     monitoring_definition = models.ForeignKey(
         MonitoringDefinition, on_delete=models.CASCADE
     )
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    subject = models.ForeignKey(SubjectRecord, on_delete=models.CASCADE)
     title = models.TextField()
     description = models.TextField()
 

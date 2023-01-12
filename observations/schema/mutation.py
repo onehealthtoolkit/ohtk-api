@@ -11,7 +11,7 @@ from observations.schema.mutations.admin_observation_monitoring_definition_mutat
     AdminObservationMonitoringDefinitionUpdateMutation,
 )
 from observations.schema.mutations.submit_observation_image_mutation import (
-    SubmitObservationImage,
+    SubmitRecordImage,
 )
 
 from observations.schema.mutations.submit_observation_subject_mutation import (
@@ -46,4 +46,4 @@ class Mutation(graphene.ObjectType):
     submit_observation_subject_monitoring = (
         SubmitObservationSubjectMonitoringRecord.Field()
     )
-    submit_observation_image = SubmitObservationImage.Field()
+    submit_record_image = SubmitRecordImage.Field()
