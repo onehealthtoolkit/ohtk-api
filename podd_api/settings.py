@@ -129,7 +129,12 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
+            "hosts": [
+                (
+                    os.getenv("REDIS_HOST", default="127.0.0.1"),
+                    os.getenv("REDIS_PORT", default=6379),
+                )
+            ],
         },
     },
 }
@@ -140,11 +145,11 @@ CHANNEL_LAYERS = {
 DATABASES = {
     "default": {
         "ENGINE": "django_tenants.postgresql_backend",
-        "NAME": "open_surveillance",
-        "USER": "pphetra",
-        "PASSWORD": "1234",
-        "HOST": "127.0.0.1",
-        "PORT": "5432",
+        "NAME": os.getenv("DB_NAME", default="open_surveillance"),
+        "USER": os.getenv("DB_USER", default="pphetra"),
+        "PASSWORD": os.getenv("DB_PASSWORD", default="1234"),
+        "HOST": os.getenv("DB_HOST", default="127.0.0.1"),
+        "PORT": os.getenv("DB_PORT", default="5432"),
     }
 }
 
