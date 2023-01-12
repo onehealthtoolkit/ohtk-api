@@ -26,7 +26,7 @@ class SubmitObservationSubject(graphene.Mutation):
         definition_id,
         gps_location,
     ):
-        user = info.context.useruser = info.context.user
+        user = info.context.user
         definition = Definition.objects.get(pk=definition_id)
         location = None
         if gps_location:
@@ -36,6 +36,8 @@ class SubmitObservationSubject(graphene.Mutation):
         subject = Subject.objects.create(
             definition=definition,
             form_data=data,
+            gps_location=location,
+            reported_by=user,
         )
 
         return SubmitObservationSubject(result=subject)

@@ -1,37 +1,88 @@
 import graphene
 import django_filters
+from easy_thumbnails.files import get_thumbnailer
 from django.db.models import Q
 from graphene_django import DjangoObjectType
 from graphene.types.generic import GenericScalar
+from accounts.schema.types import UserType
 from common.types import AdminValidationProblem
 
 from observations.models import (
     Definition,
     MonitoringDefinition,
+    ObservationImage,
     Subject,
     SubjectMonitoringRecord,
 )
 
 
 class ObservationDefinitionType(DjangoObjectType):
+    register_form_definition = GenericScalar()
+
     class Meta:
         model = Definition
 
 
-class ObservationMonitoringDefinitionDefinitionType(DjangoObjectType):
+class ObservationMonitoringDefinitionType(DjangoObjectType):
+    form_definition = GenericScalar()
+
     class Meta:
         model = MonitoringDefinition
 
 
+class ObservationImageType(DjangoObjectType):
+    thumbnail = graphene.String()
+    image_url = graphene.String()
+
+    class Meta:
+        model = ObservationImage
+
+    def resolve_thumbnail(self, info):
+        return get_thumbnailer(self.file)["thumbnail"].url
+
+    def resolve_image_url(self, info):
+        return self.file.url
+
+
 class ObservationSubjectMonitoringRecordType(DjangoObjectType):
+    form_data = GenericScalar()
+    monitoring_definition_id = graphene.Int()
+    subject_id = graphene.Int()
+    monitoring_definition = graphene.Field(ObservationMonitoringDefinitionType)
+    images = graphene.List(ObservationImageType)
+    reported_by = graphene.Field(UserType)
+
     class Meta:
         model = SubjectMonitoringRecord
+        fields = [
+            "id",
+            "subject",
+            "title",
+            "description",
+            "form_data",
+            "is_active",
+            "created_at",
+            "monitoring_definition",
+            "images",
+            "reported_by",
+        ]
+        filter_fields = {
+            "subject__id": ["in"],
+            "created_at": ["lte", "gte"],
+        }
+
+    def resolve_images(self, info):
+        return self.images.all()
 
 
 class ObservationSubjectType(DjangoObjectType):
     form_data = GenericScalar()
     monitoring_records = graphene.List(ObservationSubjectMonitoringRecordType)
     definition_id = graphene.Int()
+    definition = graphene.Field(ObservationDefinitionType)
+    gps_location = graphene.String()
+    images = graphene.List(ObservationImageType)
+    reported_by = graphene.Field(UserType)
 
     class Meta:
         model = Subject
@@ -43,14 +94,28 @@ class ObservationSubjectType(DjangoObjectType):
             "form_data",
             "is_active",
             "monitoringRecords",
+            "created_at",
+            "definition",
+            "gps_location",
+            "images",
+            "reported_by",
         ]
         filter_fields = {
-            "definition__id": ["in"],
+            "definition__id": ["in", "exact"],
             "created_at": ["lte", "gte"],
         }
 
     def resolve_monitoring_records(self, info):
         return SubjectMonitoringRecord.objects.filter(subject=self)
+
+    def resolve_gps_location(self, info):
+        if self.gps_location:
+            return f"{self.gps_location.x},{self.gps_location.y}"
+        else:
+            return ""
+
+    def resolve_images(self, info):
+        return self.images.all()
 
 
 class AdminDefinitionQueryFilterSet(django_filters.FilterSet):
@@ -141,9 +206,7 @@ class AdminObservationMonitoringDefinitionCreateResult(graphene.Union):
 
 
 class AdminObservationMonitoringDefinitionUpdateSuccess(graphene.ObjectType):
-    monitoring_definition = graphene.Field(
-        ObservationMonitoringDefinitionDefinitionType
-    )
+    monitoring_definition = graphene.Field(ObservationMonitoringDefinitionType)
 
 
 class AdminObservationMonitoringDefinitionUpdateProblem(AdminValidationProblem):

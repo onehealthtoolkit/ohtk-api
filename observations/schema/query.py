@@ -1,14 +1,21 @@
 import graphene
+from django.contrib.gis.geos import Polygon
 from graphql_jwt.decorators import login_required
-from observations.models import Definition, MonitoringDefinition, Subject
-from observations.schema.types import ObservationSubjectType
+from observations.models import (
+    Definition,
+    MonitoringDefinition,
+    Subject,
+    SubjectMonitoringRecord,
+)
 from graphql import GraphQLError
 
 from observations.schema.types import (
     AdminDefinitionQueryType,
     AdminMonitoringDefinitionQueryType,
     ObservationDefinitionType,
-    ObservationMonitoringDefinitionDefinitionType,
+    ObservationMonitoringDefinitionType,
+    ObservationSubjectType,
+    ObservationSubjectMonitoringRecordType,
 )
 from pagination import DjangoPaginationConnectionField
 
@@ -19,7 +26,7 @@ class Query(graphene.ObjectType):
     )
 
     observation_monitoring_definition_get = graphene.Field(
-        ObservationMonitoringDefinitionDefinitionType, id=graphene.ID(required=True)
+        ObservationMonitoringDefinitionType, id=graphene.ID(required=True)
     )
 
     admin_observation_definition_query = DjangoPaginationConnectionField(
@@ -32,6 +39,22 @@ class Query(graphene.ObjectType):
     observation_subjects = DjangoPaginationConnectionField(ObservationSubjectType)
     observation_subject = graphene.Field(
         ObservationSubjectType, id=graphene.ID(required=True)
+    )
+
+    observation_subject_monitoring_records = DjangoPaginationConnectionField(
+        ObservationSubjectMonitoringRecordType
+    )
+    observation_subject_monitoring_record = graphene.Field(
+        ObservationSubjectMonitoringRecordType, id=graphene.ID(required=True)
+    )
+
+    observation_subjects_in_bounded = graphene.List(
+        ObservationSubjectType,
+        definition_id=graphene.Int(required=True),
+        top_left_x=graphene.Float(required=True),
+        top_left_y=graphene.Float(required=True),
+        bottom_right_x=graphene.Float(required=True),
+        bottom_right_y=graphene.Float(required=True),
     )
 
     @staticmethod
@@ -62,3 +85,29 @@ class Query(graphene.ObjectType):
     def resolve_observation_subject(root, info, id):
         user = info.context.user
         return Subject.objects.get(id=id)
+
+    @staticmethod
+    @login_required
+    def resolve_observation_subject_monitoring_record(root, info, id):
+        user = info.context.user
+        return SubjectMonitoringRecord.objects.get(id=id)
+
+    @staticmethod
+    @login_required
+    def resolve_observation_subjects_in_bounded(
+        root,
+        info,
+        definition_id,
+        top_left_x,
+        top_left_y,
+        bottom_right_x,
+        bottom_right_y,
+    ):
+        user = info.context.user
+        geom = Polygon.from_bbox(
+            (top_left_x, top_left_y, bottom_right_x, bottom_right_y)
+        )
+        return Subject.objects.filter(
+            definition_id=definition_id,
+            gps_location__within=geom,
+        )

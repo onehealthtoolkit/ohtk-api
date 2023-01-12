@@ -10,9 +10,15 @@ from observations.schema.mutations.admin_observation_monitoring_definition_mutat
     AdminObservationMonitoringDefinitionDeleteMutation,
     AdminObservationMonitoringDefinitionUpdateMutation,
 )
+from observations.schema.mutations.submit_observation_image_mutation import (
+    SubmitObservationImage,
+)
 
 from observations.schema.mutations.submit_observation_subject_mutation import (
     SubmitObservationSubject,
+)
+from observations.schema.mutations.submit_observation_subject_monitoring_mutation import (
+    SubmitObservationSubjectMonitoringRecord,
 )
 
 
@@ -37,3 +43,7 @@ class Mutation(graphene.ObjectType):
         AdminObservationMonitoringDefinitionDeleteMutation.Field()
     )
     submit_observation_subject = SubmitObservationSubject.Field()
+    submit_observation_subject_monitoring = (
+        SubmitObservationSubjectMonitoringRecord.Field()
+    )
+    submit_observation_image = SubmitObservationImage.Field()
