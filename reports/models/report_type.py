@@ -69,7 +69,7 @@ class ReportType(BaseModel):
                 if report_type.id == item.id:
                     found = True
             if not found:
-                removed_list.append(report_type)
+                removed_list.append({"id": item.id})
 
         return {
             "updated_list": updated_list,

@@ -1,4 +1,7 @@
 import uuid
+from dataclasses import dataclass
+from datetime import datetime
+from typing import List
 
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
@@ -7,7 +10,7 @@ from django.template import Template, Context
 from django.template.defaultfilters import striptags
 from easy_thumbnails.fields import ThumbnailerImageField
 
-from accounts.models import User, Authority
+from accounts.models import User
 from common.models import BaseModel, BaseModelManager
 
 
@@ -32,6 +35,11 @@ from common.models import BaseModel, BaseModelManager
 
 
 class Definition(BaseModel):
+    @dataclass
+    class DefinitionData:
+        id: int
+        updated_at: datetime
+
     objects = BaseModelManager()
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
@@ -61,6 +69,40 @@ class Definition(BaseModel):
             return striptags(t.render(c))
         else:
             return ""
+
+    @staticmethod
+    def check_updated(data: List[DefinitionData]):
+        existing_items = Definition.objects.all()
+        updated_set = set([])
+        removed_list = []
+        for definition in existing_items:
+            found = False
+            for item in data:
+                if str(definition.id) == str(item.id):
+                    found = True
+                    if definition.updated_at != item.updated_at:
+                        updated_set.add(definition)
+                    else:
+                        for monitoring in definition.monitoringdefinition_set.all():
+                            if monitoring.updated_at > item.updated_at:
+                                updated_set.add(definition)
+                                break
+                    break
+            if not found:
+                updated_set.add(definition)
+        for item in data:
+            found = False
+            for definition in existing_items:
+                if str(definition.id) == str(item.id):
+                    found = True
+                    break
+            if not found:
+                removed_list.append({"id": item.id})
+
+        return {
+            "updated_list": list(updated_set),
+            "removed_list": removed_list,
+        }
 
 
 class BaseReport(BaseModel):
