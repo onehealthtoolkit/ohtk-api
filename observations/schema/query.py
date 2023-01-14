@@ -1,3 +1,5 @@
+from typing import List
+
 import graphene
 from django.contrib.gis.geos import Polygon
 from graphql_jwt.decorators import login_required
@@ -16,6 +18,8 @@ from observations.schema.types import (
     ObservationMonitoringDefinitionType,
     ObservationSubjectType,
     ObservationSubjectMonitoringRecordType,
+    ObservationDefinitionSyncInputType,
+    ObservationDefinitionSyncOutputType,
 )
 from pagination import DjangoPaginationConnectionField
 
@@ -57,6 +61,15 @@ class Query(graphene.ObjectType):
         top_left_y=graphene.Float(required=True),
         bottom_right_x=graphene.Float(required=True),
         bottom_right_y=graphene.Float(required=True),
+    )
+
+    sync_observation_definitions = graphene.Field(
+        ObservationDefinitionSyncOutputType,
+        args={
+            "data": graphene.List(
+                graphene.NonNull(ObservationDefinitionSyncInputType), required=True
+            )
+        },
     )
 
     @staticmethod
@@ -112,4 +125,16 @@ class Query(graphene.ObjectType):
         return SubjectRecord.objects.filter(
             definition_id=definition_id,
             gps_location__within=geom,
+        )
+
+    @staticmethod
+    @login_required
+    def resolve_sync_observation_definitions(
+        root, info, data: List[ObservationDefinitionSyncInputType]
+    ):
+        sync_items = list(map(lambda item: item.to_definition_data(), data))
+        result = Definition.check_updated(sync_items)
+        return ObservationDefinitionSyncOutputType(
+            updated_list=result["updated_list"],
+            removed_list=result["removed_list"],
         )

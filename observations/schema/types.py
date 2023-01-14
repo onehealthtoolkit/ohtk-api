@@ -218,3 +218,22 @@ class AdminObservationMonitoringDefinitionUpdateResult(graphene.Union):
             AdminObservationMonitoringDefinitionUpdateSuccess,
             AdminObservationMonitoringDefinitionUpdateProblem,
         )
+
+
+class ObservationDefinitionSyncInputType(graphene.InputObjectType):
+    id = graphene.ID(required=True)
+    updated_at = graphene.DateTime(
+        required=True
+    )  # ex. 2022-02-16T04:04:18.682314+00:00
+
+    def to_definition_data(self):
+        return Definition.DefinitionData(id=self.id, updated_at=self.updated_at)
+
+
+class ObservationDefinitionId(graphene.ObjectType):
+    id = graphene.ID(required=True)
+
+
+class ObservationDefinitionSyncOutputType(graphene.ObjectType):
+    updated_list = graphene.List(ObservationDefinitionType)
+    removed_list = graphene.List(ObservationDefinitionId)

@@ -163,9 +163,13 @@ class ReportTypeSyncInputType(graphene.InputObjectType):
         return ReportType.ReportTypeData(id=self.id, updated_at=self.updated_at)
 
 
+class ReportTypeId(graphene.ObjectType):
+    id = graphene.UUID(required=True)
+
+
 class ReportTypeSyncOutputType(graphene.ObjectType):
     updated_list = graphene.List(ReportTypeType, required=True)
-    removed_list = graphene.List(ReportTypeType, required=True)
+    removed_list = graphene.List(ReportTypeId, required=True)
     category_list = graphene.List(CategoryType, required=False)
 
 

@@ -1,9 +1,7 @@
 # base image
-FROM docker-python-gdal
+FROM public.ecr.aws/g0x0v6d0/python-gdal:latest
 
 ARG SOURCE_DIR=/usr/local/src/python-gdal
-
-RUN apt-get update && apt-get install -y git
 
 # DB vars
 ENV DB_USER ${DB_USER}
