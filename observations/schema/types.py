@@ -16,18 +16,23 @@ from observations.models import (
 )
 
 
+class ObservationMonitoringDefinitionType(DjangoObjectType):
+    form_definition = GenericScalar()
+    definition_id = graphene.Int()
+
+    class Meta:
+        model = MonitoringDefinition
+
+
 class ObservationDefinitionType(DjangoObjectType):
     register_form_definition = GenericScalar()
+    monitoring_definitions = graphene.List(ObservationMonitoringDefinitionType)
 
     class Meta:
         model = Definition
 
-
-class ObservationMonitoringDefinitionType(DjangoObjectType):
-    form_definition = GenericScalar()
-
-    class Meta:
-        model = MonitoringDefinition
+    def resolve_monitoring_definitions(self, info):
+        return self.monitoringdefinition_set.all()
 
 
 class ObservationImageType(DjangoObjectType):
