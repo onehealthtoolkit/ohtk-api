@@ -228,6 +228,7 @@ class UserProfileType(graphene.ObjectType):
     is_superuser = graphene.Boolean()
     role = graphene.String()
     consent = graphene.Boolean()
+    features = graphene.List(graphene.String)
 
     def resolve_authority_name(self, info):
         if self.is_authority_user:
@@ -256,6 +257,14 @@ class UserProfileType(graphene.ObjectType):
             return self.consent
         else:
             return True
+
+    def resolve_features(self, info):
+        return [
+            configuration.key
+            for configuration in Configuration.objects.filter(
+                key__startswith="features.", value="enable"
+            ).all()
+        ]
 
 
 class CheckInvitationCodeType(DjangoObjectType):
