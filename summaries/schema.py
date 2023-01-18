@@ -10,8 +10,7 @@ from graphql_jwt.decorators import login_required
 from accounts.models import Authority, AuthorityUser, User
 from cases.models import Case
 from cases.schema import CaseType
-from reports.models import IncidentReport
-from reports.models.report import ReportAggregateView
+from reports.models import IncidentReport, ReportAggregateView
 from reports.schema.types import IncidentReportType
 from django.db.models import F
 
@@ -207,7 +206,7 @@ class Query(graphene.ObjectType):
                 ReportAggregateView.objects.annotate(day=TruncDay("created_at"))
                 .filter(reported_by=user)
                 .values("day")
-                .annotate(total=Count("id"))
+                .annotate(total=Count("report_id"))
                 .order_by("day")
             )
             # print(q.query)
