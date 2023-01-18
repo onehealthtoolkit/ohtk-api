@@ -3,7 +3,7 @@ from django.contrib.gis.geos import Point
 from graphene.types.generic import GenericScalar
 from graphql_jwt.decorators import login_required
 
-from observations.models import MonitoringDefinition, Subject, SubjectMonitoringRecord
+from observations.models import MonitoringDefinition, SubjectRecord, MonitoringRecord
 from observations.schema.types import ObservationSubjectMonitoringRecordType
 
 
@@ -11,7 +11,7 @@ class SubmitObservationSubjectMonitoringRecord(graphene.Mutation):
     class Arguments:
         data = GenericScalar(required=True)
         monitoring_definition_id = graphene.Int(required=True)
-        subject_id = graphene.Int(required=True)
+        subject_id = graphene.UUID(required=True)
 
     result = graphene.Field(ObservationSubjectMonitoringRecordType)
 
@@ -26,13 +26,13 @@ class SubmitObservationSubjectMonitoringRecord(graphene.Mutation):
     ):
         user = info.context.user
         definition = MonitoringDefinition.objects.get(pk=monitoring_definition_id)
-        subject = Subject.objects.get(pk=subject_id)
+        subject = SubjectRecord.objects.get(pk=subject_id)
 
-        monitoringRecord = SubjectMonitoringRecord.objects.create(
+        monitoring_record = MonitoringRecord.objects.create(
             monitoring_definition=definition,
             subject=subject,
             form_data=data,
             reported_by=user,
         )
 
-        return SubmitObservationSubjectMonitoringRecord(result=monitoringRecord)
+        return SubmitObservationSubjectMonitoringRecord(result=monitoring_record)

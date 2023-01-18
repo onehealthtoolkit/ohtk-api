@@ -1,7 +1,7 @@
 from graphql_jwt.testcases import JSONWebTokenTestCase
 
 from accounts.models import User
-from observations.models import Definition, Subject, MonitoringDefinition
+from observations.models import Definition, SubjectRecord, MonitoringDefinition
 
 
 class ObservationSubjectMonitoringTests(JSONWebTokenTestCase):
@@ -24,7 +24,7 @@ class ObservationSubjectMonitoringTests(JSONWebTokenTestCase):
             title_template="title {{data.number}}",
             description_template="description {{data.color}}",
         )
-        self.subject = Subject.objects.create(
+        self.subject = SubjectRecord.objects.create(
             form_data={"name": "oak", "species": "treeoak"}, definition=self.definition1
         )
         self.user = User.objects.create(username="admintest", is_superuser=True)
@@ -32,7 +32,7 @@ class ObservationSubjectMonitoringTests(JSONWebTokenTestCase):
 
     def test_mutation_submit_observation_subject_monitoring(self):
         mutation = """
-            mutation submitObservationSubjectMonitoring($data: GenericScalar!, $monitoringDefinitionId: Int!, $subjectId: Int!) {
+            mutation submitObservationSubjectMonitoring($data: GenericScalar!, $monitoringDefinitionId: Int!, $subjectId: UUID!) {
                 submitObservationSubjectMonitoring(data: $data, monitoringDefinitionId: $monitoringDefinitionId, subjectId: $subjectId) {
                     result {
                         id
@@ -49,7 +49,7 @@ class ObservationSubjectMonitoringTests(JSONWebTokenTestCase):
             {
                 "data": {"number": 123, "color": "green"},
                 "monitoringDefinitionId": self.monitoringDefinition1.id,
-                "subjectId": self.subject.id,
+                "subjectId": str(self.subject.id),
             },
         )
         self.assertIsNone(result.errors, msg=result.errors)

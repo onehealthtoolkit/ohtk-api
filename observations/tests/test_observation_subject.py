@@ -1,7 +1,7 @@
 from graphql_jwt.testcases import JSONWebTokenTestCase
 
 from accounts.models import User
-from observations.models import Definition, Subject
+from observations.models import Definition, SubjectRecord
 
 
 class ObservationSubjectTests(JSONWebTokenTestCase):
@@ -19,7 +19,7 @@ class ObservationSubjectTests(JSONWebTokenTestCase):
         self.client.authenticate(self.user)
 
     def test_create_observation_subject(self):
-        subject = Subject.objects.create(
+        subject = SubjectRecord.objects.create(
             form_data={"name": "oak", "species": "treeoak"}, definition=self.definition1
         )
         self.assertEqual("title oak", subject.title)

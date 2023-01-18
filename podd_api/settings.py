@@ -273,7 +273,7 @@ THUMBNAIL_ALIASES = {
     "threads.CommentAttachment.file": {
         "thumbnail": {"size": (200, 200), "crop": "smart"},
     },
-    "observations.ObservationImage.file": {
+    "observations.RecordImage.file": {
         "thumbnail": {"size": (200, 0), "crop": "smart"},
     },
 }
