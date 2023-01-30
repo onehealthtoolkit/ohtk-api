@@ -107,6 +107,7 @@ class IncidentReportType(DjangoObjectType):
             "relevant_authorities__name": ["istartswith", "exact"],
             "relevant_authorities__id": ["in"],
             "report_type__id": ["in"],
+            "test_flag": ["exact"],
         }
 
     def resolve_gps_location(self, info):

@@ -11,7 +11,6 @@ from django.contrib.gis.geos import Point
 from reports.models.report_type import ReportType
 from reports.schema.types import IncidentReportType
 from reports.signals import incident_report_submitted
-from reports.tasks import evaluate_reporter_notification
 from threads.models import Thread
 
 
@@ -25,6 +24,7 @@ class SubmitIncidentReport(graphene.Mutation):
             required=False
         )  # comma separated string eg. 13.234343,100.23434343 (latitude, longitude)
         incident_in_authority = graphene.Boolean(required=False)
+        test_flag = graphene.Boolean(required=False, default_value=False)
 
     result = graphene.Field(IncidentReportType)
 
@@ -39,6 +39,7 @@ class SubmitIncidentReport(graphene.Mutation):
         report_id,
         gps_location,
         incident_in_authority,
+        test_flag,
     ):
         user = info.context.user
         report_type = ReportType.objects.get(pk=report_type_id)
@@ -59,6 +60,7 @@ class SubmitIncidentReport(graphene.Mutation):
             gps_location=location,
             relevant_authority_resolved=incident_in_authority,
             thread=thread,
+            test_flag=test_flag,
         )
         if incident_in_authority:
             report.relevant_authorities.add(user.authorityuser.authority)

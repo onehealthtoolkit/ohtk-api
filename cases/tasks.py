@@ -9,6 +9,9 @@ logger = get_task_logger(__name__)
 @app.task
 def evaluate_case_definition(report_id):
     report = IncidentReport.objects.get(pk=report_id)
+    if report.test_flag:
+        return
+
     eval_context = report.evaluate_context()
     for definition in CaseDefinition.objects.filter(report_type=report.report_type):
         try:
@@ -25,6 +28,9 @@ def evaluate_case_definition(report_id):
 @app.task
 def evaluate_notification_template_after_receive_report(report_id):
     report = IncidentReport.objects.get(pk=report_id)
+    if report.test_flag:
+        return
+
     eval_context = report.evaluate_context()
     for template in NotificationTemplate.objects.filter(
         type=NotificationTemplate.Type.REPORT,
