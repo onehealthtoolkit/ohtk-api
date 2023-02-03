@@ -111,10 +111,14 @@ class Query(graphene.ObjectType):
 
             sub_authorities = authority.all_inherits_down()
             cases = Case.objects.filter(
-                authorities__in=sub_authorities, report__incident_date__gte=from_date
+                authorities__in=sub_authorities,
+                report__incident_date__gte=from_date,
+                report__test_flag=False,
             )
             reports = IncidentReport.objects.filter(
-                relevant_authorities__in=sub_authorities, incident_date__gte=from_date
+                relevant_authorities__in=sub_authorities,
+                incident_date__gte=from_date,
+                test_flag=False,
             )
 
             return {"cases": cases, "reports": reports}
@@ -135,7 +139,7 @@ class Query(graphene.ObjectType):
             sub_authorities = authority.all_inherits_down()
             q = (
                 IncidentReport.objects.annotate(day=TruncDay("created_at"))
-                .filter(relevant_authorities__in=sub_authorities)
+                .filter(relevant_authorities__in=sub_authorities, test_flag=False)
                 .values(
                     "report_type__category__name",
                     "report_type__category__ordering",
@@ -173,7 +177,7 @@ class Query(graphene.ObjectType):
             sub_authorities = authority.all_inherits_down()
             q = (
                 Case.objects.annotate(day=TruncDay("report__created_at"))
-                .filter(authorities__in=sub_authorities)
+                .filter(authorities__in=sub_authorities, report__test_flag=False)
                 .values(
                     "report__report_type__category__name",
                     "report__report_type__category__ordering",
@@ -204,7 +208,7 @@ class Query(graphene.ObjectType):
         if user:
             q = (
                 ReportAggregateView.objects.annotate(day=TruncDay("created_at"))
-                .filter(reported_by=user)
+                .filter(reported_by=user, test_flag=False)
                 .values("day")
                 .annotate(total=Count("report_id"))
                 .order_by("day")
