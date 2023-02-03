@@ -208,7 +208,7 @@ class Query(graphene.ObjectType):
         if user:
             q = (
                 ReportAggregateView.objects.annotate(day=TruncDay("created_at"))
-                .filter(reported_by=user, test_flag=False)
+                .filter(reported_by=user)
                 .values("day")
                 .annotate(total=Count("report_id"))
                 .order_by("day")
