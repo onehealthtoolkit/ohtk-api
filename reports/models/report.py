@@ -7,7 +7,7 @@ from easy_thumbnails.fields import ThumbnailerImageField
 
 from accounts.models import User, Authority
 from common.models import BaseModel, BaseModelManager
-from common.eval import build_eval_obj
+from common.eval import build_eval_obj, FormData
 from threads.models import Thread
 from . import ReportType
 
@@ -137,6 +137,7 @@ class IncidentReport(AbstractIncidentReport):
     def template_context(self):
         return {
             "data": self.data,
+            "form_data": FormData(self.data),
             "report_date": self.created_at,
             "incident_date": self.incident_date,
             "gps_location": self.gps_location_str,
