@@ -1,4 +1,5 @@
 import uuid
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List
@@ -66,7 +67,7 @@ class Definition(BaseModel):
         if template:
             t = Template(template)
             c = Context(data)
-            return striptags(t.render(c))
+            return re.sub(r"\s+", " ", striptags(t.render(c)))
         else:
             return ""
 

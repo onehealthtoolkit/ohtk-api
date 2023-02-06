@@ -4,7 +4,7 @@ from django.template.defaultfilters import striptags
 
 from accounts.models import User
 from common.models import BaseModel, BaseModelManager
-from notifications.models import Message, UserMessage
+from notifications.models import Message
 from reports.models import ReportType
 
 

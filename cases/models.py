@@ -1,5 +1,6 @@
 import uuid
 from typing import List, Union
+import re
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -232,9 +233,12 @@ class NotificationTemplate(BaseModel):
         if self.title_template:
             title_template = Template(self.title_template)
             title = striptags(title_template.render(template_context))
+            title = re.sub(r"\s+", " ", title)
         if self.body_template:
             body_template = Template(self.body_template)
             body = striptags(body_template.render(template_context))
+            body = re.sub(r"\s+", " ", body)
+
         return Message.objects.create(title=title, body=body)
 
     def get_notifications_with_authorities(
