@@ -13,7 +13,6 @@ from accounts.schema.types import (
     AdminPlaceCreateProblem,
     AdminPlaceUpdateResult,
     AdminPlaceUpdateProblem,
-    AdminPlaceUpdateSuccess,
 )
 from common.types import AdminFieldValidationProblem
 
@@ -42,14 +41,16 @@ class AdminPlaceCreateMutation(graphene.Mutation):
 
         # check if that authority is under user's authority
         user = info.context.user
-        if user.is_authority_user:
-            user_authority = info.context.user.authorityuser.authority
-            if not user_authority.is_in_inherits_down([authority_id]):
-                problems.append(
-                    AdminFieldValidationProblem(
-                        name="authority_id", message="authority_id is not in inherits"
+        if not user.is_superuser:
+            if user.is_authority_user:
+                user_authority = info.context.user.authorityuser.authority
+                if not user_authority.is_in_inherits_down([authority_id]):
+                    problems.append(
+                        AdminFieldValidationProblem(
+                            name="authority_id",
+                            message="authority_id is not in inherits",
+                        )
                     )
-                )
 
         if len(problems) > 0:
             return AdminPlaceCreateMutation(

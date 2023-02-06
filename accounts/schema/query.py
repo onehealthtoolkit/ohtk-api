@@ -190,3 +190,20 @@ class Query(graphene.ObjectType):
     @login_required
     def resolve_configuration_get(root, info, key):
         return Configuration.objects.get(key=key)
+
+    @staticmethod
+    @login_required
+    def resolve_admin_place_query(root, info, **kwargs):
+        user = info.context.user
+        query = Place.objects.all()
+        if not user.is_superuser:
+            if user.is_authority_user:
+                if user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
+                    query = query.filter(
+                        authority__in=user.authorityuser.authority.all_inherits_down()
+                    )
+                elif user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
+                    query = query.filter(authority=user.authorityuser.authority)
+                else:
+                    raise GraphQLError("Permission denied.")
+        return query
