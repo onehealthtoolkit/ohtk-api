@@ -5,7 +5,7 @@ from podd_api import settings
 
 
 class S3MediaStorage(S3Boto3Storage):
-    bucket_name = settings.MEDIA_BUCKET_NAME
+    bucket_name = settings.AWS_STORAGE_BUCKET_NAME
     location = "media"
 
 

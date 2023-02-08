@@ -49,7 +49,7 @@ class ResetPasswordRequestMutation(graphene.Mutation):
                 send_mail(
                     "Reset password",
                     f"Please click the link to reset your password: {link}",
-                    f"noreply@{settings.SENDER_EMAIL_DOMAIN}",
+                    f"noreply@{settings.EMAIL_DOMAIN}",
                     [email],
                     fail_silently=False,
                 )

@@ -48,7 +48,7 @@ class Message(BaseModel):
             send_mail(
                 self.title,
                 self.body,
-                f"noreply@{settings.SENDER_EMAIL_DOMAIN}",
+                f"noreply@{settings.EMAIL_DOMAIN}",
                 [email],
                 fail_silently=False,
             )

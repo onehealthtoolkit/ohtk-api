@@ -141,3 +141,5 @@ GitHub.sublime-settings
 .history
 /podd_api/local.py
 /medias
+
+.env*

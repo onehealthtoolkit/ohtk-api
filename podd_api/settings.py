@@ -10,11 +10,15 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 import os
+import base64
 from datetime import timedelta
 from pathlib import Path
 
 from firebase_admin import initialize_app, credentials
 
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,12 +31,17 @@ STATIC_ROOT = os.path.join(
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-n1)2=u0#ol2=8v&wer-gg+w66y^=8bq2lr4+*0pt_5*1!&ca!o"
+SECRET_KEY = os.getenv(
+    "DJANGO_SECRET_KEY",
+    default="django-insecure-n1)2=u0#ol2=8v&wer-gg+w66y^=8bq2lr4+*0pt_5*1!&ca!o",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DJANGO_DEBUG", default=True)
 
-ALLOWED_HOSTS = [".opensur.test", "localhost", ".ngrok.io"]
+ALLOWED_HOSTS = os.getenv(
+    "DJANGO_ALLOWED_HOSTS", default=".opensur.test,127.0.0.1,localhost,.ngrok.io"
+).split(",")
 
 
 # Application definition
@@ -234,25 +243,27 @@ MEDIA_ROOT = BASE_DIR / "medias"
 
 FIXTURE_DIRS = ["account/fixtures"]
 
-CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_ALWAYS_EAGER = False
 
-# begin ----override this firebase setup in local.py
-credentials_config = {}
-if credentials_config:
-    FIREBASE_APP = initialize_app(credentials.Certificate(credentials_config))
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.getenv("EMAIL_HOST")
+EMAIL_PORT = os.getenv("EMAIL_PORT", default=587)
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
-# end ----
-
-USE_S3 = os.getenv("USE_S3") == "TRUE"
+USE_S3 = os.getenv("USE_S3") == "True"
+AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME") or "ohtk-media-bucket"
 if USE_S3:
-    MEDIA_BUCKET_NAME = "ohtk-media-bucket"
+    MEDIA_BUCKET_NAME = os.getenv("S3_MEDIA_BUCKET_NAME", default="ohtk-media-bucket")
     DEFAULT_FILE_STORAGE = "common.storage.S3MediaStorage"
-    THUMBNAIL_DEFAULT_STORAGE = "common.storage.MediaStorage"
+    THUMBNAIL_DEFAULT_STORAGE = "common.storage.S3MediaStorage"
     AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
-    AWS_STORAGE_BUCKET_NAME = (
-        os.getenv("AWS_STORAGE_BUCKET_NAME") or "ohtk-media-bucket"
-    )
+    AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", default="ap-southeast-1")
+    AWS_S3_OBJECT_PARAMETERS = {
+        "CacheControl": "max-age=315360000",
+    }
 else:
     MEDIA_URL = "/medias/"
     MEDIA_DOMAIN = "opensur.test"
@@ -278,12 +289,34 @@ THUMBNAIL_ALIASES = {
     },
 }
 
-SENDER_EMAIL_DOMAIN = "opensur.test"
-DASHBOARD_URL = "http://localhost:3000"
+EMAIL_DOMAIN = os.getenv("EMAIL_DOMAIN", default="opensur.test")
+DASHBOARD_URL = os.getenv("DASHBOARD_URL", default="http://localhost:3000")
+
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", default="redis://localhost:6379/0")
 
 QR_CODE_LOGIN_EXPIRATION_DAYS = timedelta(days=7)
 
-FCM_DRY_RUN = True
+FCM_DRY_RUN = os.getenv("FCM_DRY_RUN", default="False") == "True"
+
+FIREBASE_PRIVATE_KEY = os.getenv("FIREBASE_PRIVATE_KEY", default="")
+if FIREBASE_PRIVATE_KEY:
+    # decode base64
+    FIREBASE_PRIVATE_KEY = base64.b64decode(FIREBASE_PRIVATE_KEY).decode("utf-8")
+
+    credentials_config = {
+        "type": "service_account",
+        "project_id": "open-surveillance",
+        "private_key_id": "c980f23115cc97aa82bc308f18ec885579efd5b8",
+        "private_key": FIREBASE_PRIVATE_KEY,
+        "client_email": "firebase-adminsdk-23g78@open-surveillance.iam.gserviceaccount.com",
+        "client_id": "112443385681435611215",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-23g78%40open-surveillance.iam.gserviceaccount.com",
+    }
+    FIREBASE_APP = initialize_app(credentials.Certificate(credentials_config))
+
 
 try:
     from .local import *
