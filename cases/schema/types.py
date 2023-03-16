@@ -285,7 +285,16 @@ class CaseType(DjangoObjectType):
 
     @classmethod
     def get_queryset(cls, queryset, info):
-        return queryset.order_by("-created_at")
+        query = queryset.order_by("-created_at")
+        user = info.context.user
+        if user.is_authority_user:
+            authority = info.context.user.authorityuser.authority
+            child_authorities = authority.all_inherits_down()
+            query = query.filter(
+                report__relevant_authorities__in=child_authorities
+            ).distinct()
+
+        return query
 
     def resolve_states(root, info):
         return root.casestate_set.all()
