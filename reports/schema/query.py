@@ -124,8 +124,11 @@ class Query(graphene.ObjectType):
     @login_required
     def resolve_my_incident_reports(root, info, **kwargs):
         user = info.context.user
+        authority = info.context.user.authorityuser.authority
         return (
-            IncidentReport.objects.filter(reported_by=user)
+            IncidentReport.objects.filter(
+                reported_by=user, relevant_authorities__in=[authority]
+            )
             .order_by("-created_at")
             .prefetch_related("images", "reported_by", "report_type")
         )
