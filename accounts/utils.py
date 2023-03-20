@@ -113,3 +113,8 @@ def filter_authority_permission(user, query):
     else:
         raise GraphQLError("Permission denied.")
     return query
+
+
+def check_is_not_reporter(user: User, message: str = "Not authorized"):
+    if user.is_authority_role_in([AuthorityUser.Role.REPORTER]):
+        raise PermissionDenied(message)

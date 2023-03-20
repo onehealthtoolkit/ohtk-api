@@ -39,10 +39,15 @@ class ReportType(BaseModel):
         null=True,
         on_delete=models.SET_NULL,
     )
+    published = models.BooleanField(default=False)
 
     @staticmethod
-    def filter_by_authority(authority: Authority):
-        return ReportType.objects.filter(
+    def filter_by_authority(authority: Authority, published_only=False):
+        query = ReportType.objects.all()
+        if published_only:
+            query = query.filter(published=True)
+
+        return query.filter(
             Q(authorities__in=authority.all_inherits_up()) | Q(authorities__isnull=True)
         )
 
@@ -51,7 +56,7 @@ class ReportType(BaseModel):
         authority: Authority,
         own_report_types: List[ReportTypeData],
     ):
-        existing_items = ReportType.filter_by_authority(authority)
+        existing_items = ReportType.filter_by_authority(authority, published_only=True)
         updated_list = []
         removed_list = []
         for report_type in existing_items:
@@ -99,3 +104,11 @@ class ReportType(BaseModel):
             return striptags(t.render(c))
         else:
             return ""
+
+    def publish(self):
+        self.published = True
+        self.save(update_fields=["published"])
+
+    def unpublish(self):
+        self.published = False
+        self.save(update_fields=["published"])

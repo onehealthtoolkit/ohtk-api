@@ -3,6 +3,7 @@ from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
 
 from accounts.models import AuthorityUser
+from accounts.utils import check_is_not_reporter
 from ..types import IncidentReportType
 from ...models import IncidentReport
 
@@ -22,8 +23,7 @@ class ConvertToTestReportMutation(graphene.Mutation):
 
         user = info.context.user
         if not user.is_superuser:
-            if user.is_authority_role_in([AuthorityUser.Role.REPORTER]):
-                raise GraphQLError("Not authorized to convert report to test report")
+            check_is_not_reporter(user)
 
             # and report relevant authorities should include user's authority
             if not report.relevant_authorities.filter(pk=user.authority.pk).exists():
