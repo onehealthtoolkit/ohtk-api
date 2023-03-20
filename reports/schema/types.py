@@ -245,6 +245,7 @@ class AdminReportTypeQueryType(DjangoObjectType):
             "definition",
             "authorities",
             "renderer_data_template",
+            "published",
             "ordering",
         )
         filterset_class = AdminReportTypeQueryFilter
