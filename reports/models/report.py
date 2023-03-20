@@ -150,6 +150,11 @@ class IncidentReport(AbstractIncidentReport):
             },
         }
 
+    @classmethod
+    def convert_to_test_report(cls, report):
+        report.test_flag = True
+        report.save(update_fields=("test_flag",))
+
 
 class ZeroReport(BaseReport):
     pass

@@ -1,6 +1,7 @@
 import graphene
 
 from .mutations import (
+    ConvertToTestReportMutation,
     SubmitZeroReportMutation,
     SubmitIncidentReport,
     SubmitFollowupReport,
@@ -22,6 +23,7 @@ class Mutation(graphene.ObjectType):
     submit_incident_report = SubmitIncidentReport.Field()
     submit_followup_report = SubmitFollowupReport.Field()
     submit_image = SubmitImage.Field()
+    convert_to_test_report = ConvertToTestReportMutation.Field()
     admin_category_create = AdminCategoryCreateMutation.Field()
     admin_category_update = AdminCategoryUpdateMutation.Field()
     admin_category_delete = AdminCategoryDeleteMutation.Field()

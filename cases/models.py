@@ -123,6 +123,9 @@ class Case(BaseModel):
     @classmethod
     def promote_from_incident_report(cls, report_id):
         report = IncidentReport.objects.get(pk=report_id)
+        if report.case_id:
+            return Case.objects.get(pk=report.case_id)
+
         state_definition: StateDefinition = StateDefinition.resolve(
             report.report_type_id
         )
@@ -262,6 +265,7 @@ class NotificationTemplate(BaseModel):
             report.relevant_authorities.all()
         )
         for notification in notifications:
+            print(f"send message ${message.id} to ${notification.to}")
             message.send(notification.to)
 
 
