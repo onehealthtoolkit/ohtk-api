@@ -40,6 +40,7 @@ class ReportType(BaseModel):
         on_delete=models.SET_NULL,
     )
     published = models.BooleanField(default=False)
+    is_followable = models.BooleanField(default=False)
 
     @staticmethod
     def filter_by_authority(authority: Authority, published_only=False):

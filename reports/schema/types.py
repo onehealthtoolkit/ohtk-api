@@ -100,6 +100,7 @@ class IncidentReportType(DjangoObjectType):
             "case_id",
             "thread_id",
             "followups",
+            "is_followable",
         ]
         filter_fields = {
             "created_at": ["lte", "gte"],
@@ -121,6 +122,9 @@ class IncidentReportType(DjangoObjectType):
 
     def resolve_authorities(self, info):
         return self.relevant_authorities.all()
+
+    def resolve_is_followable(self, info):
+        return self.report_type.followup_definition is not None
 
 
 class FollowupReportType(DjangoObjectType):
@@ -246,6 +250,7 @@ class AdminReportTypeQueryType(DjangoObjectType):
             "authorities",
             "renderer_data_template",
             "published",
+            "is_followable",
             "ordering",
         )
         filterset_class = AdminReportTypeQueryFilter
