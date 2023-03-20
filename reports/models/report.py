@@ -143,6 +143,7 @@ class IncidentReport(AbstractIncidentReport):
             "gps_location": self.gps_location_str,
             "renderer_data": self.renderer_data,
             "report_id": self.id,
+            "case_id": self.case_id,
             "report_type": {
                 "id": self.report_type.id,
                 "name": self.report_type.name,
