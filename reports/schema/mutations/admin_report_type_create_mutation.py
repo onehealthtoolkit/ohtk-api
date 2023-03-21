@@ -24,6 +24,7 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
         state_definition_id = graphene.Int(required=False)
         followup_definition = graphene.String(required=False)
         renderer_followup_data_template = graphene.String(required=False)
+        is_followable = graphene.Boolean(required=False, default_value=False)
 
     result = graphene.Field(AdminReportTypeCreateResult)
 
@@ -41,6 +42,7 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
         renderer_data_template=None,
         followup_definition=None,
         renderer_followup_data_template=None,
+        is_followable=False,
     ):
         problems = []
         if name_problem := is_not_empty("name", name, "Name must not be empty"):
@@ -73,5 +75,6 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
             state_definition_id=state_definition_id,
             followup_definition=followup_definition_json,
             renderer_followup_data_template=renderer_followup_data_template,
+            is_followable=is_followable,
         )
         return AdminReportTypeCreateMutation(result=report_type)
