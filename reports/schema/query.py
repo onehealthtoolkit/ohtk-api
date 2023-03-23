@@ -2,10 +2,12 @@ from typing import List
 import graphene
 from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
+from accounts.models import Authority
 from pagination.connection_field import DjangoPaginationConnectionField
 from reports.models import ReportType, Category
 from reports.models.report import IncidentReport, FollowUpReport
 from reports.models.reporter_notification import ReporterNotification
+from reports.summary.reporter_report_detail_by_day import report_by_day
 
 from .types import (
     AdminCategoryQueryType,
@@ -18,6 +20,7 @@ from .types import (
     ReportTypeType,
     ReporterNotificationType,
     FollowupReportType,
+    ReporterReportByDate,
 )
 
 
@@ -49,6 +52,13 @@ class Query(graphene.ObjectType):
 
     followups = graphene.List(
         FollowupReportType, incident_id=graphene.ID(required=True)
+    )
+
+    summary_reporter_report_by_day = graphene.List(
+        ReporterReportByDate,
+        authority_id=graphene.Int(required=True),
+        from_date=graphene.Date(required=True),
+        to_date=graphene.Date(required=True),
     )
 
     @staticmethod
@@ -137,3 +147,17 @@ class Query(graphene.ObjectType):
     @login_required
     def resolve_followups(root, info, incident_id):
         return FollowUpReport.objects.filter(incident__id=incident_id)
+
+    @staticmethod
+    @login_required
+    def resolve_summary_reporter_report_by_day(
+        root, info, authority_id, from_date, to_date
+    ):
+        user = info.context.user
+        user_authority = user.authorityuser.authority
+        filter_authority = Authority.objects.get(id=authority_id)
+
+        if filter_authority not in user_authority.all_inherits_down():
+            raise GraphQLError("Permission denied.")
+
+        return report_by_day(filter_authority.id, from_date, to_date)

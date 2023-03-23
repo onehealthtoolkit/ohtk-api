@@ -344,3 +344,13 @@ class AdminReporterNotificationUpdateResult(graphene.Union):
             AdminReporterNotificationUpdateSuccess,
             AdminReporterNotificationUpdateProblem,
         )
+
+
+class ReporterReportByDate(graphene.ObjectType):
+    authority_name = graphene.String()
+    reporter_name = graphene.String()
+    date = graphene.Date()
+    year = graphene.Int()
+    week = graphene.Int()
+    year_week = graphene.String()
+    report_count = graphene.Int()
