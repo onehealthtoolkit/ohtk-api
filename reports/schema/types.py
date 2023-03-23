@@ -354,3 +354,9 @@ class ReporterReportByDate(graphene.ObjectType):
     week = graphene.Int()
     year_week = graphene.String()
     report_count = graphene.Int()
+
+
+class ReporterNoReport(graphene.ObjectType):
+    authority_name = graphene.String()
+    reporter_name = graphene.String()
+    reporter_id = graphene.Int()

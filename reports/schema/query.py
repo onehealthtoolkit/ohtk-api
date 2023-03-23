@@ -21,7 +21,9 @@ from .types import (
     ReporterNotificationType,
     FollowupReportType,
     ReporterReportByDate,
+    ReporterNoReport,
 )
+from ..summary.reporter_no_report import no_report
 
 
 class Query(graphene.ObjectType):
@@ -56,6 +58,13 @@ class Query(graphene.ObjectType):
 
     summary_reporter_report_by_day = graphene.List(
         ReporterReportByDate,
+        authority_id=graphene.Int(required=True),
+        from_date=graphene.Date(required=True),
+        to_date=graphene.Date(required=True),
+    )
+
+    summary_reporter_no_report = graphene.List(
+        ReporterNoReport,
         authority_id=graphene.Int(required=True),
         from_date=graphene.Date(required=True),
         to_date=graphene.Date(required=True),
@@ -161,3 +170,17 @@ class Query(graphene.ObjectType):
             raise GraphQLError("Permission denied.")
 
         return report_by_day(filter_authority.id, from_date, to_date)
+
+    @staticmethod
+    @login_required
+    def resolve_summary_reporter_no_report(
+        root, info, authority_id, from_date, to_date
+    ):
+        user = info.context.user
+        user_authority = user.authorityuser.authority
+        filter_authority = Authority.objects.get(id=authority_id)
+
+        if filter_authority not in user_authority.all_inherits_down():
+            raise GraphQLError("Permission denied.")
+
+        return no_report(filter_authority.id, from_date, to_date)
