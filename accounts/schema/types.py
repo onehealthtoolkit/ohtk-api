@@ -121,6 +121,7 @@ class AdminAuthorityUserQueryFilter(django_filters.FilterSet):
             | Q(last_name__icontains=value)
             | Q(username__icontains=value)
             | Q(email__icontains=value)
+            | Q(authority__name__icontains=value)
         )
 
 
