@@ -276,6 +276,7 @@ class CaseType(DjangoObjectType):
             "is_finished",
             "thread_id",
             "outbreak_plan_info",
+            "status_label",
         ]
         filter_fields = {
             "report__created_at": ["lte", "gte"],
