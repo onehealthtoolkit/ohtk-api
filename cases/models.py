@@ -115,6 +115,7 @@ class Case(BaseModel):
     )
     # circle radius information that use to render outbreak on map
     outbreak_plan_info = models.JSONField(blank=True, null=True)
+    status_label = models.CharField(max_length=50, blank=True, null=True)
 
     @property
     def current_states(self):
@@ -139,7 +140,9 @@ class Case(BaseModel):
             thread=report.thread,
         )
 
-        state_definition.initialize_state_for_case(case.id)
+        case_state = state_definition.initialize_state_for_case(case.id)
+        case.status_label = StateStep.objects.get(pk=case_state.state_id).name
+        case.save(update_fields=["status_label"])
 
         case.authorities.set(report.relevant_authorities.all())
         report.case_id = case.id
@@ -163,9 +166,12 @@ class Case(BaseModel):
         )
         current_state.save()
 
+        self.status_label = to_step.name
         if to_step.is_stop_state:
             self.is_finished = True
-            self.save(update_fields=("is_finished",))
+            self.save(update_fields=["is_finished", "status_label"])
+        else:
+            self.save(update_fields=["status_label"])
 
         from cases.signals import case_state_forwarded
 
