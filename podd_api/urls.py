@@ -16,15 +16,18 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from django.views.decorators.csrf import csrf_exempt
 from graphene_file_upload.django import FileUploadGraphQLView
 from graphql_jwt.decorators import jwt_cookie
 from graphql_playground.views import GraphQLPlaygroundView
 import tenants.views
+import accounts.views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("o/", include("oauth2_provider.urls", namespace="oauth2_provider")),
+    path("api/userinfo/", accounts.views.userinfo),
     path("api/servers/", tenants.views.tenants),
     path(
         "graphql/",

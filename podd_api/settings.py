@@ -87,6 +87,7 @@ TENANT_APPS = (
     "easy_thumbnails",
     "outbreaks",
     "observations",
+    "oauth2_provider",
 )
 
 INSTALLED_APPS = list(SHARED_APPS) + [
@@ -105,6 +106,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "oauth2_provider.middleware.OAuth2TokenMiddleware",
 ]
 
 # CORS_ALLOWED_ORIGIN_REGEXES = [
@@ -218,6 +220,7 @@ GRAPHENE = {
 
 AUTHENTICATION_BACKENDS = [
     "accounts.backends.MyJSONWebTokenBackend",
+    "oauth2_provider.backends.OAuth2Backend",
     "django.contrib.auth.backends.ModelBackend",
 ]
 
@@ -317,6 +320,8 @@ if FIREBASE_PRIVATE_KEY:
     }
     FIREBASE_APP = initialize_app(credentials.Certificate(credentials_config))
 
+LOGIN_URL = "/admin/login/"
+OAUTH2_PROVIDER = {"PKCE_REQUIRED": False}
 
 try:
     from .local import *
