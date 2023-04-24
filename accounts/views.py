@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render
 from oauth2_provider.decorators import protected_resource
+from django.db import connection
 
 
 @protected_resource()
@@ -18,11 +19,14 @@ def userinfo(request):
     else:
         authority = None
 
+    # get current tenant
+    tenant = connection.get_tenant()
+
     # render json data
     return JsonResponse(
         {
             "id": user.id,
-            "username": user.username,
+            "username": f"{tenant.name}_{user.username}",
             "email": user.email,
             "first_name": user.first_name,
             "last_name": user.last_name,
