@@ -89,7 +89,7 @@ class Field:
 
     @property
     def renderedValue(self):
-        if self.value is None:
+        if not hasattr(self, "value"):
             return ""
         elif type(self.value) is list:
             return ", ".join(self.value)
