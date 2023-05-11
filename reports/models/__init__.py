@@ -6,6 +6,7 @@ from .report import (
     IncidentReport,
     FollowUpReport,
     Image,
+    UploadFile,
     ReportAggregateView,
 )
 from .reporter_notification import ReporterNotification
