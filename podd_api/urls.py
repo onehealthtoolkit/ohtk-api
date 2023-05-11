@@ -23,6 +23,7 @@ from graphql_jwt.decorators import jwt_cookie
 from graphql_playground.views import GraphQLPlaygroundView
 import tenants.views
 import accounts.views
+import summaries.views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -33,6 +34,11 @@ urlpatterns = [
         "graphql/",
         jwt_cookie(csrf_exempt(FileUploadGraphQLView.as_view(graphiql=settings.DEBUG))),
     ),
+    path("excels/inactive_reporter", summaries.views.export_inactive_reporter_xls),
+    path(
+        "excels/reporter_performance", summaries.views.export_reporter_performance_xls
+    ),
+    path("excels/incident_report", summaries.views.export_incident_report_xls),
 ]
 
 if settings.DEBUG:

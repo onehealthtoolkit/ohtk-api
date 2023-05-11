@@ -265,8 +265,18 @@ class AdminAuthorityUserDeleteMutation(graphene.Mutation):
 
     @staticmethod
     @login_required
-    @superuser_required
     def mutate(root, info, id):
-        user = AuthorityUser.objects.get(pk=id)
-        user.delete()
+        user = info.context.user
+        delete_user = AuthorityUser.objects.get(pk=id)
+        if not user.is_superuser:
+            if user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
+                check_permission_on_inherits_down(user, [delete_user.authority_id])
+            elif user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
+                check_permission_authority_must_be_the_same(
+                    user, delete_user.authority_id
+                )
+            else:
+                raise GraphQLError("Permission denied.")
+
+        delete_user.delete()
         return {"success": True}
