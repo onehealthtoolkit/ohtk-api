@@ -78,7 +78,6 @@ class Field:
         self.requiredMessage = params["requiredMessage"]
         self.condition = params["condition"]
         self.tags = params["tags"]
-        self.value = None
 
     def registerValues(self, values, form):
         self.form = form
