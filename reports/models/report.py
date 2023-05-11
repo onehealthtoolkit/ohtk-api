@@ -62,6 +62,23 @@ class Image(BaseModel):
             self.file.generate_all_thumbnails()
 
 
+class UploadFile(BaseModel):
+    objects = BaseModelManager()
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    file = models.FileField(upload_to="reports")
+    report_type = models.ForeignKey(
+        ContentType,
+        limit_choices_to={
+            "model__in": [c.__name__ for c in BaseReport.__subclasses__()]
+        },
+        on_delete=models.CASCADE,
+    )
+    report_id = models.UUIDField()
+    report = GenericForeignKey("report_type", "report_id")
+    file_type = models.CharField(max_length=100, blank=False, null=False)
+
+
 class AbstractIncidentReport(BaseReport):
     class Meta:
         abstract = True
@@ -79,6 +96,11 @@ class AbstractIncidentReport(BaseReport):
     )
     cover_image = models.ForeignKey(
         Image, blank=True, null=True, on_delete=models.SET_NULL
+    )
+    upload_files = GenericRelation(
+        UploadFile,
+        content_type_field="report_type",
+        object_id_field="report_id",
     )
 
 

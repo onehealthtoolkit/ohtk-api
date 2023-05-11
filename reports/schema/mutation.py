@@ -8,6 +8,7 @@ from .mutations import (
     SubmitIncidentReport,
     SubmitFollowupReport,
     SubmitImage,
+    SubmitUploadFile,
     AdminCategoryCreateMutation,
     AdminCategoryUpdateMutation,
     AdminCategoryDeleteMutation,
@@ -25,6 +26,7 @@ class Mutation(graphene.ObjectType):
     submit_incident_report = SubmitIncidentReport.Field()
     submit_followup_report = SubmitFollowupReport.Field()
     submit_image = SubmitImage.Field()
+    submit_upload_file = SubmitUploadFile.Field()
     convert_to_test_report = ConvertToTestReportMutation.Field()
     publish_report_type = PublishReportTypeMutation.Field()
     unpublish_report_type = UnPublishReportTypeMutation.Field()

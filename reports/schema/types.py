@@ -9,7 +9,7 @@ from accounts.schema.types import UserType, AuthorityType
 from common.types import AdminValidationProblem
 
 from reports.models import ReportType, Category, IncidentReport, ReporterNotification
-from reports.models.report import Image, FollowUpReport
+from reports.models.report import Image, FollowUpReport, UploadFile
 
 
 class CategoryType(DjangoObjectType):
@@ -51,6 +51,16 @@ class ImageType(DjangoObjectType):
         return self.file.url
 
 
+class UploadFileType(DjangoObjectType):
+    file_url = graphene.String()
+
+    class Meta:
+        model = UploadFile
+
+    def resolve_file_url(self, info):
+        return self.file.url
+
+
 class FollowupType(DjangoObjectType):
     data = GenericScalar()
     reported_by = graphene.Field(UserType)
@@ -72,6 +82,7 @@ class IncidentReportType(DjangoObjectType):
     original_data = GenericScalar()
     gps_location = graphene.String()
     images = graphene.List(ImageType)
+    upload_files = graphene.List(UploadFileType)
     reported_by = graphene.Field(UserType)
     report_type = graphene.Field(ReportTypeType)
     thread_id = graphene.Int()
@@ -90,6 +101,7 @@ class IncidentReportType(DjangoObjectType):
             "test_flag",
             "images",
             "cover_image",
+            "upload_files",
             "gps_location",
             "relevant_authority_resolved",
             "relevant_authorities",
@@ -117,6 +129,9 @@ class IncidentReportType(DjangoObjectType):
     def resolve_images(self, info):
         return self.images.all()
 
+    def resolve_upload_files(self, info):
+        return self.upload_files.all()
+
     def resolve_followups(self, info):
         return self.followups.all()
 
@@ -131,6 +146,7 @@ class FollowupReportType(DjangoObjectType):
     data = GenericScalar()
     gps_location = graphene.String()
     images = graphene.List(ImageType)
+    upload_files = graphene.List(UploadFileType)
     reported_by = graphene.Field(UserType)
     report_type = graphene.Field(ReportTypeType)
     incident = graphene.Field(IncidentReportType)
@@ -143,6 +159,7 @@ class FollowupReportType(DjangoObjectType):
             "data",
             "renderer_data",
             "images",
+            "upload_files",
             "incident",
             "test_flag",
             "created_at",
@@ -156,6 +173,9 @@ class FollowupReportType(DjangoObjectType):
 
     def resolve_images(self, info):
         return self.images.all()
+
+    def resolve_upload_files(self, info):
+        return self.upload_files.all()
 
 
 class ReportTypeSyncInputType(graphene.InputObjectType):

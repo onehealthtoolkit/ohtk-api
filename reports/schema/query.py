@@ -129,7 +129,7 @@ class Query(graphene.ObjectType):
         query = (
             IncidentReport.objects.all()
             .order_by("-created_at")
-            .prefetch_related("images", "reported_by", "report_type")
+            .prefetch_related("images", "upload_files", "reported_by", "report_type")
         )
         user = info.context.user
         if user.is_authority_user:
@@ -149,7 +149,7 @@ class Query(graphene.ObjectType):
                 reported_by=user, relevant_authorities__in=[authority]
             )
             .order_by("-created_at")
-            .prefetch_related("images", "reported_by", "report_type")
+            .prefetch_related("images", "upload_files", "reported_by", "report_type")
         )
 
     @staticmethod
