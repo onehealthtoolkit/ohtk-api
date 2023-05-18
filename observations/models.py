@@ -123,6 +123,11 @@ class AbstractRecord(BaseModel):
         null=True,
         on_delete=models.SET_NULL,
     )
+    upload_files = GenericRelation(
+        "observations.RecordUploadFile",
+        content_type_field="record_type",
+        object_id_field="record_id",
+    )
     is_active = models.BooleanField(default=True)
     form_data = models.JSONField()
 
@@ -153,6 +158,23 @@ class RecordImage(BaseModel):
     def generate_thumbnails(self):
         if hasattr(self.file, "generate_all_thumbnails"):
             self.file.generate_all_thumbnails()
+
+
+class RecordUploadFile(BaseModel):
+    objects = BaseModelManager()
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    file = models.FileField(upload_to="observations")
+    record_type = models.ForeignKey(
+        ContentType,
+        limit_choices_to={
+            "model__in": [c.__name__ for c in AbstractRecord.__subclasses__()]
+        },
+        on_delete=models.CASCADE,
+    )
+    record_id = models.UUIDField()
+    record = GenericForeignKey("record_type", "record_id")
+    file_type = models.CharField(max_length=100, blank=False, null=False)
 
 
 class SubjectRecord(AbstractRecord):
