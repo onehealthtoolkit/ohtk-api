@@ -81,12 +81,10 @@ class ObservationUploadFileTestCase(BaseTestCase):
         query = """
             mutation submitObservationUploadFile(
                 $recordId: UUID!, 
-                $recordType: RecordType!,
                 $file: Upload!
             ) {
                 submitRecordUploadFile(
                     recordId: $recordId, 
-                    recordType: $recordType,
                     file: $file
                 ) {
                     id
@@ -99,7 +97,6 @@ class ObservationUploadFileTestCase(BaseTestCase):
             {
                 "recordId": str(self.subject.id),
                 "file": self.gif_file,
-                "recordType": "subject",
             },
         )
         self.assertIsNotNone(result.errors, msg=result.errors)
@@ -109,12 +106,10 @@ class ObservationUploadFileTestCase(BaseTestCase):
         query = """
             mutation submitObservationUploadFile(
                 $recordId: UUID!, 
-                $recordType: RecordType!,
                 $file: Upload!
             ) {
                 submitRecordUploadFile(
                     recordId: $recordId, 
-                    recordType: $recordType,
                     file: $file
                 ) {
                     id
@@ -127,7 +122,6 @@ class ObservationUploadFileTestCase(BaseTestCase):
             {
                 "recordId": str(self.subject.id),
                 "file": self.audio_file,
-                "recordType": "subject",
             },
         )
         self.assertIsNone(result.errors, msg=result.errors)
@@ -135,19 +129,17 @@ class ObservationUploadFileTestCase(BaseTestCase):
         self.assertEqual(1, len(uploadFiles))
         self.assertEqual("audio/mpeg", uploadFiles.get().file_type)
 
-    def test_mutatest_mutation_with_client_assigned_idtion(self):
+    def test_mutation_with_client_assigned_id(self):
         self.client.authenticate(self.user)
         file_id = uuid.uuid4()
         query = """
             mutation submitObservationUploadFile(
                 $recordId: UUID!, 
-                $recordType: RecordType!,
                 $file: Upload!,
                 $fileId: UUID
             ) {
                 submitRecordUploadFile(
                     recordId: $recordId, 
-                    recordType: $recordType,
                     file: $file,
                     fileId: $fileId
                 ) {
@@ -161,7 +153,6 @@ class ObservationUploadFileTestCase(BaseTestCase):
             {
                 "recordId": str(self.subject.id),
                 "file": self.audio_file,
-                "recordType": "subject",
                 "fileId": str(file_id),
             },
         )

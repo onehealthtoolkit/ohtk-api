@@ -8,14 +8,8 @@ from observations.models import MonitoringRecord, RecordUploadFile, SubjectRecor
 from podd_api import settings
 
 
-class RecordType(graphene.Enum):
-    subject = 1
-    monitoring = 2
-
-
 class SubmitRecordUploadFile(graphene.Mutation):
     class Arguments:
-        record_type = RecordType(required=True)
         record_id = graphene.UUID(required=True)
         file = Upload(required=True)
         file_id = graphene.UUID(required=False)
@@ -27,7 +21,7 @@ class SubmitRecordUploadFile(graphene.Mutation):
 
     @staticmethod
     @login_required
-    def mutate(root, info, record_type, record_id, file, file_id):
+    def mutate(root, info, record_id, file, file_id):
         file_type = magic.from_buffer(file.read(), mime=True)
 
         if file_type in settings.UPLOAD_FILE_TYPES:
