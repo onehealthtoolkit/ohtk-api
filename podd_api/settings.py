@@ -249,6 +249,7 @@ UPLOAD_FILE_TYPES = [
     "audio/mpeg",
     "audio/mp4",
     "audio/ogg",
+    "audio/webm",
     "audio/x-wav",
     "audio/x-ms-wma",
 ]

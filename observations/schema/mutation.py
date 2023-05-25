@@ -13,7 +13,9 @@ from observations.schema.mutations.admin_observation_monitoring_definition_mutat
 from observations.schema.mutations.submit_observation_image_mutation import (
     SubmitRecordImage,
 )
-
+from observations.schema.mutations.submit_observation_upload_file_mutation import (
+    SubmitRecordUploadFile,
+)
 from observations.schema.mutations.submit_observation_subject_mutation import (
     SubmitObservationSubject,
 )
@@ -47,3 +49,4 @@ class Mutation(graphene.ObjectType):
         SubmitObservationSubjectMonitoringRecord.Field()
     )
     submit_record_image = SubmitRecordImage.Field()
+    submit_record_upload_file = SubmitRecordUploadFile.Field()
