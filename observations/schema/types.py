@@ -11,6 +11,7 @@ from observations.models import (
     Definition,
     MonitoringDefinition,
     RecordImage,
+    RecordUploadFile,
     SubjectRecord,
     MonitoringRecord,
 )
@@ -49,12 +50,23 @@ class ObservationImageType(DjangoObjectType):
         return self.file.url
 
 
+class ObservationUploadFileType(DjangoObjectType):
+    file_url = graphene.String()
+
+    class Meta:
+        model = RecordUploadFile
+
+    def resolve_file_url(self, info):
+        return self.file.url
+
+
 class ObservationSubjectMonitoringRecordType(DjangoObjectType):
     form_data = GenericScalar()
     monitoring_definition_id = graphene.Int()
     subject_id = graphene.UUID()
     monitoring_definition = graphene.Field(ObservationMonitoringDefinitionType)
     images = graphene.List(ObservationImageType)
+    upload_files = graphene.List(ObservationUploadFileType)
     reported_by = graphene.Field(UserType)
 
     class Meta:
@@ -69,6 +81,7 @@ class ObservationSubjectMonitoringRecordType(DjangoObjectType):
             "created_at",
             "monitoring_definition",
             "images",
+            "upload_files",
             "reported_by",
         ]
         filter_fields = {
@@ -79,6 +92,9 @@ class ObservationSubjectMonitoringRecordType(DjangoObjectType):
     def resolve_images(self, info):
         return self.images.all()
 
+    def resolve_upload_files(self, info):
+        return self.upload_files.all()
+
 
 class ObservationSubjectType(DjangoObjectType):
     form_data = GenericScalar()
@@ -87,6 +103,7 @@ class ObservationSubjectType(DjangoObjectType):
     definition = graphene.Field(ObservationDefinitionType)
     gps_location = graphene.String()
     images = graphene.List(ObservationImageType)
+    upload_files = graphene.List(ObservationUploadFileType)
     reported_by = graphene.Field(UserType)
 
     class Meta:
@@ -102,6 +119,7 @@ class ObservationSubjectType(DjangoObjectType):
             "definition",
             "gps_location",
             "images",
+            "upload_files",
             "reported_by",
         ]
         filter_fields = {
@@ -120,6 +138,9 @@ class ObservationSubjectType(DjangoObjectType):
 
     def resolve_images(self, info):
         return self.images.all()
+
+    def resolve_upload_files(self, info):
+        return self.upload_files.all()
 
 
 class AdminDefinitionQueryFilterSet(django_filters.FilterSet):
