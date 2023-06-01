@@ -198,7 +198,7 @@ def export_incident_report_xls(request):
         f"report_{report_type.name}.xls"
     )
     wb = xlwt.Workbook(encoding="utf-8")
-    ws = wb.add_sheet("Reporter Performance")
+    ws = wb.add_sheet("Reports")
 
     # Sheet header, first row
     row_num = 4
