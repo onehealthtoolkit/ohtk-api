@@ -187,7 +187,7 @@ def export_incident_report_xls(request):
     authority = Authority.objects.get(pk=authority_id)
     sub_authorities = authority.all_inherits_down()
 
-    from_date, to_date = parse_date_from_str(request)
+    from_date, to_date, tzinfo = parse_date_from_str(request)
 
     report_type = ReportType.objects.get(pk=request.GET.get("reportTypeId"))
     if request.GET.get("columnSplit") is not None:
@@ -330,10 +330,11 @@ def export_incident_report_xls(request):
                                     col_num += 1
             elif type(row[item]) == datetime:
                 # print(f"{item} {row[item]}")
+                value = row[item].replace(tzinfo=tzinfo)
                 ws.write(
                     row_num,
                     col_num,
-                    str(row[item].strftime("%d-%b-%Y %H:%M:%S")),
+                    str(value.astimezone().strftime("%d-%b-%Y %H:%M:%S")),
                     font_style,
                 )
             else:
@@ -356,7 +357,7 @@ def parse_date_from_str(request):
     if to_date is not None:
         to_date = to_date.replace(tzinfo=tzinfo)
 
-    return from_date, to_date
+    return from_date, to_date, tzinfo
 
 
 def auto_column_width(ws, col_num, value):
