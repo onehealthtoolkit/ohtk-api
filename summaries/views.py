@@ -8,6 +8,7 @@ from django.db.models import Count, OuterRef, Subquery, Func
 
 from reports.models.report_type import ReportType
 from .models import (
+    LocationField,
     parseForm,
 )
 import json
@@ -75,11 +76,7 @@ def export_inactive_reporter_xls(request):
         row_num += 1
         col_num = 0
         for item in row:
-            cwidth = ws.col(col_num).width
-            if row[item] is not None and (len(row[item]) * 367) > cwidth:
-                ws.col(col_num).width = (
-                    len(row[item]) * 367
-                )  # (Modify column width to match biggest data in that column)
+            auto_column_width(ws, col_num, row[item])
             ws.write(row_num, col_num, row[item], font_style)
             col_num += 1
 
@@ -123,12 +120,7 @@ def export_reporter_performance_xls(request):
     ]
 
     for col_num in range(len(columns)):
-        cwidth = ws.col(col_num).width
-        if (len(columns[col_num]) * 367) > cwidth:
-            ws.col(col_num).width = (
-                len(columns[col_num]) * 367
-            )  # (Modify column width to match biggest data in that column)
-
+        auto_column_width(ws, col_num, columns[col_num])
         ws.write(row_num, col_num, columns[col_num], font_style)  # at 0 row 0 column
 
     # Sheet body, remaining rows
@@ -160,8 +152,8 @@ def export_reporter_performance_xls(request):
     rows = (
         AuthorityUser.objects.filter(authority__in=sub_authorities)
         .annotate(
-            incident_reports=Subquery(incident_reports),
             zero_reports=Subquery(zero_reports),
+            incident_reports=Subquery(incident_reports),
         )
         .order_by("username")
         .values(
@@ -170,8 +162,8 @@ def export_reporter_performance_xls(request):
             "last_name",
             "telephone",
             "authority__name",
-            "incident_reports",
             "zero_reports",
+            "incident_reports",
         )
     )
     # print(rows.query)
@@ -195,7 +187,7 @@ def export_incident_report_xls(request):
     authority = Authority.objects.get(pk=authority_id)
     sub_authorities = authority.all_inherits_down()
 
-    from_date, to_date = parse_date_from_str(request)
+    from_date, to_date, tzinfo = parse_date_from_str(request)
 
     report_type = ReportType.objects.get(pk=request.GET.get("reportTypeId"))
     if request.GET.get("columnSplit") is not None:
@@ -206,7 +198,7 @@ def export_incident_report_xls(request):
         f"report_{report_type.name}.xls"
     )
     wb = xlwt.Workbook(encoding="utf-8")
-    ws = wb.add_sheet("Reporter Performance")
+    ws = wb.add_sheet("Reports")
 
     # Sheet header, first row
     row_num = 4
@@ -218,32 +210,35 @@ def export_incident_report_xls(request):
     columns = [
         "CREATED AT",
         "INCIDENT DATE",
+        "REPORT BY ID",
+        "REPORT BY NAME",
+        "CASE_ID",
+        "ID",
     ]
     if form is None:
         columns.append("DATA")
-        col_num = 2
+        col_num = 6
 
     for col_num in range(len(columns)):
-        cwidth = ws.col(col_num).width
-        if (len(columns[col_num]) * 367) > cwidth:
-            ws.col(col_num).width = (
-                len(columns[col_num]) * 367
-            )  # (Modify column width to match biggest data in that column)
-
+        auto_column_width(ws, col_num, columns[col_num])
         ws.write(row_num, col_num, columns[col_num], font_style)  # at 0 row 0 column
 
     if form is not None:
-        col_num = 2
+        col_num = 6
         for section in form.sections:
             # print("section : " + section.label)
             for question in section.questions:
-                print(f"question : {str(question.name)}")
+                # print(f"question : {str(question.name)}")
                 for field in question.fields:
-                    print(f"field : {field.name}")
-                    ws.write(
-                        row_num, col_num, field.name, font_style
-                    )  # at 0 row 0 column
-                    col_num += 1
+                    # print(f"field : {field.name} type {str(type(field))}")
+                    if type(field) == LocationField:
+                        ws.write(row_num, col_num, "LONGITUDE", font_style)
+                        col_num += 1
+                        ws.write(row_num, col_num, "LATITUDE", font_style)
+                        col_num += 1
+                    else:
+                        ws.write(row_num, col_num, field.name, font_style)
+                        col_num += 1
 
     row_num = 0
     row_num = write_header(
@@ -270,7 +265,15 @@ def export_incident_report_xls(request):
             test_flag=False,
             report_type=report_type,
         )
-        .values("created_at", "incident_date", "data")
+        .values(
+            "created_at",
+            "incident_date",
+            "reported_by__id",
+            "reported_by__first_name",
+            "case_id",
+            "id",
+            "data",
+        )
     )
     if from_date:
         rows = rows.filter(created_at__gte=from_date)
@@ -302,16 +305,36 @@ def export_incident_report_xls(request):
                         for question in section.questions:
                             for field in question.fields:
                                 # print(f"field : {field.name} value : {field.renderedValue}")
-                                ws.write(
-                                    row_num, col_num, field.renderedValue, font_style
-                                )
-                                col_num += 1
+                                if type(field) == LocationField:
+                                    ws.write(
+                                        row_num,
+                                        col_num,
+                                        field.longitude,
+                                        font_style,
+                                    )
+                                    col_num += 1
+                                    ws.write(
+                                        row_num,
+                                        col_num,
+                                        field.latitude,
+                                        font_style,
+                                    )
+                                    col_num += 1
+                                else:
+                                    ws.write(
+                                        row_num,
+                                        col_num,
+                                        field.renderedValue,
+                                        font_style,
+                                    )
+                                    col_num += 1
             elif type(row[item]) == datetime:
                 # print(f"{item} {row[item]}")
+                value = row[item].replace(tzinfo=tzinfo)
                 ws.write(
                     row_num,
                     col_num,
-                    str(row[item].strftime("%d-%b-%Y %H:%M:%S")),
+                    str(value.astimezone().strftime("%d-%b-%Y %H:%M:%S")),
                     font_style,
                 )
             else:
@@ -334,7 +357,15 @@ def parse_date_from_str(request):
     if to_date is not None:
         to_date = to_date.replace(tzinfo=tzinfo)
 
-    return from_date, to_date
+    return from_date, to_date, tzinfo
+
+
+def auto_column_width(ws, col_num, value):
+    cwidth = ws.col(col_num).width
+    if (value is not None and len(value) * 367) > cwidth:
+        ws.col(col_num).width = (
+            len(value) * 367
+        )  # (Modify column width to match biggest data in that column)
 
 
 def write_header(

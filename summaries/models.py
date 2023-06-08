@@ -278,12 +278,30 @@ class LocationField(PrimitiveField):
     def __init__(self, id, name, params):
         super().__init__(id, name, params)
 
+    def format(self, value):
+        index = value.index(".")
+        return value[0 : index + 6]
+
     @property
     def renderedValue(self):
         if self.value is None:
             return ""
         else:
             return f"{self.value}  (Lng,Lat)"
+
+    @property
+    def longitude(self):
+        if self.value is None:
+            return ""
+        else:
+            return self.format(self.value.split(",")[0])
+
+    @property
+    def latitude(self):
+        if self.value is None:
+            return ""
+        else:
+            return self.format(self.value.split(",")[1])
 
 
 class Values:

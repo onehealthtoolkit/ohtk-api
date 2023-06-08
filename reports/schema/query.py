@@ -38,6 +38,9 @@ class Query(graphene.ObjectType):
     )
     category = graphene.Field(CategoryType, id=graphene.ID(required=True))
     report_type = graphene.Field(ReportTypeType, id=graphene.ID(required=True))
+    report_type_by_name = graphene.Field(
+        ReportTypeType, name=graphene.String(required=True)
+    )
     incident_reports = DjangoPaginationConnectionField(IncidentReportType)
     my_incident_reports = DjangoPaginationConnectionField(IncidentReportType)
     incident_report = graphene.Field(IncidentReportType, id=graphene.ID(required=True))
@@ -103,6 +106,12 @@ class Query(graphene.ObjectType):
     def resolve_report_type(root, info, id):
         user = info.context.user
         return ReportType.objects.get(id=id)
+
+    @staticmethod
+    @login_required
+    def resolve_report_type_by_name(root, info, name):
+        user = info.context.user
+        return ReportType.objects.get(name=name)
 
     @staticmethod
     @login_required
