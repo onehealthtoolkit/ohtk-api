@@ -22,7 +22,7 @@ def export_inactive_reporter_xls(request):
     authority = Authority.objects.get(pk=authority_id)
     sub_authorities = authority.all_inherits_down()
 
-    from_date, to_date = parse_date_from_str(request)
+    from_date, to_date, tzinfo = parse_date_from_str(request)
 
     response = HttpResponse(content_type="application/ms-excel")
     response["Content-Disposition"] = 'attachment; filename="inactive_reporter.xls"'
@@ -91,7 +91,7 @@ def export_reporter_performance_xls(request):
     authority = Authority.objects.get(pk=authority_id)
     sub_authorities = authority.all_inherits_down()
 
-    from_date, to_date = parse_date_from_str(request)
+    from_date, to_date, tzinfo = parse_date_from_str(request)
 
     response = HttpResponse(content_type="application/ms-excel")
     response["Content-Disposition"] = 'attachment; filename="reporter_performance.xls"'
