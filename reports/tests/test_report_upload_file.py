@@ -1,4 +1,5 @@
 import uuid
+import re
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils.timezone import now
@@ -89,6 +90,23 @@ class ReportUploadFileTestCase(BaseTestCase):
             },
         )
         self.assertIsNotNone(result.errors, msg=result.errors)
+
+    def test_match_file_type(self):
+        m = re.compile(r"(audio|video|application|text)")
+        f = "audio/mpeg"
+        self.assertIsNotNone(m.match(f))
+
+        f = "video/mpeg"
+        self.assertIsNotNone(m.match(f))
+
+        f = "application/msword"
+        self.assertIsNotNone(m.match(f))
+
+        f = "text/html"
+        self.assertIsNotNone(m.match(f))
+
+        f = "image/jpeg"
+        self.assertIsNone(m.match(f))
 
     def test_mutation(self):
         self.client.authenticate(self.user)
