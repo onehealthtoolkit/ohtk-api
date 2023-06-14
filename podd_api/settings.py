@@ -244,15 +244,6 @@ SHOW_PUBLIC_IF_NO_TENANT_FOUND = True
 
 MEDIA_ROOT = BASE_DIR / "medias"
 
-UPLOAD_FILE_TYPES = [
-    "audio/mid",
-    "audio/mpeg",
-    "audio/mp4",
-    "audio/ogg",
-    "audio/webm",
-    "audio/x-wav",
-    "audio/x-ms-wma",
-]
 UPLOAD_FILE_MAX_SIZE = 10485760  # 10MB
 
 FIXTURE_DIRS = ["account/fixtures"]

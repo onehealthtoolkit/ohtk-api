@@ -1,5 +1,6 @@
 import graphene
 import magic
+import re
 from graphene_file_upload.scalars import Upload
 from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
@@ -23,8 +24,9 @@ class SubmitRecordUploadFile(graphene.Mutation):
     @login_required
     def mutate(root, info, record_id, file, file_id):
         file_type = magic.from_buffer(file.read(), mime=True)
+        m = re.compile(r"(audio|video|application|text)")
 
-        if file_type in settings.UPLOAD_FILE_TYPES:
+        if m.match(file_type):
             if file.size > settings.UPLOAD_FILE_MAX_SIZE:
                 raise GraphQLError("File size has exceeded")
         else:
