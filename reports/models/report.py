@@ -119,6 +119,7 @@ class IncidentReport(AbstractIncidentReport):
         blank=True,
         null=True,
     )
+    definition = models.JSONField(null=True, blank=True)
 
     @property
     def gps_location_str(self):
@@ -137,6 +138,7 @@ class IncidentReport(AbstractIncidentReport):
         }
 
     def save(self, *args, **kwargs):
+        self.definition = self.report_type.definition
         self.renderer_data = self.report_type.render_data(self.render_data_context())
         if not self.origin_data:
             self.origin_data = self.data
