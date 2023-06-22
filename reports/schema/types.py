@@ -88,6 +88,7 @@ class IncidentReportType(DjangoObjectType):
     thread_id = graphene.Int()
     followups = graphene.List(FollowupType)
     authorities = graphene.List(AuthorityType)
+    definition = GenericScalar()
 
     class Meta:
         model = IncidentReport
