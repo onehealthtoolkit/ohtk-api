@@ -1,5 +1,5 @@
 # base image
-FROM public.ecr.aws/g0x0v6d0/python-gdal:latest
+FROM public.ecr.aws/g0x0v6d0/python-gdal-magic:latest
 
 ARG SOURCE_DIR=/usr/local/src/python-gdal
 
