@@ -23,7 +23,8 @@ class SubmitRecordUploadFile(graphene.Mutation):
     @staticmethod
     @login_required
     def mutate(root, info, record_id, file, file_id):
-        file_type = magic.from_file(file, mime=True)
+        # recommend using at least the first 2048 bytes, as less can produce incorrect identification
+        file_type = magic.from_buffer(file.read(2048), mime=True)
         m = re.compile(r"(audio|video|application|text)")
 
         if m.match(file_type):
