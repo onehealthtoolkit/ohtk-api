@@ -106,6 +106,7 @@ class BaseTestCase(TestCase):
             name="Dengue",
             category=self.human_category,
             definition={},
+            published=True,
             renderer_data_template="{{name}}",
         )
         self.dengue_report_type.authorities.add(self.thailand)
@@ -113,6 +114,7 @@ class BaseTestCase(TestCase):
             name="Mers",
             category=self.human_category,
             definition={},
+            published=True,
             renderer_data_template="number of sick {{ data.number_of_sick }} with symptom {{ data.symptom }}",
         )
         self.mers_report_type.authorities.add(self.thailand)
@@ -122,6 +124,7 @@ class BaseTestCase(TestCase):
             name="Animal Sick/Death",
             category=self.animal_category,
             definition={},
+            published=True,
         )
         self.animal_sick_death_report_type.authorities.add(self.thailand)
 

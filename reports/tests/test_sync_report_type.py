@@ -41,6 +41,7 @@ class SyncReportTypeTestCase(BaseTestCase):
             name="Flu",
             category=self.human_category,
             definition={},
+            published=True,
         )
         flu_type.authorities.add(self.thailand)
         result = ReportType.check_updated_report_types_by_authority(

@@ -46,7 +46,7 @@ class AdminAuthorityUserTests(JSONWebTokenTestCase):
             }
         }
         """
-        result = self.client.execute(query, {"q": "test"})
+        result = self.client.execute(query, {"q": "another"})
         self.assertEqual(len(result.data["adminAuthorityUserQuery"]["results"]), 1)
 
     def test_create_with_error(self):

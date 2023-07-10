@@ -1,9 +1,9 @@
 from django.contrib.gis.geos import Point
 from django.utils.timezone import now
 
+from cases.models import Case
+from cases.tests.base_testcase import BaseTestCase
 from reports.models import IncidentReport
-from .base_testcase import BaseTestCase
-from ..models import Case
 
 
 class QueryCasesTestCase(BaseTestCase):
@@ -22,6 +22,7 @@ class QueryCasesTestCase(BaseTestCase):
             relevant_authority_resolved=True,
             gps_location=Point(float(13.30), float(100.25)),
         )
+        self.mers_report2.relevant_authorities.add(self.user.authority)
         self.mere_case2 = Case.objects.create(
             report=self.mers_report2,
             description="mers description2",
@@ -52,6 +53,7 @@ class QueryCasesTestCase(BaseTestCase):
         """
         result = self.client.execute(query, {})
         self.assertIsNotNone(result.data["casesQuery"])
+        print(result.data["casesQuery"]["results"])
         self.assertEqual(2, len(result.data["casesQuery"]["results"]))
         self.assertIsNotNone(result.data["casesQuery"]["results"][0]["id"])
         self.assertIsNotNone(result.data["casesQuery"]["results"][0]["authorities"])

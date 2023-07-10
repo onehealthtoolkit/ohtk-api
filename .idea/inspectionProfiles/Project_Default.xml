@@ -5,7 +5,7 @@
     <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="ignoredPackages">
         <value>
-          <list size="130">
+          <list size="131">
             <item index="0" class="java.lang.String" itemvalue="python-dateutil" />
             <item index="1" class="java.lang.String" itemvalue="django-mailgun" />
             <item index="2" class="java.lang.String" itemvalue="PyYAML" />
@@ -136,6 +136,7 @@
             <item index="127" class="java.lang.String" itemvalue="Markdown" />
             <item index="128" class="java.lang.String" itemvalue="jsonschema" />
             <item index="129" class="java.lang.String" itemvalue="inflection" />
+            <item index="130" class="java.lang.String" itemvalue="python-magic" />
           </list>
         </value>
       </option>
