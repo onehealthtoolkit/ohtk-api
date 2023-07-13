@@ -1,0 +1,47 @@
+version: '3.1'
+
+services:
+  ohtk-api:
+    image: public.ecr.aws/g0x0v6d0/ohtk-api:latest
+    restart: always
+    environment:
+      - DB_USER=ohtk
+      - DB_PASSWORD=ohtk
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=ohtk
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DJANGO_SECRET_KEY=django
+      - DJANGO_DEBUG=True
+      - FCM_DRY_RUN=True
+      - USE_S3=False
+      - DASHBOARD_URL=http://localhost:3000
+      - DJANGO_SUPERUSER_USERNAME=admin
+      - DJANGO_SUPERUSER_PASSWORD=admin
+      - DJANGO_SUPERUSER_EMAIL=pphetra@gmail.com
+    ports:
+      - 8000:8000      
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgis/postgis:14-3.3-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ohtk
+      POSTGRES_PASSWORD: ohtk
+      POSTGRES_DB: ohtk
+    ports:
+      - 5432:5432
+    volumes:
+      - ./data/postgresql:/var/lib/postgresql/data 
+  
+  redis:
+    image: redis:6.2.5-alpine
+    restart: always
+    ports:
+      - 6379:6379
+    volumes:
+      - ./data/redis:/data

@@ -52,7 +52,7 @@ pytest==7.1.2
 pytest-django==4.5.2
 python-magic==0.4.27
 # use the following package if you are on windows or mac
-# python-magic-bin==0.4.14
+#python-magic-bin==0.4.14
 pytz==2021.3
 redis==4.3.4
 Rx==1.6.1

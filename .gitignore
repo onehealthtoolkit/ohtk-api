@@ -144,3 +144,4 @@ GitHub.sublime-settings
 
 .env*
 open-surveillance-firebase-adminsdk-23g78-c980f23115.json
+docker/data
