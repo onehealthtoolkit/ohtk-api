@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+import os
 from typing import List
 
 from django.core.mail import send_mail
@@ -13,6 +14,8 @@ from podd_api import settings
 
 logger = logging.getLogger(__name__)
 
+def is_running_in_pytest() -> bool:
+    return "PYTEST_CURRENT_TEST" in os.environ
 
 @dataclass
 class Receiver:
@@ -82,6 +85,10 @@ class UserMessage(BaseModel):
     is_seen = models.BooleanField(default=False, blank=True)
 
     def send(self):
+        # skip if is in unit test
+        if is_running_in_pytest():
+            return
+
         fcm_token = self.user.fcm_token
         if fcm_token:
             alert = ApsAlert(title=self.message.title, body=self.message.body)
