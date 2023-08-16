@@ -26,6 +26,7 @@ class AdminAuthorityCreateMutation(graphene.Mutation):
         code = graphene.String(required=True)
         name = graphene.String(required=True)
         inherits = graphene.List(graphene.String)
+        boundary_connects = graphene.List(graphene.String)
         area = graphene.String(required=False)
 
     result = graphene.Field(AdminAuthorityCreateResult)
@@ -33,7 +34,7 @@ class AdminAuthorityCreateMutation(graphene.Mutation):
     @staticmethod
     @login_required
     @user_passes_test(fn_or(is_superuser, fn_and(is_staff, is_officer_role)))
-    def mutate(root, info, code, name, inherits, area=None):
+    def mutate(root, info, code, name, inherits, boundary_connects, area=None):
         user = info.context.user
         if not user.is_superuser:
             check_permission_on_inherits_down(user, inherits)
@@ -59,6 +60,9 @@ class AdminAuthorityCreateMutation(graphene.Mutation):
         if inherits:
             authority.inherits.set(Authority.objects.filter(pk__in=inherits))
 
+        if boundary_connects:
+            authority.update_boundary_connects(boundary_connects)
+
         return AdminAuthorityCreateMutation(result=authority)
 
 
@@ -68,6 +72,7 @@ class AdminAuthorityUpdateMutation(graphene.Mutation):
         code = graphene.String(required=True)
         name = graphene.String(required=True)
         inherits = graphene.List(graphene.String)
+        boundary_connects = graphene.List(graphene.String)
         area = graphene.String(required=False)
 
     result = graphene.Field(AdminAuthorityUpdateResult)
@@ -75,7 +80,7 @@ class AdminAuthorityUpdateMutation(graphene.Mutation):
     @staticmethod
     @login_required
     @user_passes_test(fn_or(is_superuser, fn_and(is_staff, is_officer_role)))
-    def mutate(root, info, id, code, name, inherits, area=None):
+    def mutate(root, info, id, code, name, inherits, boundary_connects, area=None):
         user = info.context.user
         if not user.is_superuser:
             check_permission_on_inherits_down(
@@ -111,8 +116,12 @@ class AdminAuthorityUpdateMutation(graphene.Mutation):
         authority.name = name
         if area:
             authority.area = area
+
         if inherits != None:
             authority.inherits.set(Authority.objects.filter(pk__in=inherits))
+
+        if boundary_connects != None:
+            authority.update_boundary_connects(boundary_connects)
 
         authority.save()
 

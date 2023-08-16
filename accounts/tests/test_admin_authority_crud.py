@@ -287,3 +287,94 @@ class AdminAuthorityTests(JSONWebTokenTestCase):
         self.assertEqual(
             result.data["adminAuthorityUpdate"]["result"]["authority"]["code"], "99"
         )
+
+    def test_create_with_boundary_connects(self):
+        mutation = """
+        mutation adminAuthorityCreate($code: String!, $name: String!, $boundaryConnects: [String]) {
+            adminAuthorityCreate(code: $code, name: $name, boundaryConnects: $boundaryConnects) {
+                result {
+                  __typename
+                  ... on AdminAuthorityCreateSuccess {
+                    name
+                    id
+                    code                
+                    createdAt
+                    boundaryConnects {
+                      id
+                    }
+                  }
+                  ... on AdminAuthorityCreateProblem {
+                    message
+                    fields {
+                      name
+                      message
+                    }
+                  }
+                }
+            }
+        }
+        """
+
+        result = self.client.execute(
+            mutation,
+            {
+                "code": "99",
+                "name": "any thing",
+                "boundaryConnects": [str(self.authority1.id)],
+            },
+        )
+        self.assertIsNotNone(result.data["adminAuthorityCreate"]["result"])
+        self.assertIsNotNone(result.data["adminAuthorityCreate"]["result"]["id"])
+        self.assertEqual(result.data["adminAuthorityCreate"]["result"]["code"], "99")
+        self.assertEqual(
+            result.data["adminAuthorityCreate"]["result"]["boundaryConnects"],
+            [{"id": str(self.authority1.id)}],
+        )
+
+    def test_update_with_boundary_connects(self):
+        mutation = """
+        mutation adminAuthorityUpdate($id: ID!, $code: String!, $name: String!, $boundaryConnects: [String]) {
+            adminAuthorityUpdate(id: $id, code: $code, name: $name, boundaryConnects: $boundaryConnects) {
+                result {
+                  __typename
+                  ... on AdminAuthorityUpdateSuccess {
+                    authority {
+                      name
+                      id
+                      code                
+                      boundaryConnects {
+                        id
+                      }
+                    }
+                  }
+                  ... on AdminAuthorityUpdateProblem {
+                    message
+                    fields {
+                      name
+                      message
+                    }
+                  }
+                }
+            }
+        }
+        """
+
+        result = self.client.execute(
+            mutation,
+            {
+                "id": self.authority1.id,
+                "code": "99",
+                "name": "any thing",
+                "boundaryConnects": [str(self.authority2.id)],
+            },
+        )
+        self.assertIsNotNone(result.data["adminAuthorityUpdate"]["result"])
+        self.assertIsNotNone(
+            result.data["adminAuthorityUpdate"]["result"]["authority"]["id"]
+        )
+        self.assertEqual(
+            result.data["adminAuthorityUpdate"]["result"]["authority"][
+                "boundaryConnects"
+            ],
+            [{"id": str(self.authority2.id)}],
+        )
