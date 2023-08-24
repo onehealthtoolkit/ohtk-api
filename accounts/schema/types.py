@@ -38,6 +38,16 @@ class AuthorityInheritType(DjangoObjectType):
         )
 
 
+class AuthorityBoundaryConnectType(DjangoObjectType):
+    class Meta:
+        model = Authority
+        fields = (
+            "id",
+            "code",
+            "name",
+        )
+
+
 class AuthorityType(DjangoObjectType):
     class Meta:
         model = Authority
@@ -50,10 +60,17 @@ class AuthorityType(DjangoObjectType):
         filter_fields = {"name": ["istartswith", "exact"]}
 
     inherits = graphene.List(AuthorityInheritType, required=True)
+    boundary_connects = graphene.List(AuthorityBoundaryConnectType, required=True)
 
     def resolve_inherits(self, info, **kwargs):
         results = []
         for authority in self.inherits.all():
+            results.append(authority)
+        return results
+
+    def resolve_boundary_connects(self, info, **kwargs):
+        results = []
+        for authority in self.boundary_connects.all():
             results.append(authority)
         return results
 

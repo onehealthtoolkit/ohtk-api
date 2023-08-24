@@ -43,6 +43,9 @@ class Query(graphene.ObjectType):
     )
     incident_reports = DjangoPaginationConnectionField(IncidentReportType)
     my_incident_reports = DjangoPaginationConnectionField(IncidentReportType)
+    boundary_connected_incident_reports = DjangoPaginationConnectionField(
+        IncidentReportType
+    )
     incident_report = graphene.Field(IncidentReportType, id=graphene.ID(required=True))
     followup_report = graphene.Field(FollowupReportType, id=graphene.ID(required=True))
     reporter_notification = graphene.Field(
@@ -193,3 +196,28 @@ class Query(graphene.ObjectType):
             raise GraphQLError("Permission denied.")
 
         return no_report(filter_authority.id, from_date, to_date)
+
+    @staticmethod
+    @login_required
+    def resolve_boundary_connected_incident_reports(root, info, **kwargs):
+        query = (
+            IncidentReport.objects.all()
+            .order_by("-created_at")
+            .prefetch_related("images", "upload_files", "reported_by", "report_type")
+        )
+        user = info.context.user
+        if user.is_authority_user:
+            authority = user.authorityuser.authority
+            all_authorities = []
+            child_authorities = authority.all_inherits_down()
+
+            for child_authority in child_authorities:
+                boundary_connect_authorities = child_authority.boundary_connects.all()
+
+                print(boundary_connect_authorities)
+                all_authorities.extend(boundary_connect_authorities)
+                print(all_authorities)
+
+            query = query.filter(relevant_authorities__in=all_authorities).distinct()
+
+        return query

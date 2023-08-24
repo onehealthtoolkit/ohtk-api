@@ -63,3 +63,59 @@ class AuthorityInheritTestCase(TestCase):
         chains = self.district2.all_inherits_down()
         self.assertEqual(1, len(chains))
         self.assertTrue(self.district2 in chains)
+
+
+class AuthorityBoundaryConnectTestCase(TestCase):
+    def setUp(self):
+        self.bkk = Authority.objects.create(code="bkk", name="Bangkok")
+        self.district1 = Authority.objects.create(code="district1", name="district1")
+        self.district2 = Authority.objects.create(code="district2", name="district2")
+        self.subdistrict1_1 = Authority.objects.create(
+            code="subdistrict1_1", name="subdistrict1_1"
+        )
+        self.district1.inherits.add(self.bkk)
+        self.district2.inherits.add(self.bkk)
+        self.subdistrict1_1.inherits.add(self.district1)
+
+        self.district1.update_boundary_connects([self.district2.id])
+
+    def test_boundary_connects(self):
+        district1_boundary_connects = self.district1.boundary_connects.all()
+        district2_boundary_connects = self.district2.boundary_connects.all()
+
+        self.assertEqual(1, len(district1_boundary_connects))
+        self.assertEqual(1, len(district2_boundary_connects))
+
+        self.assertTrue(self.district1 in district2_boundary_connects)
+        self.assertTrue(self.district2 in district1_boundary_connects)
+
+    def test_change_in_boundary_connects(self):
+        self.district3 = Authority.objects.create(code="district3", name="district3")
+        self.district1.update_boundary_connects([self.district3.id])
+
+        district1_boundary_connects = self.district1.boundary_connects.all()
+        district2_boundary_connects = self.district2.boundary_connects.all()
+        district3_boundary_connects = self.district3.boundary_connects.all()
+
+        self.assertEqual(1, len(district1_boundary_connects))
+        self.assertEqual(0, len(district2_boundary_connects))
+        self.assertEqual(1, len(district3_boundary_connects))
+
+        self.assertTrue(self.district1 not in district2_boundary_connects)
+        self.assertTrue(self.district2 not in district1_boundary_connects)
+        self.assertTrue(self.district1 in district3_boundary_connects)
+        self.assertTrue(self.district3 in district1_boundary_connects)
+
+        self.district1.update_boundary_connects([self.district2.id, self.district3.id])
+
+        district1_boundary_connects = self.district1.boundary_connects.all()
+        district2_boundary_connects = self.district2.boundary_connects.all()
+
+        self.assertEqual(2, len(district1_boundary_connects))
+        self.assertEqual(1, len(district2_boundary_connects))
+        self.assertEqual(1, len(district3_boundary_connects))
+
+        self.assertTrue(self.district1 in district2_boundary_connects)
+        self.assertTrue(self.district2 in district1_boundary_connects)
+        self.assertTrue(self.district3 in district1_boundary_connects)
+        self.assertTrue(self.district1 in district3_boundary_connects)

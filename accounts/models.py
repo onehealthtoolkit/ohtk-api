@@ -23,6 +23,12 @@ class Authority(BaseModel):
         "self", related_name="authority_inherits", symmetrical=False, blank=True
     )
     area = models.PolygonField(null=True, blank=True)
+    boundary_connects = models.ManyToManyField(
+        "self",
+        related_name="authority_boundary_connects",
+        symmetrical=False,
+        blank=True,
+    )
 
     def __str__(self):
         return self.name
@@ -49,6 +55,20 @@ class Authority(BaseModel):
         if len(auth) > 0:
             return True
         return False
+
+    def update_boundary_connects(self, boundary_connect_ids):
+        for current_connected_authority in self.boundary_connects.all():
+            if current_connected_authority.id not in boundary_connect_ids:
+                current_connected_authority.boundary_connects.remove(self)
+
+        boundary_connect_authorities: list[Authority] = Authority.objects.filter(
+            pk__in=boundary_connect_ids
+        )
+
+        for connected_authority in boundary_connect_authorities:
+            connected_authority.boundary_connects.add(self)
+
+        self.boundary_connects.set(boundary_connect_authorities)
 
 
 class User(AbstractUser):
@@ -101,7 +121,6 @@ class AuthorityUser(User):
 
 
 class InvitationCode(BaseModel):
-
     objects = BaseModelManager()
 
     authority = models.ForeignKey(
