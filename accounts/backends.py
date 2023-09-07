@@ -21,12 +21,19 @@ class CustomOAuth2Validator(OAuth2Validator):
 
     def get_userinfo_claims(self, request):
         claims = super().get_userinfo_claims(request)
-        claims["sub"] = request.user.id
-        claims["username"] = request.user.username
-        claims["user_id"] = request.user.id
-        claims["email"] = request.user.email
-        claims["first_name"] = request.user.first_name
-        claims["last_name"] = request.user.last_name
-        claims["is_staff"] = request.user.is_staff
-        claims["is_superuser"] = request.user.is_superuser
+        user = request.user
+        claims["sub"] = user.id
+        claims["username"] = user.username
+        claims["user_id"] = user.id
+        claims["email"] = user.email
+        claims["first_name"] = user.first_name
+        claims["last_name"] = user.last_name
+        claims["is_staff"] = user.is_staff
+        claims["is_superuser"] = user.is_superuser
+
+        if user.is_authority_user:
+            authority = user.authorityuser.authority
+            ids = [a.id for a in authority.all_inherits_up()]
+            claims["ids"] = str.join(".", [str(id) for id in reversed(ids)])
+
         return claims
