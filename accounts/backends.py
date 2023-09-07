@@ -27,4 +27,6 @@ class CustomOAuth2Validator(OAuth2Validator):
         claims["email"] = request.user.email
         claims["first_name"] = request.user.first_name
         claims["last_name"] = request.user.last_name
+        claims["is_staff"] = request.user.is_staff
+        claims["is_superuser"] = request.user.is_superuser
         return claims
