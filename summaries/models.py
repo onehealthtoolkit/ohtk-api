@@ -36,6 +36,15 @@ class Question:
         for field in self.fields:
             field.loadJsonValue(evaluateJson)
 
+    def toJsonValue(self, json):
+        currentJson = json
+        if self.name is not None:
+            currentJson = {}
+            json[self.name] = currentJson
+
+        for field in self.fields:
+            field.toJsonValue(currentJson)
+
 
 class Section:
     def __init__(self, label, description):
@@ -50,6 +59,10 @@ class Section:
     def loadJsonValue(self, json):
         for question in self.questions:
             question.loadJsonValue(json)
+
+    def toJsonValue(self, json):
+        for question in self.questions:
+            question.toJsonValue(json)
 
 
 class Form:
@@ -66,11 +79,51 @@ class Form:
         for section in self.sections:
             section.loadJsonValue(json)
 
+    def toJsonValue(self):
+        json = {}
+        # this.subforms.forEach(subform => subform.toJsonValue());
+        for section in self.sections:
+            section.toJsonValue(json)
+        return json
+
+    def toJsonDataFrameValue(self, reportId, data):
+        self.reportId = str(reportId)
+        self.loadJsonValue(data)
+        data = self.toJsonValue()
+        data["reportId"] = self.reportId
+        list = []
+        df = {"name": "df"}
+        list.append(df)
+        for key in data:
+            if type(data[key]) == type(dict()):
+                list.append(
+                    {
+                        "name": key,
+                        "data": self.__tosubformValue(data[key]),
+                    }
+                )
+            else:
+                df[key] = data[key]
+        return list
+
+    def __tosubformValue(self, data):
+        list = []
+        for key in data:
+            if type(data[key]) == type(dict()):
+                df = {"reportId": self.reportId}
+                list.append(df)
+                data2 = data[key]
+                for key2 in data2:
+                    df[key2] = data2[key2]
+        return list
+
 
 class Field:
     def __init__(self, id, name, params):
+        # print("__init__", name, params)
         self.id = id
         self.name = name
+        self.type = params["type"]
         self.label = params["label"]
         self.description = params["description"]
         self.suffixLabel = params["suffixLabel"]
@@ -86,6 +139,13 @@ class Field:
     def loadJsonValue(self, json):
         if self.name in json:
             self.value = json[self.name]
+        else:
+            self.value = ""
+
+    def toJsonValue(self, json):
+        # print(self.name + "-" + self.label + "-" + str(self.type))
+        json[self.name] = self.value
+        json[self.name + "__value"] = self.renderedValue
 
     @property
     def renderedValue(self):
@@ -216,6 +276,11 @@ class SingleChoicesField(Field):
             self.value = None
             self.text = None
 
+    def toJsonValue(self, json):
+        json[self.name] = self.value or ""
+        json[self.name + "_text"] = self.text or ""
+        json[self.name + "__value"] = self.renderedValue
+
     @property
     def renderedValue(self):
         if self.value is None:
@@ -228,12 +293,11 @@ class SingleChoicesField(Field):
 
 
 class MultipleChoicesField(Field):
-    _selected = {}
-    _text = {}
-    _invalidTextMessage = {}
-
     def __init__(self, id, name, options, params):
         super().__init__(id, name, params)
+        self._selected = {}
+        self._text = {}
+        self._invalidTextMessage = {}
         self.options = options
         for option in options:
             self._selected[option["value"]] = False
@@ -251,6 +315,27 @@ class MultipleChoicesField(Field):
                     textKey = f"{key}_text"
                     if textKey in values:
                         self._text[key] = values[textKey]
+
+    def toJsonValue(self, json):
+        values = {}
+        for key, value in self._selected.items():
+            values[key] = value
+
+        for key, value in self._text.items():
+            values[key + "_text"] = value
+
+        values["value"] = self.value
+        json[self.name] = values
+        json[self.name + "__value"] = self.renderedValue
+
+    @property
+    def value(self):
+        values = []
+        for option in self.options:
+            if self._selected[option["value"]]:
+                values.append(option["value"])
+
+        return ", ".join(values)
 
     @property
     def renderedValue(self):
@@ -303,6 +388,10 @@ class LocationField(PrimitiveField):
         else:
             return self.format(self.value.split(",")[1])
 
+    def toJsonValue(self, json):
+        json["location"] = self.value
+        json["location__value"] = self.renderedValue
+
 
 class Values:
     def __init__(self, parent):
@@ -347,6 +436,7 @@ def parseQuestion(json):
 
 def parseField(json):
     commonParams = {
+        "type": json.get("type", ""),
         "label": json.get("label", ""),
         "description": json.get("description", ""),
         "required": json.get("required", False),

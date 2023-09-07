@@ -13,6 +13,11 @@ from .models import (
 )
 import json
 import urllib.parse
+import pandas as pd
+from pandas import HDFStore
+import tempfile
+from django.http import FileResponse
+import os
 
 # Create your views here.
 
@@ -21,11 +26,9 @@ def export_inactive_reporter_xls(request):
     authority_id = request.GET.get("authorityId")
     authority = Authority.objects.get(pk=authority_id)
     sub_authorities = authority.all_inherits_down()
+    hdf5Format = request.GET.get("hdf5Format")
 
     from_date, to_date, tzinfo = parse_date_from_str(request)
-
-    response = HttpResponse(content_type="application/ms-excel")
-    response["Content-Disposition"] = 'attachment; filename="inactive_reporter.xls"'
 
     wb = xlwt.Workbook(encoding="utf-8")
     ws = wb.add_sheet("Inactive Reporter")
@@ -72,29 +75,33 @@ def export_inactive_reporter_xls(request):
         .values("username", "first_name", "last_name", "telephone", "authority__name")
     )
 
-    for row in rows:
-        row_num += 1
-        col_num = 0
-        for item in row:
-            auto_column_width(ws, col_num, row[item])
-            ws.write(row_num, col_num, row[item], font_style)
-            col_num += 1
+    if hdf5Format is not None:
+        return responseQuerySetHDF5(rows, "inactive_reporter")
+    else:
+        response = HttpResponse(content_type="application/ms-excel")
+        response["Content-Disposition"] = 'attachment; filename="inactive_reporter.xls"'
 
-    wb.save(response)
+        for row in rows:
+            row_num += 1
+            col_num = 0
+            for item in row:
+                auto_column_width(ws, col_num, row[item])
+                ws.write(row_num, col_num, row[item], font_style)
+                col_num += 1
 
-    return response
-    # return HttpResponse("return this string")
+        wb.save(response)
+
+        return response
+        # return HttpResponse("return this string")
 
 
 def export_reporter_performance_xls(request):
     authority_id = request.GET.get("authorityId")
     authority = Authority.objects.get(pk=authority_id)
     sub_authorities = authority.all_inherits_down()
+    hdf5Format = request.GET.get("hdf5Format")
 
     from_date, to_date, tzinfo = parse_date_from_str(request)
-
-    response = HttpResponse(content_type="application/ms-excel")
-    response["Content-Disposition"] = 'attachment; filename="reporter_performance.xls"'
 
     wb = xlwt.Workbook(encoding="utf-8")
     ws = wb.add_sheet("Reporter Performance")
@@ -167,18 +174,25 @@ def export_reporter_performance_xls(request):
         )
     )
     # print(rows.query)
+    if hdf5Format is not None:
+        return responseQuerySetHDF5(rows, "reporter_performance")
+    else:
+        response = HttpResponse(content_type="application/ms-excel")
+        response[
+            "Content-Disposition"
+        ] = 'attachment; filename="reporter_performance.xls"'
 
-    for row in rows:
-        row_num += 1
-        col_num = 0
-        for item in row:
-            ws.write(row_num, col_num, row[item], font_style)
-            col_num += 1
+        for row in rows:
+            row_num += 1
+            col_num = 0
+            for item in row:
+                ws.write(row_num, col_num, row[item], font_style)
+                col_num += 1
 
-    wb.save(response)
+        wb.save(response)
 
-    return response
-    # return HttpResponse("return this string")
+        return response
+        # return HttpResponse("return this string")
 
 
 def export_incident_report_xls(request):
@@ -186,6 +200,7 @@ def export_incident_report_xls(request):
     authority_id = request.GET.get("authorityId")
     authority = Authority.objects.get(pk=authority_id)
     sub_authorities = authority.all_inherits_down()
+    hdf5Format = request.GET.get("hdf5Format")
 
     from_date, to_date, tzinfo = parse_date_from_str(request)
 
@@ -193,10 +208,6 @@ def export_incident_report_xls(request):
     if request.GET.get("columnSplit") is not None:
         form = parseForm(report_type.definition)
 
-    response = HttpResponse(content_type="application/ms-excel")
-    response["Content-Disposition"] = "attachment; filename=%s" % urllib.parse.quote(
-        f"report_{report_type.name}.xls"
-    )
     wb = xlwt.Workbook(encoding="utf-8")
     ws = wb.add_sheet("Reports")
 
@@ -282,6 +293,21 @@ def export_incident_report_xls(request):
 
     # print(rows.query)
 
+    if hdf5Format is not None:
+        dataList = []
+        for row in rows:
+            incidentReport = IncidentReport.objects.get(pk=row["id"])
+            form = parseForm(incidentReport.definition or report_type.definition)
+            # form.loadJsonValue(incidentReport.data)
+            dataList = dataList + form.toJsonDataFrameValue(
+                incidentReport.id, incidentReport.data
+            )
+        return responseJsonHDF5(dataList, f"report_{report_type.name}")
+
+    response = HttpResponse(content_type="application/ms-excel")
+    response["Content-Disposition"] = "attachment; filename=%s" % urllib.parse.quote(
+        f"report_{report_type.name}.xls"
+    )
     row_num = 4
     for row in rows:
         row_num += 1
@@ -441,3 +467,53 @@ def renderJson(data, definition):
             renderJson(value)
         else:
             print(str(key) + "->" + str(value))
+
+
+def responseQuerySetHDF5(querySet, outputName):
+    print(list(querySet))
+    df = pd.DataFrame(
+        list(querySet),
+    )
+    try:
+        tmp = tempfile.NamedTemporaryFile(delete=False)
+        with open(tmp.name, "w") as fi:
+            store = HDFStore(tmp.name)
+            store.put("df", df, format="table", data_columns=True)
+            # print(store.select("store_key"))
+            store.close()
+        response = FileResponse(open(tmp.name, "rb"))
+        response[
+            "Content-Disposition"
+        ] = "attachment; filename=%s" % urllib.parse.quote(f"{outputName}.h5")
+        return response
+    finally:
+        os.remove(tmp.name)
+
+
+def responseJsonHDF5(jsonData, outputName):
+    # print(jsonData)
+    data = {}
+    for d in jsonData:
+        data.setdefault(d["name"], []).append(d)
+
+    # print(json.dumps(df, indent=4))
+
+    # print(json.dumps(jsonData, indent=4))
+    try:
+        tmp = tempfile.NamedTemporaryFile(delete=False)
+        with open(tmp.name, "w") as fi:
+            store = HDFStore(tmp.name)
+            for key in data:
+                # print(json.dumps(data[key], indent=4))
+                df = pd.DataFrame(data[key])
+                print(df)
+                store.put(key, df)
+                # print(store.select("store_key"))
+            store.close()
+        response = FileResponse(open(tmp.name, "rb"))
+        response[
+            "Content-Disposition"
+        ] = "attachment; filename=%s" % urllib.parse.quote(f"{outputName}.h5")
+        return response
+    finally:
+        os.remove(tmp.name)

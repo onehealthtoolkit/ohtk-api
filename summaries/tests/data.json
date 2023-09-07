@@ -1,0 +1,599 @@
+{
+  "data": {
+    "incidentReport": {
+      "id": "f33e839d-8ac1-451b-a9e9-0720d4fbae7a",
+      "createdAt": "2023-08-08T09:32:01.069787+00:00",
+      "incidentDate": "2023-08-08",
+      "gpsLocation": "-122.40188,37.78785",
+      "updatedAt": "2023-08-08T09:32:01.069807+00:00",
+      "rendererData": "\u0e23\u0e32\u0e22\u0e07\u0e32\u0e19\u0e42\u0e23\u0e04\u0e43\u0e19\u0e04\u0e19 : \u0e1e\u0e1a\u0e1c\u0e39\u0e49\u0e1b\u0e48\u0e27\u0e22\u0e08\u0e33\u0e19\u0e27\u0e19 1 \u0e04\u0e19 \u0e17\u0e35\u0e48dff \u0e2a\u0e07\u0e2a\u0e31\u0e22\u0e27\u0e48\u0e32\u0e1b\u0e48\u0e27\u0e22\u0e40\u0e1b\u0e47\u0e19\u0e2d\u0e32\u0e2b\u0e32\u0e23\u0e40\u0e1b\u0e47\u0e19\u0e1e\u0e34\u0e29 \u0e40\u0e23\u0e34\u0e48\u0e21\u0e21\u0e35\u0e2d\u0e32\u0e01\u0e32\u0e23\u0e1b\u0e48\u0e27\u0e22\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48 2023-08-08 \u0e21\u0e35\u0e01\u0e32\u0e23\u0e23\u0e32\u0e22\u0e07\u0e32\u0e19\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48 2023-08-08",
+      "caseId": null,
+      "threadId": 453,
+      "data": {
+        "tz": "Asia/Bangkok",
+        "images": ["04534abc-5752-433a-ab61-2d58349f7170"],
+        "no_sickness": 1,
+        "report_date": "2023-08-08T00:00:00.000+07:00",
+        "location gps": "-122.40188352763651,37.78785219089727",
+        "images__value": "04534abc-5752-433a-ab61-2d58349f7170",
+        "name_location": "dff",
+        "other_symptom": null,
+        "sickness_date": "2023-08-08T00:00:00.000+07:00",
+        "digestive_system": {
+          "value": "\u0e1b\u0e27\u0e14\u0e17\u0e49\u0e2d\u0e07",
+          "\u0e1b\u0e27\u0e14\u0e17\u0e49\u0e2d\u0e07": true,
+          "\u0e17\u0e49\u0e2d\u0e07\u0e40\u0e2a\u0e35\u0e22": false,
+          "\u0e2d\u0e37\u0e48\u0e19\u0e46 (\u0e23\u0e30\u0e1a\u0e38)": false,
+          "\u0e2d\u0e37\u0e48\u0e19\u0e46 (\u0e23\u0e30\u0e1a\u0e38)_text": null,
+          "\u0e04\u0e25\u0e37\u0e48\u0e19\u0e44\u0e2a\u0e49/\u0e2d\u0e32\u0e40\u0e08\u0e35\u0e22\u0e19": false
+        },
+        "fever_skin_system": {
+          "value": "",
+          "\u0e2d\u0e37\u0e48\u0e19\u0e46 (\u0e23\u0e30\u0e1a\u0e38)": false,
+          "\u0e2d\u0e37\u0e48\u0e19\u0e46 (\u0e23\u0e30\u0e1a\u0e38)_text": null,
+          "\u0e21\u0e35\u0e44\u0e02\u0e49\u0e23\u0e48\u0e27\u0e21\u0e01\u0e31\u0e1a\u0e15\u0e38\u0e48\u0e21": false,
+          "\u0e21\u0e35\u0e44\u0e02\u0e49\u0e23\u0e48\u0e27\u0e21\u0e01\u0e31\u0e1a\u0e08\u0e38\u0e14\u0e41\u0e14\u0e07": false,
+          "\u0e21\u0e35\u0e44\u0e02\u0e49\u0e23\u0e48\u0e27\u0e21\u0e01\u0e31\u0e1a\u0e1c\u0e37\u0e48\u0e19\u0e19\u0e39\u0e19\u0e41\u0e14\u0e07": false
+        },
+        "no_sickness__value": "1",
+        "report_date__value": "2023-08-08",
+        "respiratory_system": {
+          "value": "\u0e21\u0e35\u0e44\u0e02\u0e49",
+          "\u0e44\u0e2d": false,
+          "\u0e21\u0e35\u0e44\u0e02\u0e49": true,
+          "\u0e40\u0e08\u0e47\u0e1a\u0e04\u0e2d": false,
+          "\u0e21\u0e35\u0e40\u0e2a\u0e21\u0e2b\u0e30": false,
+          "\u0e2d\u0e37\u0e48\u0e19\u0e46 (\u0e23\u0e30\u0e1a\u0e38)": false,
+          "\u0e2d\u0e37\u0e48\u0e19\u0e46 (\u0e23\u0e30\u0e1a\u0e38)_text": null,
+          "\u0e2b\u0e32\u0e22\u0e43\u0e08\u0e40\u0e2b\u0e19\u0e37\u0e48\u0e2d\u0e22\u0e2b\u0e2d\u0e1a": false
+        },
+        "sickness_suspected": "\u0e2d\u0e32\u0e2b\u0e32\u0e23\u0e40\u0e1b\u0e47\u0e19\u0e1e\u0e34\u0e29",
+        "location gps__value": "-122.40188352763651,37.78785219089727 (Lng,Lat)",
+        "name_location__value": "dff",
+        "other_symptom__value": "",
+        "sickness_date__value": "2023-08-08",
+        "digestive_system__value": "\u0e1b\u0e27\u0e14\u0e17\u0e49\u0e2d\u0e07",
+        "sickness_suspected_text": null,
+        "fever_skin_system__value": "",
+        "respiratory_system__value": "\u0e21\u0e35\u0e44\u0e02\u0e49",
+        "sickness_suspected__value": "\u0e2d\u0e32\u0e2b\u0e32\u0e23\u0e40\u0e1b\u0e47\u0e19\u0e1e\u0e34\u0e29"
+      },
+      "reportType": {
+        "id": "214c52af-1075-4b40-8ed7-f6ec4392c742",
+        "name": "Event Base Surveillance",
+        "definition": {
+          "sections": [
+            {
+              "label": "Page 1",
+              "questions": [
+                {
+                  "label": "\u0e08\u0e33\u0e19\u0e27\u0e19\u0e1c\u0e39\u0e49\u0e1b\u0e48\u0e27\u0e22",
+                  "fields": [
+                    {
+                      "id": "no_sickness",
+                      "min": 1,
+                      "name": "no_sickness",
+                      "type": "integer",
+                      "label": "",
+                      "required": false
+                    }
+                  ],
+                  "description": ""
+                },
+                {
+                  "label": "\u0e0a\u0e37\u0e48\u0e2d\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e17\u0e35\u0e48\u0e1e\u0e1a\u0e1c\u0e39\u0e49\u0e1b\u0e48\u0e27\u0e22",
+                  "fields": [
+                    {
+                      "id": "name_location",
+                      "name": "name_location",
+                      "type": "text",
+                      "label": "",
+                      "required": true
+                    }
+                  ],
+                  "description": ""
+                },
+                {
+                  "label": "\u0e23\u0e30\u0e1a\u0e38\u0e1e\u0e34\u0e01\u0e31\u0e14\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e17\u0e35\u0e48\u0e1e\u0e1a\u0e1c\u0e39\u0e49\u0e1b\u0e48\u0e27\u0e22",
+                  "fields": [
+                    {
+                      "id": "location gps",
+                      "name": "location gps",
+                      "type": "location",
+                      "label": "",
+                      "required": false
+                    }
+                  ],
+                  "description": ""
+                }
+              ]
+            },
+            {
+              "label": "Page 2",
+              "questions": [
+                {
+                  "label": "\u0e2d\u0e32\u0e01\u0e32\u0e23\u0e23\u0e30\u0e1a\u0e1a\u0e17\u0e32\u0e07\u0e40\u0e14\u0e34\u0e19\u0e2d\u0e32\u0e2b\u0e32\u0e23",
+                  "fields": [
+                    {
+                      "id": "digestive_system",
+                      "name": "digestive_system",
+                      "type": "multiplechoices",
+                      "label": "",
+                      "options": [
+                        {
+                          "label": "\u0e17\u0e49\u0e2d\u0e07\u0e40\u0e2a\u0e35\u0e22",
+                          "value": "\u0e17\u0e49\u0e2d\u0e07\u0e40\u0e2a\u0e35\u0e22"
+                        },
+                        {
+                          "label": "\u0e04\u0e25\u0e37\u0e48\u0e19\u0e44\u0e2a\u0e49/\u0e2d\u0e32\u0e40\u0e08\u0e35\u0e22\u0e19",
+                          "value": "\u0e04\u0e25\u0e37\u0e48\u0e19\u0e44\u0e2a\u0e49/\u0e2d\u0e32\u0e40\u0e08\u0e35\u0e22\u0e19"
+                        },
+                        {
+                          "label": "\u0e1b\u0e27\u0e14\u0e17\u0e49\u0e2d\u0e07",
+                          "value": "\u0e1b\u0e27\u0e14\u0e17\u0e49\u0e2d\u0e07"
+                        },
+                        {
+                          "label": "\u0e2d\u0e37\u0e48\u0e19\u0e46 (\u0e23\u0e30\u0e1a\u0e38)",
+                          "value": "\u0e2d\u0e37\u0e48\u0e19\u0e46 (\u0e23\u0e30\u0e1a\u0e38)",
+                          "textInput": true
+                        }
+                      ],
+                      "required": false
+                    }
+                  ],
+                  "description": ""
+                },
+                {
+                  "label": "\u0e2d\u0e32\u0e01\u0e32\u0e23\u0e23\u0e30\u0e1a\u0e1a\u0e17\u0e32\u0e07\u0e40\u0e14\u0e34\u0e19\u0e2b\u0e32\u0e22\u0e43\u0e08",
+                  "fields": [
+                    {
+                      "id": "respiratory_system",
+                      "name": "respiratory_system",
+                      "type": "multiplechoices",
+                      "label": "",
+                      "options": [
+                        {
+                          "label": "\u0e21\u0e35\u0e44\u0e02\u0e49",
+                          "value": "\u0e21\u0e35\u0e44\u0e02\u0e49"
+                        },
+                        {
+                          "label": "\u0e44\u0e2d",
+                          "value": "\u0e44\u0e2d"
+                        },
+                        {
+                          "label": "\u0e40\u0e08\u0e47\u0e1a\u0e04\u0e2d",
+                          "value": "\u0e40\u0e08\u0e47\u0e1a\u0e04\u0e2d"
+                        },
+                        {
+                          "label": "\u0e21\u0e35\u0e40\u0e2a\u0e21\u0e2b\u0e30",
+                          "value": "\u0e21\u0e35\u0e40\u0e2a\u0e21\u0e2b\u0e30"
+                        },
+                        {
+                          "label": "\u0e2b\u0e32\u0e22\u0e43\u0e08\u0e40\u0e2b\u0e19\u0e37\u0e48\u0e2d\u0e22\u0e2b\u0e2d\u0e1a",
+                          "value": "\u0e2b\u0e32\u0e22\u0e43\u0e08\u0e40\u0e2b\u0e19\u0e37\u0e48\u0e2d\u0e22\u0e2b\u0e2d\u0e1a"
+                        },
+                        {
+                          "label": "\u0e2d\u0e37\u0e48\u0e19\u0e46 (\u0e23\u0e30\u0e1a\u0e38)",
+                          "value": "\u0e2d\u0e37\u0e48\u0e19\u0e46 (\u0e23\u0e30\u0e1a\u0e38)",
+                          "textInput": true
+                        }
+                      ],
+                      "required": false
+                    }
+                  ],
+                  "description": ""
+                },
+                {
+                  "label": "\u0e2d\u0e32\u0e01\u0e32\u0e23\u0e44\u0e02\u0e49 \u0e1c\u0e37\u0e48\u0e19 \u0e15\u0e38\u0e48\u0e21",
+                  "fields": [
+                    {
+                      "id": "fever_skin_system",
+                      "name": "fever_skin_system",
+                      "type": "multiplechoices",
+                      "label": "",
+                      "options": [
+                        {
+                          "label": "\u0e21\u0e35\u0e44\u0e02\u0e49\u0e23\u0e48\u0e27\u0e21\u0e01\u0e31\u0e1a\u0e1c\u0e37\u0e48\u0e19\u0e19\u0e39\u0e19\u0e41\u0e14\u0e07",
+                          "value": "\u0e21\u0e35\u0e44\u0e02\u0e49\u0e23\u0e48\u0e27\u0e21\u0e01\u0e31\u0e1a\u0e1c\u0e37\u0e48\u0e19\u0e19\u0e39\u0e19\u0e41\u0e14\u0e07"
+                        },
+                        {
+                          "label": "\u0e21\u0e35\u0e44\u0e02\u0e49\u0e23\u0e48\u0e27\u0e21\u0e01\u0e31\u0e1a\u0e08\u0e38\u0e14\u0e41\u0e14\u0e07",
+                          "value": "\u0e21\u0e35\u0e44\u0e02\u0e49\u0e23\u0e48\u0e27\u0e21\u0e01\u0e31\u0e1a\u0e08\u0e38\u0e14\u0e41\u0e14\u0e07"
+                        },
+                        {
+                          "label": "\u0e21\u0e35\u0e44\u0e02\u0e49\u0e23\u0e48\u0e27\u0e21\u0e01\u0e31\u0e1a\u0e15\u0e38\u0e48\u0e21",
+                          "value": "\u0e21\u0e35\u0e44\u0e02\u0e49\u0e23\u0e48\u0e27\u0e21\u0e01\u0e31\u0e1a\u0e15\u0e38\u0e48\u0e21"
+                        },
+                        {
+                          "label": "\u0e2d\u0e37\u0e48\u0e19\u0e46 (\u0e23\u0e30\u0e1a\u0e38)",
+                          "value": "\u0e2d\u0e37\u0e48\u0e19\u0e46 (\u0e23\u0e30\u0e1a\u0e38)",
+                          "textInput": true
+                        }
+                      ],
+                      "required": false
+                    }
+                  ],
+                  "description": ""
+                },
+                {
+                  "label": "\u0e2d\u0e32\u0e01\u0e32\u0e23\u0e2d\u0e37\u0e48\u0e19\u0e46",
+                  "fields": [
+                    {
+                      "id": "other_symptom",
+                      "name": "other_symptom",
+                      "type": "text",
+                      "label": "",
+                      "required": false
+                    }
+                  ],
+                  "description": ""
+                },
+                {
+                  "label": "\u0e42\u0e23\u0e04\u0e17\u0e35\u0e48\u0e2a\u0e07\u0e2a\u0e31\u0e22\u0e27\u0e48\u0e32\u0e1b\u0e48\u0e27\u0e22",
+                  "fields": [
+                    {
+                      "id": "sickness_suspected",
+                      "name": "sickness_suspected",
+                      "type": "singlechoices",
+                      "label": "",
+                      "options": [
+                        {
+                          "label": "\u0e44\u0e02\u0e49\u0e2b\u0e27\u0e31\u0e14\u0e43\u0e2b\u0e0d\u0e48",
+                          "value": "\u0e44\u0e02\u0e49\u0e2b\u0e27\u0e31\u0e14\u0e43\u0e2b\u0e0d\u0e48"
+                        },
+                        {
+                          "label": "\u0e44\u0e02\u0e49\u0e40\u0e25\u0e37\u0e2d\u0e14\u0e2d\u0e2d\u0e01",
+                          "value": "\u0e44\u0e02\u0e49\u0e40\u0e25\u0e37\u0e2d\u0e14\u0e2d\u0e2d\u0e01"
+                        },
+                        {
+                          "label": "\u0e2d\u0e32\u0e2b\u0e32\u0e23\u0e40\u0e1b\u0e47\u0e19\u0e1e\u0e34\u0e29",
+                          "value": "\u0e2d\u0e32\u0e2b\u0e32\u0e23\u0e40\u0e1b\u0e47\u0e19\u0e1e\u0e34\u0e29"
+                        },
+                        {
+                          "label": "\u0e42\u0e23\u0e04\u0e21\u0e37\u0e2d \u0e40\u0e17\u0e49\u0e32 \u0e1b\u0e32\u0e01",
+                          "value": "\u0e42\u0e23\u0e04\u0e21\u0e37\u0e2d \u0e40\u0e17\u0e49\u0e32 \u0e1b\u0e32\u0e01"
+                        },
+                        {
+                          "label": "\u0e44\u0e21\u0e48\u0e17\u0e23\u0e32\u0e1a/\u0e44\u0e21\u0e48\u0e41\u0e19\u0e48\u0e43\u0e08",
+                          "value": "\u0e44\u0e21\u0e48\u0e17\u0e23\u0e32\u0e1a/\u0e44\u0e21\u0e48\u0e41\u0e19\u0e48\u0e43\u0e08"
+                        }
+                      ],
+                      "required": true
+                    }
+                  ],
+                  "description": ""
+                }
+              ]
+            },
+            {
+              "label": "Page 3",
+              "questions": [
+                {
+                  "label": "\u0e20\u0e32\u0e1e\u0e16\u0e48\u0e32\u0e22",
+                  "fields": [
+                    {
+                      "id": "images",
+                      "name": "images",
+                      "type": "images",
+                      "label": "",
+                      "required": false
+                    }
+                  ],
+                  "description": ""
+                },
+                {
+                  "label": "\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e40\u0e23\u0e34\u0e48\u0e21\u0e1b\u0e48\u0e27\u0e22",
+                  "fields": [
+                    {
+                      "id": "sickness_date",
+                      "name": "sickness_date",
+                      "type": "date",
+                      "label": "",
+                      "required": true,
+                      "withTime": false,
+                      "separatedFields": true
+                    }
+                  ],
+                  "description": ""
+                },
+                {
+                  "label": "\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e23\u0e32\u0e22\u0e07\u0e32\u0e19",
+                  "fields": [
+                    {
+                      "id": "report_date",
+                      "name": "report_date",
+                      "tags": "incident_date",
+                      "type": "date",
+                      "label": "",
+                      "required": true,
+                      "withTime": false,
+                      "separatedFields": true
+                    }
+                  ],
+                  "description": ""
+                }
+              ]
+            }
+          ]
+        },
+        "__typename": "ReportTypeType"
+      },
+      "platform": null,
+      "coverImage": null,
+      "images": [
+        {
+          "id": "04534abc-5752-433a-ab61-2d58349f7170",
+          "file": "reports/04534abc-5752-433a-ab61-2d58349f7170",
+          "thumbnail": "https://admin.ohtk.org/medias/reports/04534abc-5752-433a-ab61-2d58349f7170.200x0_q85_crop-smart.jpg",
+          "imageUrl": "https://admin.ohtk.org/medias/reports/04534abc-5752-433a-ab61-2d58349f7170",
+          "__typename": "ImageType"
+        }
+      ],
+      "uploadFiles": [],
+      "reportedBy": {
+        "firstName": "bkk1.",
+        "lastName": "bkk1",
+        "id": "21",
+        "telephone": "098",
+        "__typename": "UserType"
+      },
+      "testFlag": false,
+      "definition": {
+        "sections": [
+          {
+            "label": "Page 1",
+            "questions": [
+              {
+                "label": "\u0e08\u0e33\u0e19\u0e27\u0e19\u0e1c\u0e39\u0e49\u0e1b\u0e48\u0e27\u0e22",
+                "fields": [
+                  {
+                    "id": "no_sickness",
+                    "min": 1,
+                    "name": "no_sickness",
+                    "type": "integer",
+                    "label": "",
+                    "required": false
+                  }
+                ],
+                "description": ""
+              },
+              {
+                "label": "\u0e0a\u0e37\u0e48\u0e2d\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e17\u0e35\u0e48\u0e1e\u0e1a\u0e1c\u0e39\u0e49\u0e1b\u0e48\u0e27\u0e22",
+                "fields": [
+                  {
+                    "id": "name_location",
+                    "name": "name_location",
+                    "type": "text",
+                    "label": "",
+                    "required": true
+                  }
+                ],
+                "description": ""
+              },
+              {
+                "label": "\u0e23\u0e30\u0e1a\u0e38\u0e1e\u0e34\u0e01\u0e31\u0e14\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e17\u0e35\u0e48\u0e1e\u0e1a\u0e1c\u0e39\u0e49\u0e1b\u0e48\u0e27\u0e22",
+                "fields": [
+                  {
+                    "id": "location gps",
+                    "name": "location gps",
+                    "type": "location",
+                    "label": "",
+                    "required": false
+                  }
+                ],
+                "description": ""
+              }
+            ]
+          },
+          {
+            "label": "Page 2",
+            "questions": [
+              {
+                "label": "\u0e2d\u0e32\u0e01\u0e32\u0e23\u0e23\u0e30\u0e1a\u0e1a\u0e17\u0e32\u0e07\u0e40\u0e14\u0e34\u0e19\u0e2d\u0e32\u0e2b\u0e32\u0e23",
+                "fields": [
+                  {
+                    "id": "digestive_system",
+                    "name": "digestive_system",
+                    "type": "multiplechoices",
+                    "label": "",
+                    "options": [
+                      {
+                        "label": "\u0e17\u0e49\u0e2d\u0e07\u0e40\u0e2a\u0e35\u0e22",
+                        "value": "\u0e17\u0e49\u0e2d\u0e07\u0e40\u0e2a\u0e35\u0e22"
+                      },
+                      {
+                        "label": "\u0e04\u0e25\u0e37\u0e48\u0e19\u0e44\u0e2a\u0e49/\u0e2d\u0e32\u0e40\u0e08\u0e35\u0e22\u0e19",
+                        "value": "\u0e04\u0e25\u0e37\u0e48\u0e19\u0e44\u0e2a\u0e49/\u0e2d\u0e32\u0e40\u0e08\u0e35\u0e22\u0e19"
+                      },
+                      {
+                        "label": "\u0e1b\u0e27\u0e14\u0e17\u0e49\u0e2d\u0e07",
+                        "value": "\u0e1b\u0e27\u0e14\u0e17\u0e49\u0e2d\u0e07"
+                      },
+                      {
+                        "label": "\u0e2d\u0e37\u0e48\u0e19\u0e46 (\u0e23\u0e30\u0e1a\u0e38)",
+                        "value": "\u0e2d\u0e37\u0e48\u0e19\u0e46 (\u0e23\u0e30\u0e1a\u0e38)",
+                        "textInput": true
+                      }
+                    ],
+                    "required": false
+                  }
+                ],
+                "description": ""
+              },
+              {
+                "label": "\u0e2d\u0e32\u0e01\u0e32\u0e23\u0e23\u0e30\u0e1a\u0e1a\u0e17\u0e32\u0e07\u0e40\u0e14\u0e34\u0e19\u0e2b\u0e32\u0e22\u0e43\u0e08",
+                "fields": [
+                  {
+                    "id": "respiratory_system",
+                    "name": "respiratory_system",
+                    "type": "multiplechoices",
+                    "label": "",
+                    "options": [
+                      {
+                        "label": "\u0e21\u0e35\u0e44\u0e02\u0e49",
+                        "value": "\u0e21\u0e35\u0e44\u0e02\u0e49"
+                      },
+                      {
+                        "label": "\u0e44\u0e2d",
+                        "value": "\u0e44\u0e2d"
+                      },
+                      {
+                        "label": "\u0e40\u0e08\u0e47\u0e1a\u0e04\u0e2d",
+                        "value": "\u0e40\u0e08\u0e47\u0e1a\u0e04\u0e2d"
+                      },
+                      {
+                        "label": "\u0e21\u0e35\u0e40\u0e2a\u0e21\u0e2b\u0e30",
+                        "value": "\u0e21\u0e35\u0e40\u0e2a\u0e21\u0e2b\u0e30"
+                      },
+                      {
+                        "label": "\u0e2b\u0e32\u0e22\u0e43\u0e08\u0e40\u0e2b\u0e19\u0e37\u0e48\u0e2d\u0e22\u0e2b\u0e2d\u0e1a",
+                        "value": "\u0e2b\u0e32\u0e22\u0e43\u0e08\u0e40\u0e2b\u0e19\u0e37\u0e48\u0e2d\u0e22\u0e2b\u0e2d\u0e1a"
+                      },
+                      {
+                        "label": "\u0e2d\u0e37\u0e48\u0e19\u0e46 (\u0e23\u0e30\u0e1a\u0e38)",
+                        "value": "\u0e2d\u0e37\u0e48\u0e19\u0e46 (\u0e23\u0e30\u0e1a\u0e38)",
+                        "textInput": true
+                      }
+                    ],
+                    "required": false
+                  }
+                ],
+                "description": ""
+              },
+              {
+                "label": "\u0e2d\u0e32\u0e01\u0e32\u0e23\u0e44\u0e02\u0e49 \u0e1c\u0e37\u0e48\u0e19 \u0e15\u0e38\u0e48\u0e21",
+                "fields": [
+                  {
+                    "id": "fever_skin_system",
+                    "name": "fever_skin_system",
+                    "type": "multiplechoices",
+                    "label": "",
+                    "options": [
+                      {
+                        "label": "\u0e21\u0e35\u0e44\u0e02\u0e49\u0e23\u0e48\u0e27\u0e21\u0e01\u0e31\u0e1a\u0e1c\u0e37\u0e48\u0e19\u0e19\u0e39\u0e19\u0e41\u0e14\u0e07",
+                        "value": "\u0e21\u0e35\u0e44\u0e02\u0e49\u0e23\u0e48\u0e27\u0e21\u0e01\u0e31\u0e1a\u0e1c\u0e37\u0e48\u0e19\u0e19\u0e39\u0e19\u0e41\u0e14\u0e07"
+                      },
+                      {
+                        "label": "\u0e21\u0e35\u0e44\u0e02\u0e49\u0e23\u0e48\u0e27\u0e21\u0e01\u0e31\u0e1a\u0e08\u0e38\u0e14\u0e41\u0e14\u0e07",
+                        "value": "\u0e21\u0e35\u0e44\u0e02\u0e49\u0e23\u0e48\u0e27\u0e21\u0e01\u0e31\u0e1a\u0e08\u0e38\u0e14\u0e41\u0e14\u0e07"
+                      },
+                      {
+                        "label": "\u0e21\u0e35\u0e44\u0e02\u0e49\u0e23\u0e48\u0e27\u0e21\u0e01\u0e31\u0e1a\u0e15\u0e38\u0e48\u0e21",
+                        "value": "\u0e21\u0e35\u0e44\u0e02\u0e49\u0e23\u0e48\u0e27\u0e21\u0e01\u0e31\u0e1a\u0e15\u0e38\u0e48\u0e21"
+                      },
+                      {
+                        "label": "\u0e2d\u0e37\u0e48\u0e19\u0e46 (\u0e23\u0e30\u0e1a\u0e38)",
+                        "value": "\u0e2d\u0e37\u0e48\u0e19\u0e46 (\u0e23\u0e30\u0e1a\u0e38)",
+                        "textInput": true
+                      }
+                    ],
+                    "required": false
+                  }
+                ],
+                "description": ""
+              },
+              {
+                "label": "\u0e2d\u0e32\u0e01\u0e32\u0e23\u0e2d\u0e37\u0e48\u0e19\u0e46",
+                "fields": [
+                  {
+                    "id": "other_symptom",
+                    "name": "other_symptom",
+                    "type": "text",
+                    "label": "",
+                    "required": false
+                  }
+                ],
+                "description": ""
+              },
+              {
+                "label": "\u0e42\u0e23\u0e04\u0e17\u0e35\u0e48\u0e2a\u0e07\u0e2a\u0e31\u0e22\u0e27\u0e48\u0e32\u0e1b\u0e48\u0e27\u0e22",
+                "fields": [
+                  {
+                    "id": "sickness_suspected",
+                    "name": "sickness_suspected",
+                    "type": "singlechoices",
+                    "label": "",
+                    "options": [
+                      {
+                        "label": "\u0e44\u0e02\u0e49\u0e2b\u0e27\u0e31\u0e14\u0e43\u0e2b\u0e0d\u0e48",
+                        "value": "\u0e44\u0e02\u0e49\u0e2b\u0e27\u0e31\u0e14\u0e43\u0e2b\u0e0d\u0e48"
+                      },
+                      {
+                        "label": "\u0e44\u0e02\u0e49\u0e40\u0e25\u0e37\u0e2d\u0e14\u0e2d\u0e2d\u0e01",
+                        "value": "\u0e44\u0e02\u0e49\u0e40\u0e25\u0e37\u0e2d\u0e14\u0e2d\u0e2d\u0e01"
+                      },
+                      {
+                        "label": "\u0e2d\u0e32\u0e2b\u0e32\u0e23\u0e40\u0e1b\u0e47\u0e19\u0e1e\u0e34\u0e29",
+                        "value": "\u0e2d\u0e32\u0e2b\u0e32\u0e23\u0e40\u0e1b\u0e47\u0e19\u0e1e\u0e34\u0e29"
+                      },
+                      {
+                        "label": "\u0e42\u0e23\u0e04\u0e21\u0e37\u0e2d \u0e40\u0e17\u0e49\u0e32 \u0e1b\u0e32\u0e01",
+                        "value": "\u0e42\u0e23\u0e04\u0e21\u0e37\u0e2d \u0e40\u0e17\u0e49\u0e32 \u0e1b\u0e32\u0e01"
+                      },
+                      {
+                        "label": "\u0e44\u0e21\u0e48\u0e17\u0e23\u0e32\u0e1a/\u0e44\u0e21\u0e48\u0e41\u0e19\u0e48\u0e43\u0e08",
+                        "value": "\u0e44\u0e21\u0e48\u0e17\u0e23\u0e32\u0e1a/\u0e44\u0e21\u0e48\u0e41\u0e19\u0e48\u0e43\u0e08"
+                      }
+                    ],
+                    "required": true
+                  }
+                ],
+                "description": ""
+              }
+            ]
+          },
+          {
+            "label": "Page 3",
+            "questions": [
+              {
+                "label": "\u0e20\u0e32\u0e1e\u0e16\u0e48\u0e32\u0e22",
+                "fields": [
+                  {
+                    "id": "images",
+                    "name": "images",
+                    "type": "images",
+                    "label": "",
+                    "required": false
+                  }
+                ],
+                "description": ""
+              },
+              {
+                "label": "\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e40\u0e23\u0e34\u0e48\u0e21\u0e1b\u0e48\u0e27\u0e22",
+                "fields": [
+                  {
+                    "id": "sickness_date",
+                    "name": "sickness_date",
+                    "type": "date",
+                    "label": "",
+                    "required": true,
+                    "withTime": false,
+                    "separatedFields": true
+                  }
+                ],
+                "description": ""
+              },
+              {
+                "label": "\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e23\u0e32\u0e22\u0e07\u0e32\u0e19",
+                "fields": [
+                  {
+                    "id": "report_date",
+                    "name": "report_date",
+                    "tags": "incident_date",
+                    "type": "date",
+                    "label": "",
+                    "required": true,
+                    "withTime": false,
+                    "separatedFields": true
+                  }
+                ],
+                "description": ""
+              }
+            ]
+          }
+        ]
+      },
+      "__typename": "IncidentReportType"
+    }
+  }
+}

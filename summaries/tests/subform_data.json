@@ -1,0 +1,370 @@
+{
+  "data": {
+    "incidentReport": {
+      "id": "606f6953-c6db-47e9-b8d6-8f6be056092f",
+      "createdAt": "2023-07-31T08:57:45.144679+00:00",
+      "incidentDate": "2023-07-31",
+      "gpsLocation": "",
+      "updatedAt": "2023-07-31T08:57:45.144699+00:00",
+      "rendererData": "",
+      "caseId": null,
+      "threadId": 450,
+      "data": {
+        "tz": "Asia/Bangkok",
+        "audio1": {},
+        "members": {
+          "value": "members_1690793832202, members_1690793841218, members_1690793848009",
+          "members_1": {
+            "tz": "",
+            "age": 11,
+            "name": "aaa",
+            "age__value": "11",
+            "name__value": "aaa",
+            "subformTitle": "name aaa",
+            "subformDescription": "age 11 "
+          },
+          "members_2": {
+            "tz": "",
+            "age": 22,
+            "name": "bb",
+            "age__value": "22",
+            "name__value": "bb",
+            "subformTitle": "name bb",
+            "subformDescription": "age 22 "
+          },
+          "members_3": {
+            "tz": "",
+            "age": 33,
+            "name": "cc",
+            "age__value": "33",
+            "name__value": "cc",
+            "subformTitle": "name cc",
+            "subformDescription": "age 33 "
+          }
+        },
+        "audio1__value": "",
+        "members__value": "members_1690793832202, members_1690793841218, members_1690793848009"
+      },
+      "reportType": {
+        "id": "7730eb3f-7529-4cb4-8584-e602a9bb0777",
+        "name": "Test new feature",
+        "definition": {
+          "sections": [
+            {
+              "label": "test",
+              "questions": [
+                {
+                  "label": "attach",
+                  "fields": [
+                    {
+                      "id": "audio1",
+                      "max": 5,
+                      "min": 0,
+                      "name": "audio1",
+                      "type": "files",
+                      "audio": true,
+                      "label": "",
+                      "video": true,
+                      "maxSize": 5242880,
+                      "document": true,
+                      "required": false,
+                      "supports": [
+                        "audio/mid",
+                        "audio/mpeg",
+                        "audio/mp4",
+                        "audio/m4a",
+                        "audio/ogg",
+                        "audio/webm",
+                        "audio/wav",
+                        "audio/x-wav",
+                        "audio/x-m4a",
+                        "audio/x-ms-wma",
+                        "video/mpeg",
+                        "video/x-mpeg",
+                        "video/mp4",
+                        "video/ogg",
+                        "video/webm",
+                        "video/quicktime",
+                        "video/x-quicktime",
+                        "video/avi",
+                        "video/x-m4v",
+                        "video/x-ms-wmv",
+                        "video/x-ms-asf",
+                        "video/msvideo",
+                        "video/x-msvideo",
+                        "text/plain",
+                        "application/rtf",
+                        "application/pdf",
+                        "application/msword",
+                        "application/vnd.openxmlformats",
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        "application/excel",
+                        "application/vnd.ms-excel",
+                        "application/x-excel",
+                        "application/x-msexcel",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        "application/powerpoint",
+                        "application/mspowerpoint",
+                        "application/x-mspowerpoint",
+                        "application/vnd.ms-powerpoint",
+                        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        "application/vnd.oasis.opendocument.text",
+                        "application/vnd.oasis.opendocument.presentation",
+                        "application/vnd.oasis.opendocument.spreadsheet"
+                      ]
+                    }
+                  ],
+                  "description": ""
+                },
+                {
+                  "label": "members",
+                  "fields": [
+                    {
+                      "id": "members",
+                      "name": "members",
+                      "type": "subform",
+                      "label": "",
+                      "formRef": "member",
+                      "required": false,
+                      "titleTemplate": "name {name}",
+                      "descriptionTemplate": "age {age} "
+                    }
+                  ],
+                  "description": ""
+                },
+                {
+                  "label": "Pets",
+                  "fields": [
+                    {
+                      "id": "pets",
+                      "name": "pets",
+                      "type": "subform",
+                      "label": "",
+                      "formRef": "pets",
+                      "required": false,
+                      "titleTemplate": "{name}",
+                      "descriptionTemplate": "vaccine {vaccine}"
+                    }
+                  ],
+                  "description": ""
+                }
+              ]
+            }
+          ],
+          "subforms": {
+            "pets": {
+              "sections": [
+                {
+                  "label": "page1",
+                  "questions": [
+                    {
+                      "label": "name",
+                      "fields": [
+                        {
+                          "id": "name",
+                          "name": "name",
+                          "type": "text",
+                          "label": "",
+                          "required": false
+                        }
+                      ],
+                      "description": ""
+                    },
+                    {
+                      "label": "vaccine",
+                      "fields": [
+                        {
+                          "id": "vaccine",
+                          "name": "vaccine",
+                          "type": "singlechoices",
+                          "label": "",
+                          "options": [
+                            {
+                              "label": "Yes",
+                              "value": "Yes"
+                            },
+                            {
+                              "label": "No",
+                              "value": "No"
+                            }
+                          ],
+                          "required": false
+                        }
+                      ],
+                      "description": ""
+                    }
+                  ]
+                }
+              ],
+              "subforms": {}
+            },
+            "member": {
+              "sections": [
+                {
+                  "label": "People",
+                  "questions": [
+                    {
+                      "label": "name",
+                      "fields": [
+                        {
+                          "id": "name",
+                          "name": "name",
+                          "type": "text",
+                          "label": "name",
+                          "required": false
+                        },
+                        {
+                          "id": "age",
+                          "name": "age",
+                          "type": "integer",
+                          "label": "age",
+                          "required": false
+                        }
+                      ],
+                      "description": ""
+                    }
+                  ]
+                }
+              ],
+              "subforms": {}
+            }
+          }
+        },
+        "__typename": "ReportTypeType"
+      },
+      "platform": null,
+      "coverImage": null,
+      "images": [],
+      "uploadFiles": [],
+      "reportedBy": {
+        "firstName": "bkk1.",
+        "lastName": "bkk1",
+        "id": "21",
+        "telephone": "098",
+        "__typename": "UserType"
+      },
+      "testFlag": false,
+      "definition": {
+        "sections": [
+          {
+            "label": "test",
+            "questions": [
+              {
+                "label": "members",
+                "fields": [
+                  {
+                    "id": "members",
+                    "name": "members",
+                    "type": "subform",
+                    "label": "field subform",
+                    "formRef": "subform_1",
+                    "required": false,
+                    "titleTemplate": "name {name}",
+                    "descriptionTemplate": "age {age} "
+                  }
+                ],
+                "description": ""
+              },
+              {
+                "label": "attach",
+                "fields": [
+                  {
+                    "id": "audio1",
+                    "max": 5,
+                    "min": 0,
+                    "name": "audio1",
+                    "type": "files",
+                    "audio": true,
+                    "label": "",
+                    "video": true,
+                    "maxSize": 5242880,
+                    "document": true,
+                    "required": false,
+                    "supports": [
+                      "audio/mid",
+                      "audio/mpeg",
+                      "audio/mp4",
+                      "audio/m4a",
+                      "audio/ogg",
+                      "audio/webm",
+                      "audio/wav",
+                      "audio/x-wav",
+                      "audio/x-m4a",
+                      "audio/x-ms-wma",
+                      "video/mpeg",
+                      "video/x-mpeg",
+                      "video/mp4",
+                      "video/ogg",
+                      "video/webm",
+                      "video/quicktime",
+                      "video/x-quicktime",
+                      "video/avi",
+                      "video/x-m4v",
+                      "video/x-ms-wmv",
+                      "video/x-ms-asf",
+                      "video/msvideo",
+                      "video/x-msvideo",
+                      "text/plain",
+                      "application/rtf",
+                      "application/pdf",
+                      "application/msword",
+                      "application/vnd.openxmlformats",
+                      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                      "application/excel",
+                      "application/vnd.ms-excel",
+                      "application/x-excel",
+                      "application/x-msexcel",
+                      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                      "application/powerpoint",
+                      "application/mspowerpoint",
+                      "application/x-mspowerpoint",
+                      "application/vnd.ms-powerpoint",
+                      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                      "application/vnd.oasis.opendocument.text",
+                      "application/vnd.oasis.opendocument.presentation",
+                      "application/vnd.oasis.opendocument.spreadsheet"
+                    ]
+                  }
+                ],
+                "description": ""
+              }
+            ]
+          }
+        ],
+        "subforms": {
+          "subform_1": {
+            "sections": [
+              {
+                "label": "People",
+                "questions": [
+                  {
+                    "label": "name",
+                    "fields": [
+                      {
+                        "id": "name",
+                        "name": "name",
+                        "type": "text",
+                        "label": "name",
+                        "required": false
+                      },
+                      {
+                        "id": "age",
+                        "name": "age",
+                        "type": "integer",
+                        "label": "age",
+                        "required": false
+                      }
+                    ],
+                    "description": ""
+                  }
+                ]
+              }
+            ],
+            "subforms": {}
+          }
+        }
+      },
+      "__typename": "IncidentReportType"
+    }
+  }
+}
