@@ -34,6 +34,6 @@ class CustomOAuth2Validator(OAuth2Validator):
         if user.is_authority_user:
             authority = user.authorityuser.authority
             ids = [a.id for a in authority.all_inherits_up()]
-            claims["ids"] = str.join(".", [str(id) for id in reversed(ids)])
+            claims["ids"] = str.join(".", [str(id) for id in ids])
 
         return claims
