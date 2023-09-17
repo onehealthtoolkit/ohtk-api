@@ -69,6 +69,8 @@ class Form:
     def __init__(self, id):
         self.id = id
         self.values = Values(None)
+        self.report_td = ""
+        self.header = {}
 
     def registerValues(self):
         for section in self.sections:
@@ -86,36 +88,50 @@ class Form:
             section.toJsonValue(json)
         return json
 
-    def toJsonDataFrameValue(self, reportId, data):
-        self.reportId = str(reportId)
+    def toJsonValue(self):
+        json = {}
+        # this.subforms.forEach(subform => subform.toJsonValue());
+        for section in self.sections:
+            section.toJsonValue(json)
+        return json
+
+    def toJsonDataFrameValue(self, report_td, data, incident_data, header={}):
+        self.report_td = report_td
+        self.header = header
         self.loadJsonValue(data)
-        data = self.toJsonValue()
-        data["reportId"] = self.reportId
+        value = self.toJsonValue()
         list = []
-        df = {"name": "df"}
-        list.append(df)
-        for key in data:
-            if type(data[key]) == type(dict()):
-                list.append(
-                    {
-                        "name": key,
-                        "data": self.__tosubformValue(data[key]),
-                    }
-                )
+        data = {"__name": "df"}
+        data[header.get("__reportId", "__reportId")] = self.report_td
+        for item in incident_data:
+            if item in header:
+                data[header[item]] = incident_data[item]
             else:
-                df[key] = data[key]
+                data[item] = incident_data[item]
+
+        list.append(data)
+        for key in value:
+            if self.__isSubform(key):
+                list = list + value[key]
+            else:
+                data[key] = value[key]
         return list
 
-    def __tosubformValue(self, data):
-        list = []
-        for key in data:
-            if type(data[key]) == type(dict()):
-                df = {"reportId": self.reportId}
-                list.append(df)
-                data2 = data[key]
-                for key2 in data2:
-                    df[key2] = data2[key2]
-        return list
+    def toJsonDataHeaders(self):
+        json = {}
+        for section in self.sections:
+            for question in section.questions:
+                for field in question.fields:
+                    json[field.name] = field.label or field.name
+        return json
+
+    def __isSubform(self, fieldName):
+        for section in self.sections:
+            for question in section.questions:
+                for field in question.fields:
+                    if field.name == fieldName and field.type == "subform":
+                        return field
+        return None
 
 
 class Field:
@@ -145,7 +161,7 @@ class Field:
     def toJsonValue(self, json):
         # print(self.name + "-" + self.label + "-" + str(self.type))
         json[self.name] = self.value
-        json[self.name + "__value"] = self.renderedValue
+        # json[self.name + "__value"] = self.renderedValue
 
     @property
     def renderedValue(self):
@@ -279,7 +295,7 @@ class SingleChoicesField(Field):
     def toJsonValue(self, json):
         json[self.name] = self.value or ""
         json[self.name + "_text"] = self.text or ""
-        json[self.name + "__value"] = self.renderedValue
+        # json[self.name + "__value"] = self.renderedValue
 
     @property
     def renderedValue(self):
@@ -326,7 +342,7 @@ class MultipleChoicesField(Field):
 
         values["value"] = self.value
         json[self.name] = values
-        json[self.name + "__value"] = self.renderedValue
+        # json[self.name + "__value"] = self.renderedValue
 
     @property
     def value(self):
@@ -390,7 +406,45 @@ class LocationField(PrimitiveField):
 
     def toJsonValue(self, json):
         json["location"] = self.value
-        json["location__value"] = self.renderedValue
+        # json["location__value"] = self.renderedValue
+
+
+class SubformField(PrimitiveField):
+    def __init__(self, id, name, params):
+        super().__init__(id, name, params)
+        self.formRef = params["formRef"]
+        self.titleTemplate = params["titleTemplate"]
+        self.descriptionTemplate = params["descriptionTemplate"]
+
+    def loadJsonValue(self, json):
+        if self.name in json:
+            self.value = json[self.name]
+        else:
+            self.value = ""
+
+    def toJsonValue(self, json):
+        values = []
+        json[self.name] = values
+        subform = next((x for x in self.form.subforms if x.id == self.formRef), None)
+        for key, value in self.value.items():
+            if type(value) == type(dict()):
+                subform.loadJsonValue(value)
+                data = {}
+                data["__name"] = self.name
+                data[
+                    self.form.header.get("__reportId", "__reportId")
+                ] = self.form.report_td
+                data["__key"] = key
+                data = {**data, **subform.toJsonValue()}
+                values.append(data)
+        return values
+
+    @property
+    def renderedValue(self):
+        if self.value is None:
+            return ""
+        else:
+            return f"{self.value}  (Lng,Lat)"
 
 
 class Values:
@@ -410,9 +464,21 @@ class ValueDelegate:
 
 def parseForm(json):
     form = Form(json.get("id", 0))
+    if json.get("subforms") is not None:
+        form.subforms = parseSubform(json.get("subforms"))
     form.sections = list(map(parseSection, json.get("sections")))
     form.registerValues()
     return form
+
+
+def parseSubform(json):
+    subforms = []
+    for id, formType in json.items():
+        subform = Form(id)
+        subform.sections = list(map(parseSection, formType.get("sections")))
+        subform.registerValues()
+        subforms.append(subform)
+    return subforms
 
 
 def parseSection(json):
@@ -484,7 +550,7 @@ def parseField(json):
             },
         )
     elif json["type"] == "location":
-        return LocationField(json["id"], json["name"], commonParams)
+        return LocationField(json["id"], json["name"] or "location", commonParams)
     elif json["type"] == "singlechoices":
         return SingleChoicesField(
             json.get("id"), json.get("name"), json.get("options"), commonParams
@@ -503,6 +569,17 @@ def parseField(json):
                 "minMessage": json.get("minMessage"),
                 "max": json.get("max"),
                 "maxMessage": json.get("maxMessage"),
+            },
+        )
+    elif json["type"] == "subform":
+        return SubformField(
+            json.get("id"),
+            json.get("name"),
+            {
+                **commonParams,
+                "formRef": json.get("formRef"),
+                "titleTemplate": json.get("titleTemplate"),
+                "descriptionTemplate": json.get("descriptionTemplate"),
             },
         )
     else:

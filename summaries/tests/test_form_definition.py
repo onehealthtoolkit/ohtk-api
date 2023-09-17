@@ -38,13 +38,20 @@ class FormDefinitionTestCase(BaseTestCase):
         data = json.load(f)
         f.close()
         form = parseForm(data["data"]["incidentReport"]["definition"])
-        # form.toJsonDataFrameValue(data["data"]["incidentReport"])
-        print(
-            json.dumps(
-                form.toJsonDataFrameValue(
-                    data["data"]["incidentReport"]["id"],
-                    data["data"]["incidentReport"]["data"],
-                ),
-                indent=4,
-            )
+        dataList = []
+        dataList = dataList + form.toJsonDataFrameValue(
+            report_td=data["data"]["incidentReport"]["id"],
+            data=data["data"]["incidentReport"]["data"],
+            incident_data={
+                "incidentDate": data["data"]["incidentReport"]["incidentDate"],
+            },
+            header={"incidentDate": "Incident Date"},
         )
+
+        data = {}
+        for d in dataList:
+            data.setdefault(d["__name"], []).append(d)
+
+        for key in data:
+            df = data[key]
+            print(json.dumps(df, indent=4))

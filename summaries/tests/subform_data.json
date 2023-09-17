@@ -1,231 +1,314 @@
 {
   "data": {
     "incidentReport": {
-      "id": "606f6953-c6db-47e9-b8d6-8f6be056092f",
-      "createdAt": "2023-07-31T08:57:45.144679+00:00",
-      "incidentDate": "2023-07-31",
-      "gpsLocation": "",
-      "updatedAt": "2023-07-31T08:57:45.144699+00:00",
-      "rendererData": "",
+      "id": "6048ab74-6777-4bf9-bf7e-90afc5322fde",
+      "createdAt": "2023-09-14T04:20:52.656930+00:00",
+      "incidentDate": "2023-09-14",
+      "gpsLocation": "-122.40642,37.78583",
+      "updatedAt": "2023-09-14T04:20:52.656970+00:00",
+      "rendererData": "\u0e23\u0e32\u0e22\u0e07\u0e32\u0e19\u0e04\u0e27\u0e32\u0e21\u0e40\u0e2a\u0e35\u0e48\u0e22\u0e07: \u0e1e\u0e1adengue \u0e17\u0e35\u0e48 \u0e27\u0e31\u0e19\u0e17\u0e35\u0e48 Sept. 14, 2023TextField is most useful and used field in any development platform same as in Flutter Development.",
       "caseId": null,
-      "threadId": 450,
+      "threadId": 16,
       "data": {
+        "": "-122.40641713142396,37.78583393502708",
         "tz": "Asia/Bangkok",
-        "audio1": {},
-        "members": {
-          "value": "members_1690793832202, members_1690793841218, members_1690793848009",
-          "members_1": {
+        "age": 45,
+        "area": "test area\t",
+        "date": "2023-09-14T00:00:00.000+07:00",
+        "more": "no detail",
+        "sub1": {
+          "value": "sub1_1694665092420, sub1_1694665167179",
+          "sub1_1": {
+            "f1": "F11",
+            "f2": "F22",
             "tz": "",
-            "age": 11,
-            "name": "aaa",
-            "age__value": "11",
-            "name__value": "aaa",
-            "subformTitle": "name aaa",
-            "subformDescription": "age 11 "
+            "f1__value": "F11",
+            "f2__value": "F22",
+            "subformTitle": "Title Template test  {{ data.f1__value }} XXX: {{ data.f2__value }}",
+            "subformDescription": "DescriptionTemplate testestest {{ data.f1__value }} XXX: {{ data.f2__value }}  F11 F22"
           },
-          "members_2": {
+          "sub1_2": {
+            "f1": "FFFF11111",
+            "f2": "FFFF22222",
             "tz": "",
-            "age": 22,
-            "name": "bb",
-            "age__value": "22",
-            "name__value": "bb",
-            "subformTitle": "name bb",
-            "subformDescription": "age 22 "
-          },
-          "members_3": {
-            "tz": "",
-            "age": 33,
-            "name": "cc",
-            "age__value": "33",
-            "name__value": "cc",
-            "subformTitle": "name cc",
-            "subformDescription": "age 33 "
+            "f1__value": "FFFF11111",
+            "f2__value": "FFFF22222",
+            "subformTitle": "Title Template test  {{ data.f1__value }} XXX: {{ data.f2__value }}",
+            "subformDescription": "DescriptionTemplate testestest {{ data.f1__value }} XXX: {{ data.f2__value }}  FFFF11111 FFFF22222"
           }
         },
-        "audio1__value": "",
-        "members__value": "members_1690793832202, members_1690793841218, members_1690793848009"
+        "images": [
+          "c81c6e00-0ccb-489e-b811-dfcbb0053b0b",
+          "1d5da196-7936-40c1-a370-a3601c67200f"
+        ],
+        "__value": "-122.40641713142396,37.78583393502708 (Lng,Lat)",
+        "disease": "dengue",
+        "symptom": {
+          "cough": true,
+          "fever": true,
+          "other": true,
+          "value": "fever, cough, sore_throat, other",
+          "cough_text": "cough",
+          "other_text": "other",
+          "sore_throat": true,
+          "sore_throat_text": "sore throat"
+        },
+        "lastName": "Chaidee",
+        "firstName": "Wattana",
+        "age__value": "45",
+        "area__value": "test area\t",
+        "date__value": "2023-09-14",
+        "more__value": "no detail",
+        "sub1__value": "sub1_1694665092420, sub1_1694665167179",
+        "disease_text": null,
+        "images__value": "c81c6e00-0ccb-489e-b811-dfcbb0053b0b, 1d5da196-7936-40c1-a370-a3601c67200f",
+        "disease__value": "dengue",
+        "symptom__value": "fever, cough - cough, sore_throat - sore throat, other - other",
+        "lastName__value": "Chaidee",
+        "firstName__value": "Wattana"
       },
       "reportType": {
-        "id": "7730eb3f-7529-4cb4-8584-e602a9bb0777",
-        "name": "Test new feature",
+        "id": "3d37aaf6-01ff-4d6c-b2f3-806403c20a9c",
+        "name": "\u0e23\u0e32\u0e22\u0e07\u0e32\u0e19\u0e04\u0e27\u0e32\u0e21\u0e40\u0e2a\u0e35\u0e48\u0e22\u0e07",
         "definition": {
           "sections": [
             {
-              "label": "test",
+              "label": "page1",
               "questions": [
                 {
-                  "label": "attach",
+                  "label": "disease",
                   "fields": [
                     {
-                      "id": "audio1",
-                      "max": 5,
-                      "min": 0,
-                      "name": "audio1",
-                      "type": "files",
-                      "audio": true,
-                      "label": "",
-                      "video": true,
-                      "maxSize": 5242880,
-                      "document": true,
+                      "id": "disease",
+                      "name": "disease",
+                      "type": "singlechoices",
+                      "label": "Field",
+                      "options": [
+                        {
+                          "label": "dengue",
+                          "value": "dengue"
+                        },
+                        {
+                          "label": "mers",
+                          "value": "mers"
+                        },
+                        {
+                          "label": "flu",
+                          "value": "flu",
+                          "textInput": true
+                        },
+                        {
+                          "label": "sars",
+                          "value": "sars",
+                          "textInput": true
+                        },
+                        {
+                          "label": "other",
+                          "value": "other",
+                          "textInput": true
+                        }
+                      ],
+                      "required": true
+                    },
+                    {
+                      "id": "area",
+                      "name": "area",
+                      "rows": 4,
+                      "type": "textarea",
+                      "label": "Area1",
+                      "required": false
+                    },
+                    {
+                      "id": "sub1",
+                      "name": "sub1",
+                      "type": "subform",
+                      "label": "Sub-form1",
+                      "formRef": "subform_1",
                       "required": false,
-                      "supports": [
-                        "audio/mid",
-                        "audio/mpeg",
-                        "audio/mp4",
-                        "audio/m4a",
-                        "audio/ogg",
-                        "audio/webm",
-                        "audio/wav",
-                        "audio/x-wav",
-                        "audio/x-m4a",
-                        "audio/x-ms-wma",
-                        "video/mpeg",
-                        "video/x-mpeg",
-                        "video/mp4",
-                        "video/ogg",
-                        "video/webm",
-                        "video/quicktime",
-                        "video/x-quicktime",
-                        "video/avi",
-                        "video/x-m4v",
-                        "video/x-ms-wmv",
-                        "video/x-ms-asf",
-                        "video/msvideo",
-                        "video/x-msvideo",
-                        "text/plain",
-                        "application/rtf",
-                        "application/pdf",
-                        "application/msword",
-                        "application/vnd.openxmlformats",
-                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        "application/excel",
-                        "application/vnd.ms-excel",
-                        "application/x-excel",
-                        "application/x-msexcel",
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        "application/powerpoint",
-                        "application/mspowerpoint",
-                        "application/x-mspowerpoint",
-                        "application/vnd.ms-powerpoint",
-                        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                        "application/vnd.oasis.opendocument.text",
-                        "application/vnd.oasis.opendocument.presentation",
-                        "application/vnd.oasis.opendocument.spreadsheet"
-                      ]
+                      "titleTemplate": "Title Template test  {{ data.f1__value }} XXX: {{ data.f2__value }}",
+                      "descriptionTemplate": "DescriptionTemplate testestest {{ data.f1__value }} XXX: {{ data.f2__value }}  {f1} {f2}"
                     }
                   ],
                   "description": ""
                 },
                 {
-                  "label": "members",
+                  "label": "give me more detail",
                   "fields": [
                     {
-                      "id": "members",
-                      "name": "members",
-                      "type": "subform",
-                      "label": "",
-                      "formRef": "member",
-                      "required": false,
-                      "titleTemplate": "name {name}",
-                      "descriptionTemplate": "age {age} "
+                      "id": "more",
+                      "name": "more",
+                      "type": "text",
+                      "label": "Field",
+                      "required": true
                     }
                   ],
-                  "description": ""
+                  "description": "Please comfirm here"
                 },
                 {
-                  "label": "Pets",
+                  "label": "symptom",
                   "fields": [
                     {
-                      "id": "pets",
-                      "name": "pets",
-                      "type": "subform",
-                      "label": "",
-                      "formRef": "pets",
-                      "required": false,
-                      "titleTemplate": "{name}",
-                      "descriptionTemplate": "vaccine {vaccine}"
+                      "id": "symptom",
+                      "name": "symptom",
+                      "type": "multiplechoices",
+                      "label": "Field",
+                      "options": [
+                        {
+                          "label": "fever",
+                          "value": "fever"
+                        },
+                        {
+                          "label": "cough",
+                          "value": "cough",
+                          "textInput": true
+                        },
+                        {
+                          "label": "sore throat",
+                          "value": "sore_throat",
+                          "textInput": true
+                        },
+                        {
+                          "label": "other",
+                          "value": "other",
+                          "textInput": true
+                        }
+                      ],
+                      "required": true
                     }
                   ],
                   "description": ""
                 }
               ]
+            },
+            {
+              "label": "page4",
+              "questions": [
+                {
+                  "label": "images",
+                  "fields": [
+                    {
+                      "id": "images",
+                      "name": "images",
+                      "type": "images",
+                      "label": "Field",
+                      "required": true
+                    }
+                  ],
+                  "description": ""
+                }
+              ]
+            },
+            {
+              "label": "page2",
+              "questions": [
+                {
+                  "label": "name",
+                  "fields": [
+                    {
+                      "id": "firstName",
+                      "name": "firstName",
+                      "type": "text",
+                      "label": "first name",
+                      "required": true
+                    },
+                    {
+                      "id": "lastName",
+                      "name": "lastName",
+                      "type": "text",
+                      "label": "last name",
+                      "required": true
+                    }
+                  ],
+                  "description": ""
+                },
+                {
+                  "label": "age",
+                  "fields": [
+                    {
+                      "id": "age",
+                      "max": 120,
+                      "min": 0,
+                      "name": "age",
+                      "type": "integer",
+                      "label": "age",
+                      "required": true
+                    }
+                  ],
+                  "description": ""
+                },
+                {
+                  "label": "date",
+                  "fields": [
+                    {
+                      "id": "date",
+                      "name": "date",
+                      "type": "date",
+                      "label": "Date",
+                      "required": true,
+                      "withTime": false,
+                      "separatedFields": false
+                    }
+                  ],
+                  "description": ""
+                }
+              ]
+            },
+            {
+              "label": "Location.",
+              "questions": [
+                {
+                  "label": "Question",
+                  "fields": [
+                    {
+                      "id": "",
+                      "name": "",
+                      "type": "location",
+                      "label": "",
+                      "required": false
+                    }
+                  ],
+                  "description": "Location"
+                }
+              ]
             }
           ],
           "subforms": {
-            "pets": {
+            "subform_1": {
               "sections": [
                 {
-                  "label": "page1",
+                  "label": "Section 1",
                   "questions": [
                     {
-                      "label": "name",
+                      "label": "Quest1",
                       "fields": [
                         {
-                          "id": "name",
-                          "name": "name",
+                          "id": "f1",
+                          "name": "f1",
                           "type": "text",
-                          "label": "",
+                          "label": "F1",
                           "required": false
-                        }
-                      ],
-                      "description": ""
-                    },
-                    {
-                      "label": "vaccine",
-                      "fields": [
+                        },
                         {
-                          "id": "vaccine",
-                          "name": "vaccine",
-                          "type": "singlechoices",
-                          "label": "",
-                          "options": [
-                            {
-                              "label": "Yes",
-                              "value": "Yes"
-                            },
-                            {
-                              "label": "No",
-                              "value": "No"
-                            }
-                          ],
+                          "id": "f2",
+                          "name": "f2",
+                          "type": "text",
+                          "label": "F2",
                           "required": false
                         }
                       ],
-                      "description": ""
+                      "description": "Quest1"
                     }
                   ]
                 }
               ],
               "subforms": {}
             },
-            "member": {
-              "sections": [
-                {
-                  "label": "People",
-                  "questions": [
-                    {
-                      "label": "name",
-                      "fields": [
-                        {
-                          "id": "name",
-                          "name": "name",
-                          "type": "text",
-                          "label": "name",
-                          "required": false
-                        },
-                        {
-                          "id": "age",
-                          "name": "age",
-                          "type": "integer",
-                          "label": "age",
-                          "required": false
-                        }
-                      ],
-                      "description": ""
-                    }
-                  ]
-                }
-              ],
+            "subform_2": {
+              "sections": [],
+              "subforms": {}
+            },
+            "subform_3": {
+              "sections": [],
               "subforms": {}
             }
           }
@@ -234,99 +317,229 @@
       },
       "platform": null,
       "coverImage": null,
-      "images": [],
+      "images": [
+        {
+          "id": "c81c6e00-0ccb-489e-b811-dfcbb0053b0b",
+          "file": "reports/c81c6e00-0ccb-489e-b811-dfcbb0053b0b",
+          "thumbnail": "https://opensur.test/medias/reports/c81c6e00-0ccb-489e-b811-dfcbb0053b0b.200x0_q85_crop-smart.jpg",
+          "imageUrl": "https://opensur.test/medias/reports/c81c6e00-0ccb-489e-b811-dfcbb0053b0b",
+          "__typename": "ImageType"
+        },
+        {
+          "id": "1d5da196-7936-40c1-a370-a3601c67200f",
+          "file": "reports/1d5da196-7936-40c1-a370-a3601c67200f",
+          "thumbnail": "https://opensur.test/medias/reports/1d5da196-7936-40c1-a370-a3601c67200f.200x0_q85_crop-smart.jpg",
+          "imageUrl": "https://opensur.test/medias/reports/1d5da196-7936-40c1-a370-a3601c67200f",
+          "__typename": "ImageType"
+        }
+      ],
       "uploadFiles": [],
       "reportedBy": {
-        "firstName": "bkk1.",
-        "lastName": "bkk1",
-        "id": "21",
-        "telephone": "098",
+        "firstName": "WATTANA",
+        "lastName": "CHAIDEEf",
+        "id": "2",
+        "telephone": "0819103075",
         "__typename": "UserType"
       },
       "testFlag": false,
       "definition": {
         "sections": [
           {
-            "label": "test",
+            "label": "page1",
             "questions": [
               {
-                "label": "members",
+                "label": "disease",
                 "fields": [
                   {
-                    "id": "members",
-                    "name": "members",
+                    "id": "disease",
+                    "name": "disease",
+                    "type": "singlechoices",
+                    "label": "Field",
+                    "options": [
+                      {
+                        "label": "dengue",
+                        "value": "dengue"
+                      },
+                      {
+                        "label": "mers",
+                        "value": "mers"
+                      },
+                      {
+                        "label": "flu",
+                        "value": "flu",
+                        "textInput": true
+                      },
+                      {
+                        "label": "sars",
+                        "value": "sars",
+                        "textInput": true
+                      },
+                      {
+                        "label": "other",
+                        "value": "other",
+                        "textInput": true
+                      }
+                    ],
+                    "required": true
+                  },
+                  {
+                    "id": "area",
+                    "name": "area",
+                    "rows": 4,
+                    "type": "textarea",
+                    "label": "Area1",
+                    "required": false
+                  },
+                  {
+                    "id": "sub1",
+                    "name": "sub1",
                     "type": "subform",
-                    "label": "field subform",
+                    "label": "Sub-form1",
                     "formRef": "subform_1",
                     "required": false,
-                    "titleTemplate": "name {name}",
-                    "descriptionTemplate": "age {age} "
+                    "titleTemplate": "Title Template test  {{ data.f1__value }} XXX: {{ data.f2__value }}",
+                    "descriptionTemplate": "DescriptionTemplate testestest {{ data.f1__value }} XXX: {{ data.f2__value }}  {f1} {f2}"
                   }
                 ],
                 "description": ""
               },
               {
-                "label": "attach",
+                "label": "give me more detail",
                 "fields": [
                   {
-                    "id": "audio1",
-                    "max": 5,
-                    "min": 0,
-                    "name": "audio1",
-                    "type": "files",
-                    "audio": true,
-                    "label": "",
-                    "video": true,
-                    "maxSize": 5242880,
-                    "document": true,
-                    "required": false,
-                    "supports": [
-                      "audio/mid",
-                      "audio/mpeg",
-                      "audio/mp4",
-                      "audio/m4a",
-                      "audio/ogg",
-                      "audio/webm",
-                      "audio/wav",
-                      "audio/x-wav",
-                      "audio/x-m4a",
-                      "audio/x-ms-wma",
-                      "video/mpeg",
-                      "video/x-mpeg",
-                      "video/mp4",
-                      "video/ogg",
-                      "video/webm",
-                      "video/quicktime",
-                      "video/x-quicktime",
-                      "video/avi",
-                      "video/x-m4v",
-                      "video/x-ms-wmv",
-                      "video/x-ms-asf",
-                      "video/msvideo",
-                      "video/x-msvideo",
-                      "text/plain",
-                      "application/rtf",
-                      "application/pdf",
-                      "application/msword",
-                      "application/vnd.openxmlformats",
-                      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                      "application/excel",
-                      "application/vnd.ms-excel",
-                      "application/x-excel",
-                      "application/x-msexcel",
-                      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                      "application/powerpoint",
-                      "application/mspowerpoint",
-                      "application/x-mspowerpoint",
-                      "application/vnd.ms-powerpoint",
-                      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                      "application/vnd.oasis.opendocument.text",
-                      "application/vnd.oasis.opendocument.presentation",
-                      "application/vnd.oasis.opendocument.spreadsheet"
-                    ]
+                    "id": "more",
+                    "name": "more",
+                    "type": "text",
+                    "label": "Field",
+                    "required": true
+                  }
+                ],
+                "description": "Please comfirm here"
+              },
+              {
+                "label": "symptom",
+                "fields": [
+                  {
+                    "id": "symptom",
+                    "name": "symptom",
+                    "type": "multiplechoices",
+                    "label": "Field",
+                    "options": [
+                      {
+                        "label": "fever",
+                        "value": "fever"
+                      },
+                      {
+                        "label": "cough",
+                        "value": "cough",
+                        "textInput": true
+                      },
+                      {
+                        "label": "sore throat",
+                        "value": "sore_throat",
+                        "textInput": true
+                      },
+                      {
+                        "label": "other",
+                        "value": "other",
+                        "textInput": true
+                      }
+                    ],
+                    "required": true
                   }
                 ],
                 "description": ""
+              }
+            ]
+          },
+          {
+            "label": "page4",
+            "questions": [
+              {
+                "label": "images",
+                "fields": [
+                  {
+                    "id": "images",
+                    "name": "images",
+                    "type": "images",
+                    "label": "Field",
+                    "required": true
+                  }
+                ],
+                "description": ""
+              }
+            ]
+          },
+          {
+            "label": "page2",
+            "questions": [
+              {
+                "label": "name",
+                "fields": [
+                  {
+                    "id": "firstName",
+                    "name": "firstName",
+                    "type": "text",
+                    "label": "first name",
+                    "required": true
+                  },
+                  {
+                    "id": "lastName",
+                    "name": "lastName",
+                    "type": "text",
+                    "label": "last name",
+                    "required": true
+                  }
+                ],
+                "description": ""
+              },
+              {
+                "label": "age",
+                "fields": [
+                  {
+                    "id": "age",
+                    "max": 120,
+                    "min": 0,
+                    "name": "age",
+                    "type": "integer",
+                    "label": "age",
+                    "required": true
+                  }
+                ],
+                "description": ""
+              },
+              {
+                "label": "date",
+                "fields": [
+                  {
+                    "id": "date",
+                    "name": "date",
+                    "type": "date",
+                    "label": "Date",
+                    "required": true,
+                    "withTime": false,
+                    "separatedFields": false
+                  }
+                ],
+                "description": ""
+              }
+            ]
+          },
+          {
+            "label": "Location.",
+            "questions": [
+              {
+                "label": "Question",
+                "fields": [
+                  {
+                    "id": "",
+                    "name": "",
+                    "type": "location",
+                    "label": "",
+                    "required": false
+                  }
+                ],
+                "description": "Location"
               }
             ]
           }
@@ -335,31 +548,39 @@
           "subform_1": {
             "sections": [
               {
-                "label": "People",
+                "label": "Section 1",
                 "questions": [
                   {
-                    "label": "name",
+                    "label": "Quest1",
                     "fields": [
                       {
-                        "id": "name",
-                        "name": "name",
+                        "id": "f1",
+                        "name": "f1",
                         "type": "text",
-                        "label": "name",
+                        "label": "F1",
                         "required": false
                       },
                       {
-                        "id": "age",
-                        "name": "age",
-                        "type": "integer",
-                        "label": "age",
+                        "id": "f2",
+                        "name": "f2",
+                        "type": "text",
+                        "label": "F2",
                         "required": false
                       }
                     ],
-                    "description": ""
+                    "description": "Quest1"
                   }
                 ]
               }
             ],
+            "subforms": {}
+          },
+          "subform_2": {
+            "sections": [],
+            "subforms": {}
+          },
+          "subform_3": {
+            "sections": [],
             "subforms": {}
           }
         }
