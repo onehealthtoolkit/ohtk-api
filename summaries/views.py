@@ -256,7 +256,7 @@ def export_incident_report_xls(request):
                     ),
                     "__reported_by__id": row["reported_by__id"],
                     "__reported_by__first_name": row["reported_by__first_name"],
-                    "__case_id": row["case_id"],
+                    "__case_id": str(row["case_id"]),
                 },
                 header=headers,
             )
@@ -466,6 +466,9 @@ def responseJsonExcel(dataList, outputName, header={}):
     for d in dataList:
         data.setdefault(d["__name"], []).append(d)
 
+    if len(data) == 0:
+        data = {"__name": [{"__name": "", "Data not found.": ""}]}
+
     try:
         tmp = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
         with open(tmp.name, "w") as fi:
@@ -474,7 +477,7 @@ def responseJsonExcel(dataList, outputName, header={}):
                     dv = data[key]
                     for item in dv:
                         item.pop("__name")
-                    print(json.dumps(dv, indent=4))
+                    # print(json.dumps(dv, indent=4))
 
                     df = pd.DataFrame(dv)
                     # print(df)
