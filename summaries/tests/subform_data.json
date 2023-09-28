@@ -46,7 +46,7 @@
         "symptom": {
           "cough": true,
           "fever": true,
-          "other": true,
+          "other": false,
           "value": "fever, cough, sore_throat, other",
           "cough_text": "cough",
           "other_text": "other",

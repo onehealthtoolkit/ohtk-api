@@ -336,15 +336,10 @@ class MultipleChoicesField(Field):
             pass
 
     def toJsonValue(self, json):
-        values = {}
         for key, value in self._selected.items():
-            values[key] = value
-
-        for key, value in self._text.items():
-            values[key + "_text"] = value
-
-        values["value"] = self.value
-        json[self.name] = values
+            json[self.name + "-" + key] = 1 if value else 0
+            json[self.name + "-" + key + "-text"] = self._text.get(key, "")
+        # json[self.name] = values
         # json[self.name + "__value"] = self.renderedValue
 
     @property
