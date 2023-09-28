@@ -262,4 +262,17 @@ class MonitoringRecord(AbstractRecord):
         self.description = self.monitoring_definition.render_description(
             self.render_data_context()
         )
+
+        # scan form data for field that begins with "upd_"
+        # if found, update the subject record form data
+        found = False
+        for key, value in self.form_data.items():
+            if key.startswith("upd_"):
+                field_name = key[4:]
+                self.subject.form_data[field_name] = value
+                found = True
+
+        if found:
+            self.subject.save(update_fields=["form_data"])
+
         super().save(*args, **kwargs)
