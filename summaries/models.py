@@ -232,7 +232,7 @@ class DateField(Field):
         self.forwardDaysOffset = params["forwardDaysOffset"]
 
     def loadJsonValue(self, json):
-        value = json[self.name]
+        value = json.get(self.name, None)
         if value is not None:
             date = parse_datetime(value)
             self.day = date.day
@@ -322,15 +322,18 @@ class MultipleChoicesField(Field):
                 self._invalidTextMessage[option["value"]] = None
 
     def loadJsonValue(self, json):
-        if self.name in json:
-            values = json[self.name]
-            if values:
-                for key, value in self._selected.items():
-                    if key in values:
-                        self._selected[key] = values[key]
-                    textKey = f"{key}_text"
-                    if textKey in values:
-                        self._text[key] = values[textKey]
+        try:
+            if self.name in json:
+                values = json[self.name]
+                if values:
+                    for key, value in self._selected.items():
+                        if key in values:
+                            self._selected[key] = values[key]
+                        textKey = f"{key}_text"
+                        if textKey in values:
+                            self._text[key] = values[textKey]
+        except:
+            pass
 
     def toJsonValue(self, json):
         values = {}
@@ -420,9 +423,12 @@ class SubformField(PrimitiveField):
         if self.name in json:
             self.value = json[self.name]
         else:
-            self.value = ""
+            self.value = None
 
     def toJsonValue(self, json):
+        if self.value is None:
+            return []
+
         values = []
         json[self.name] = values
         subform = next((x for x in self.form.subforms if x.id == self.formRef), None)
