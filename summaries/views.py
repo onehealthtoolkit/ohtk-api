@@ -508,7 +508,7 @@ def responseJsonExcel(dataList, outputName, header={}):
         # response = HttpResponse(content_type="application/ms-excel")
         response[
             "Content-Disposition"
-        ] = "attachment; filename=%s" % urllib.parse.quote(f"{outputName}.xls")
+        ] = "attachment; filename=%s" % urllib.parse.quote(f"{outputName}.xlsx")
         return response
     finally:
         os.remove(tmp.name)

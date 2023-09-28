@@ -428,22 +428,29 @@ class SubformField(PrimitiveField):
     def toJsonValue(self, json):
         if self.value is None:
             return []
+        if type(self.value) != type(dict()):
+            return []
 
-        values = []
-        json[self.name] = values
-        subform = next((x for x in self.form.subforms if x.id == self.formRef), None)
-        for key, value in self.value.items():
-            if type(value) == type(dict()):
-                subform.loadJsonValue(value)
-                data = {}
-                data["__name"] = self.name
-                data[
-                    self.form.header.get("__reportId", "__reportId")
-                ] = self.form.report_td
-                data["__key"] = key
-                data = {**data, **subform.toJsonValue()}
-                values.append(data)
-        return values
+        try:
+            values = []
+            json[self.name] = values
+            subform = next(
+                (x for x in self.form.subforms if x.id == self.formRef), None
+            )
+            for key, value in self.value.items():
+                if type(value) == type(dict()):
+                    subform.loadJsonValue(value)
+                    data = {}
+                    data["__name"] = self.name
+                    data[
+                        self.form.header.get("__reportId", "__reportId")
+                    ] = self.form.report_td
+                    data["__key"] = key
+                    data = {**data, **subform.toJsonValue()}
+                    values.append(data)
+            return values
+        except:
+            return []
 
     @property
     def renderedValue(self):
