@@ -336,15 +336,10 @@ class MultipleChoicesField(Field):
             pass
 
     def toJsonValue(self, json):
-        values = {}
         for key, value in self._selected.items():
-            values[key] = value
-
-        for key, value in self._text.items():
-            values[key + "_text"] = value
-
-        values["value"] = self.value
-        json[self.name] = values
+            json[self.name + "-" + key] = 1 if value else 0
+            json[self.name + "-" + key + "-text"] = self._text.get(key, "")
+        # json[self.name] = values
         # json[self.name + "__value"] = self.renderedValue
 
     @property
@@ -428,22 +423,29 @@ class SubformField(PrimitiveField):
     def toJsonValue(self, json):
         if self.value is None:
             return []
+        if type(self.value) != type(dict()):
+            return []
 
-        values = []
-        json[self.name] = values
-        subform = next((x for x in self.form.subforms if x.id == self.formRef), None)
-        for key, value in self.value.items():
-            if type(value) == type(dict()):
-                subform.loadJsonValue(value)
-                data = {}
-                data["__name"] = self.name
-                data[
-                    self.form.header.get("__reportId", "__reportId")
-                ] = self.form.report_td
-                data["__key"] = key
-                data = {**data, **subform.toJsonValue()}
-                values.append(data)
-        return values
+        try:
+            values = []
+            json[self.name] = values
+            subform = next(
+                (x for x in self.form.subforms if x.id == self.formRef), None
+            )
+            for key, value in self.value.items():
+                if type(value) == type(dict()):
+                    subform.loadJsonValue(value)
+                    data = {}
+                    data["__name"] = self.name
+                    data[
+                        self.form.header.get("__reportId", "__reportId")
+                    ] = self.form.report_td
+                    data["__key"] = key
+                    data = {**data, **subform.toJsonValue()}
+                    values.append(data)
+            return values
+        except:
+            return []
 
     @property
     def renderedValue(self):
