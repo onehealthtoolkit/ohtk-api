@@ -1,4 +1,6 @@
+import os
 from random import randint
+from uuid import uuid4
 
 from dateutil.relativedelta import *
 from django.contrib.auth.models import AbstractUser
@@ -71,8 +73,21 @@ class Authority(BaseModel):
         self.boundary_connects.set(boundary_connect_authorities)
 
 
+def path_and_rename(path):
+    def wrapper(instance, filename):
+        ext = filename.split(".")[-1]
+        # get filename
+        filename = "{}.{}".format(uuid4().hex, ext)
+        # return the whole path to the file
+        return os.path.join(path, filename)
+
+    return wrapper
+
+
 class User(AbstractUser):
-    avatar = ThumbnailerImageField(upload_to="avatars", null=True, blank=True)
+    avatar = ThumbnailerImageField(
+        upload_to=path_and_rename("avatars"), null=True, blank=True
+    )
     fcm_token = models.CharField(max_length=200, blank=True)
 
     @property
