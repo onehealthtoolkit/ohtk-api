@@ -481,6 +481,13 @@ def parseForm(json):
 
 def parseSubform(json):
     subforms = []
+
+    if type(json) is list:
+        tmp = {}
+        for formType in json:
+            tmp = {**tmp, **formType}
+        json = tmp
+
     for id, formType in json.items():
         subform = Form(id)
         subform.sections = list(map(parseSection, formType.get("sections")))
