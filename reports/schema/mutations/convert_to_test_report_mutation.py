@@ -26,8 +26,18 @@ class ConvertToTestReportMutation(graphene.Mutation):
             check_is_not_reporter(user)
 
             # and report relevant authorities should include user's authority
-            if not report.relevant_authorities.filter(pk=user.authority.pk).exists():
-                raise GraphQLError("User's authority iis not in charge of this report")
+            user_authority = (
+                user.authorityuser.authority if user.is_authority_user else None
+            )
+            if user_authority:
+                if not report.relevant_authorities.filter(
+                    pk=user_authority.pk
+                ).exists():
+                    raise GraphQLError(
+                        "User's authority is not in charge of this report"
+                    )
+            else:
+                raise GraphQLError("User is not authority user")
 
         IncidentReport.convert_to_test_report(report)
         return ConvertToTestReportMutation(report=report)
