@@ -96,6 +96,24 @@ class ObservationSubjectMonitoringRecordType(DjangoObjectType):
         return self.upload_files.all()
 
 
+class ObservationSubjectTypeQueryFilter(django_filters.FilterSet):
+    q = django_filters.CharFilter(method="q_filter")
+
+    class Meta:
+        model = SubjectRecord
+        fields = {
+            "definition__id": ["in", "exact"],
+            "created_at": ["lte", "gte"],
+        }
+
+    def q_filter(self, queryset, name, value):
+        return queryset.filter(
+            Q(title__icontains=value)
+            | Q(description__icontains=value)
+            | Q(identity__icontains=value)
+        )
+
+
 class ObservationSubjectType(DjangoObjectType):
     form_data = GenericScalar()
     monitoring_records = graphene.List(ObservationSubjectMonitoringRecordType)
@@ -122,10 +140,7 @@ class ObservationSubjectType(DjangoObjectType):
             "upload_files",
             "reported_by",
         ]
-        filter_fields = {
-            "definition__id": ["in", "exact"],
-            "created_at": ["lte", "gte"],
-        }
+        filterset_class = ObservationSubjectTypeQueryFilter
 
     def resolve_monitoring_records(self, info):
         return MonitoringRecord.objects.filter(subject=self)
