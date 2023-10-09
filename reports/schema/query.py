@@ -208,16 +208,16 @@ class Query(graphene.ObjectType):
         user = info.context.user
         if user.is_authority_user:
             authority = user.authorityuser.authority
-            all_authorities = []
-            child_authorities = authority.all_inherits_down()
+            filter_authorities = []
 
-            for child_authority in child_authorities:
-                boundary_connect_authorities = child_authority.boundary_connects.all()
+            # find boundary connected authorities of user authority
+            connects = authority.boundary_connects.all()
 
-                print(boundary_connect_authorities)
-                all_authorities.extend(boundary_connect_authorities)
-                print(all_authorities)
+            for connect in connects:
+                # find child authorities of boundary connected authorities
+                child_authorities = connect.all_inherits_down()
+                filter_authorities.extend(child_authorities)
 
-            query = query.filter(relevant_authorities__in=all_authorities).distinct()
+            query = query.filter(relevant_authorities__in=filter_authorities).distinct()
 
         return query
