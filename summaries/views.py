@@ -43,7 +43,7 @@ def export_inactive_reporter_xls(request):
         AuthorityUser.objects.exclude(id__in=exclude)
         .annotate(Count("username"))
         .order_by("username")
-        .filter(authority__in=sub_authorities)
+        .filter(authority__in=sub_authorities, role=AuthorityUser.Role.REPORTER)
         .values("username", "first_name", "last_name", "telephone", "authority__name")
     )
 
@@ -127,7 +127,9 @@ def export_reporter_performance_xls(request):
         zero_reports = zero_reports.filter(created_at__lte=to_date)
 
     rows = (
-        AuthorityUser.objects.filter(authority__in=sub_authorities)
+        AuthorityUser.objects.filter(
+            authority__in=sub_authorities, role=AuthorityUser.Role.REPORTER
+        )
         .annotate(
             zero_reports=Subquery(zero_reports),
             incident_reports=Subquery(incident_reports),
