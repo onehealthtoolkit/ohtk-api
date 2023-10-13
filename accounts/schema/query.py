@@ -7,6 +7,7 @@ from django.utils.timezone import now
 from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
 from graphql_jwt.utils import jwt_encode
+from django.db import connection
 
 from accounts.models import (
     AuthorityUser,
@@ -96,6 +97,32 @@ class Query(graphene.ObjectType):
             code=code, from_date__lte=now(), through_date__gte=now()
         ).first()
         if invitation:
+            # if auto_generate_username is True, return generated username and email
+            auto_generate_username = False
+            try:
+                config = Configuration.objects.get(
+                    key="features.auto_generate_username"
+                )
+                if config.value == "enable":
+                    auto_generate_username = True
+
+            except Configuration.DoesNotExist:
+                pass
+
+            if auto_generate_username:
+                # use db sequence to generate username
+                with connection.cursor() as cursor:
+                    cursor = connection.cursor()
+                    cursor.execute(
+                        "SELECT nextval('accounts_authorityuser_username_seq')"
+                    )
+                    row = cursor.fetchone()
+                    generated_username = f"u{row[0]}"
+
+                generated_email = f"{generated_username}@generated.ohtk.org"
+                info.context.__dict__["generated_username"] = generated_username
+                info.context.__dict__["generated_email"] = generated_email
+
             return invitation
         raise GraphQLError(f"code {code} not found!")
 

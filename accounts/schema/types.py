@@ -295,9 +295,22 @@ class UserProfileType(graphene.ObjectType):
 
 
 class CheckInvitationCodeType(DjangoObjectType):
+    generated_username = graphene.String(required=False)
+    generated_email = graphene.String(required=False)
+
     class Meta:
         model = InvitationCode
         fields = ("code", "authority")
+
+    def resolve_generated_username(self, info):
+        if "generated_username" in info.context.__dict__:
+            return info.context.__dict__["generated_username"]
+        return None
+
+    def resolve_generated_email(self, info):
+        if "generated_email" in info.context.__dict__:
+            return info.context.__dict__["generated_email"]
+        return None
 
 
 class FeatureType(DjangoObjectType):
