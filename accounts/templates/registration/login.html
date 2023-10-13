@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %} Login {% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center" style="height: 100vh;">
+    <div class="card" style="width: 25rem;">
+        <div class="card-header">
+            <img src="https://dashboard.ohtk.org/logo_black.png" alt="OHTK" style="width: 100px;">
+        </div>
+        <div class="card-body">
+            <form class="form" role="form" method="POST">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn btn-primary" style="margin-top: 5px;float: left;">Login</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .errorlist {
+        color: red;
+    }
+</style>
+{% endblock %}

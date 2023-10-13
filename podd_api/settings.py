@@ -322,7 +322,7 @@ if FIREBASE_PRIVATE_KEY:
     }
     FIREBASE_APP = initialize_app(credentials.Certificate(credentials_config))
 
-LOGIN_URL = "/admin/login/"
+LOGIN_URL = "/accounts/login/"
 OAUTH2_PROVIDER = {"PKCE_REQUIRED": False}
 
 try:

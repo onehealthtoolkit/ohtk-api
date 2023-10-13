@@ -18,6 +18,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import views as auth_views
 from graphene_file_upload.django import FileUploadGraphQLView
 from graphql_jwt.decorators import jwt_cookie
 from graphql_playground.views import GraphQLPlaygroundView
@@ -30,6 +31,7 @@ urlpatterns = [
     path("o/", include("oauth2_provider.urls", namespace="oauth2_provider")),
     path("api/userinfo/", accounts.views.userinfo),
     path("api/servers/", tenants.views.tenants),
+    path("accounts/login/", auth_views.LoginView.as_view(), name="login"),
     path(
         "graphql/",
         jwt_cookie(csrf_exempt(FileUploadGraphQLView.as_view(graphiql=settings.DEBUG))),

@@ -1,6 +1,5 @@
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.shortcuts import render
 from oauth2_provider.decorators import protected_resource
 from django.db import connection
 
