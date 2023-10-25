@@ -125,8 +125,14 @@ class AdminAuthorityInheritLookupType(DjangoObjectType):
         filterset_class = AdminAuthorityInheritLookupFilter
 
 
+class NumberInFilter(django_filters.BaseInFilter, django_filters.CharFilter):
+    pass
+
+
 class AdminAuthorityUserQueryFilter(django_filters.FilterSet):
     q = django_filters.CharFilter(method="filter_q")
+    authorities = NumberInFilter(field_name="authority__id", lookup_expr="in")
+    role = django_filters.CharFilter(lookup_expr="exact")
 
     class Meta:
         model = AuthorityUser
@@ -140,6 +146,9 @@ class AdminAuthorityUserQueryFilter(django_filters.FilterSet):
             | Q(email__icontains=value)
             | Q(authority__name__icontains=value)
         )
+
+    def filter_role(self, queryset, name, value):
+        return queryset.filter(role__exact=value)
 
 
 class AdminAuthorityUserQueryType(DjangoObjectType):
