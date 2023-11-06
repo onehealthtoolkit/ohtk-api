@@ -325,6 +325,8 @@ if FIREBASE_PRIVATE_KEY:
 LOGIN_URL = "/accounts/login/"
 OAUTH2_PROVIDER = {"PKCE_REQUIRED": False}
 
+HOURS_TO_EVALUATE_CASE_DEFINITION_FOR_NEW_USER = 6
+
 try:
     from .local import *
 except ImportError:

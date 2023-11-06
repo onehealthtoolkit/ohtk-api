@@ -105,6 +105,9 @@ class User(AbstractUser):
             return True
         return False
 
+    def was_joined_more_than(self, diff: relativedelta):
+        return self.date_joined < now() - diff
+
 
 class AuthorityUser(User):
     class Role(models.TextChoices):

@@ -1,7 +1,9 @@
+from django.conf import settings
 from cases.models import CaseDefinition, Case, NotificationTemplate
 from podd_api.celery import app
 from reports.models import IncidentReport
 from celery.utils.log import get_task_logger
+from dateutil.relativedelta import *
 
 logger = get_task_logger(__name__)
 
@@ -10,6 +12,13 @@ logger = get_task_logger(__name__)
 def evaluate_case_definition(report_id):
     report = IncidentReport.objects.get(pk=report_id)
     if report.test_flag:
+        return
+
+    # if user is just created, do not promote to case
+    user = report.reported_by
+    hours = settings.HOURS_TO_EVALUATE_CASE_DEFINITION_FOR_NEW_USER or 6
+    if not user.was_joined_more_than(relativedelta(hours=hours)):
+        # report that submit from just created account is not allowed to promote to case
         return
 
     eval_context = report.evaluate_context()
