@@ -28,6 +28,16 @@ class SubmitImage(graphene.Mutation):
         except IncidentReport.DoesNotExist:
             report = FollowUpReport.objects.get(pk=report_id)
 
+        # check idempotent
+        if image_id and Image.objects.filter(id=image_id).exists():
+            image = Image.objects.get(id=image_id)
+            return SubmitImage(
+                id=image.id,
+                file=image.file.url,
+                thumbnail=get_thumbnailer(image.file)["thumbnail"].url,
+                image_url=image.file.url,
+            )
+
         image = Image.objects.create(
             report=report,
             file=image,

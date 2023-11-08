@@ -41,6 +41,10 @@ class SubmitIncidentReport(graphene.Mutation):
         incident_in_authority,
         test_flag,
     ):
+        # check idempotent
+        if report_id and IncidentReport.objects.filter(id=report_id).exists():
+            return SubmitIncidentReport(result=IncidentReport.objects.get(id=report_id))
+
         user = info.context.user
         report_type = ReportType.objects.get(pk=report_type_id)
         location = None
