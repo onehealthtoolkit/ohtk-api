@@ -145,6 +145,7 @@ class AdminAuthorityUserQueryFilter(django_filters.FilterSet):
             | Q(username__icontains=value)
             | Q(email__icontains=value)
             | Q(authority__name__icontains=value)
+            | Q(telephone__icontains=value)
         )
 
     def filter_role(self, queryset, name, value):
@@ -162,6 +163,7 @@ class AdminAuthorityUserQueryType(DjangoObjectType):
             "email",
             "role",
             "authority",
+            "telephone",
         )
         filterset_class = AdminAuthorityUserQueryFilter
 
