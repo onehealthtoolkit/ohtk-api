@@ -133,6 +133,12 @@ class AdminAuthorityUserQueryFilter(django_filters.FilterSet):
     q = django_filters.CharFilter(method="filter_q")
     authorities = NumberInFilter(field_name="authority__id", lookup_expr="in")
     role = django_filters.CharFilter(lookup_expr="exact")
+    date_joined_lte = django_filters.DateTimeFilter(
+        field_name="date_joined", lookup_expr="lte"
+    )
+    date_joined_gte = django_filters.DateTimeFilter(
+        field_name="date_joined", lookup_expr="gte"
+    )
 
     class Meta:
         model = AuthorityUser
