@@ -1,5 +1,7 @@
 from typing import List
 import graphene
+import uuid
+from graphene.types.generic import GenericScalar
 from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
 from accounts.models import Authority
@@ -15,6 +17,7 @@ from .types import (
     AdminReporterNotificationQueryType,
     CategoryType,
     IncidentReportType,
+    ReportDataSummaryType,
     ReportTypeSyncInputType,
     ReportTypeSyncOutputType,
     ReportTypeType,
@@ -74,6 +77,12 @@ class Query(graphene.ObjectType):
         authority_id=graphene.Int(required=True),
         from_date=graphene.Date(required=True),
         to_date=graphene.Date(required=True),
+    )
+    report_data_summary = graphene.Field(
+        ReportDataSummaryType,
+        report_type_id=graphene.UUID(required=True),
+        data=GenericScalar(required=True),
+        incident_date=graphene.Date(required=True),
     )
 
     @staticmethod
@@ -221,3 +230,15 @@ class Query(graphene.ObjectType):
             query = query.filter(relevant_authorities__in=filter_authorities).distinct()
 
         return query
+
+    @staticmethod
+    @login_required
+    def resolve_report_data_summary(root, info, report_type_id, data, incident_date):
+        data_context = {
+            "data": data,
+            "id": str(uuid.uuid4()),
+            "incident_date": incident_date,
+        }
+        report_type = ReportType.objects.get(pk=report_type_id)
+        renderer_data = report_type.render_data(data_context)
+        return {"result": renderer_data}

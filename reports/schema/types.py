@@ -381,3 +381,7 @@ class ReporterNoReport(graphene.ObjectType):
     authority_name = graphene.String()
     reporter_name = graphene.String()
     reporter_id = graphene.Int()
+
+
+class ReportDataSummaryType(graphene.ObjectType):
+    result = graphene.String()

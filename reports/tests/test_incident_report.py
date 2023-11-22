@@ -201,3 +201,27 @@ class IncidentReportTestCase(BaseTestCase):
         self.assertEqual(
             str(self.bkk.id), authorities[0]["id"]
         )  # "pk" field in graphene is str type
+
+    def test_query_report_data_summary(self):
+        self.client.authenticate(self.user)
+        query = """
+            query report_data_summary($data: GenericScalar!, $reportTypeId: UUID!, $incidentDate: Date!) {
+                reportDataSummary(data: $data, reportTypeId: $reportTypeId, incidentDate: $incidentDate) {
+                    result
+                }
+            }
+        """
+        result = self.client.execute(
+            query,
+            {
+                "data": {
+                    "symptom": "cough",
+                    "number_of_sick": 1,
+                },
+                "reportTypeId": str(self.mers_report_type.id),
+                "incidentDate": "2022-03-18",
+            },
+        )
+        self.assertIsNone(result.errors, msg=result.errors)
+        result_data = result.data["reportDataSummary"]["result"]
+        self.assertEqual("number of sick 1 with symptom cough", result_data)
