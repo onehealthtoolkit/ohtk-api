@@ -205,7 +205,7 @@ class IncidentReportTestCase(BaseTestCase):
     def test_query_report_data_summary(self):
         self.client.authenticate(self.user)
         query = """
-            query report_data_summary($data: GenericScalar!, $reportTypeId: UUID!, $incidentDate: Date!) {
+            query reportDataSummary($data: GenericScalar!, $reportTypeId: UUID!, $incidentDate: Date!) {
                 reportDataSummary(data: $data, reportTypeId: $reportTypeId, incidentDate: $incidentDate) {
                     result
                 }
@@ -225,3 +225,31 @@ class IncidentReportTestCase(BaseTestCase):
         self.assertIsNone(result.errors, msg=result.errors)
         result_data = result.data["reportDataSummary"]["result"]
         self.assertEqual("number of sick 1 with symptom cough", result_data)
+
+    def test_query_followup_report_data_summary(self):
+        self.client.authenticate(self.user)
+        query = """
+            query followupReportDataSummary($data: GenericScalar!, $reportTypeId: UUID!, $incidentData: GenericScalar!) {
+                followupReportDataSummary(data: $data, reportTypeId: $reportTypeId, incidentData: $incidentData) {
+                    result
+                }
+            }
+        """
+        result = self.client.execute(
+            query,
+            {
+                "incidentData": {
+                    "symptom": "cough",
+                },
+                "data": {
+                    "condition": "light",
+                    "number_of_days": 2,
+                },
+                "reportTypeId": str(self.mers_report_type.id),
+            },
+        )
+        self.assertIsNone(result.errors, msg=result.errors)
+        result_data = result.data["followupReportDataSummary"]["result"]
+        self.assertEqual(
+            "symptom cough last for 2 days with light condition", result_data
+        )

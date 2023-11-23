@@ -78,11 +78,18 @@ class Query(graphene.ObjectType):
         from_date=graphene.Date(required=True),
         to_date=graphene.Date(required=True),
     )
+
     report_data_summary = graphene.Field(
         ReportDataSummaryType,
         report_type_id=graphene.UUID(required=True),
         data=GenericScalar(required=True),
         incident_date=graphene.Date(required=True),
+    )
+    followup_report_data_summary = graphene.Field(
+        ReportDataSummaryType,
+        report_type_id=graphene.UUID(required=True),
+        data=GenericScalar(required=True),
+        incident_data=GenericScalar(required=True),
     )
 
     @staticmethod
@@ -234,11 +241,25 @@ class Query(graphene.ObjectType):
     @staticmethod
     @login_required
     def resolve_report_data_summary(root, info, report_type_id, data, incident_date):
-        data_context = {
-            "data": data,
-            "id": str(uuid.uuid4()),
-            "incident_date": incident_date,
-        }
+        data_context = IncidentReport.build_data_context(
+            data,
+            str(uuid.uuid4()),
+            incident_date,
+        )
         report_type = ReportType.objects.get(pk=report_type_id)
         renderer_data = report_type.render_data(data_context)
+        return {"result": renderer_data}
+
+    @staticmethod
+    @login_required
+    def resolve_followup_report_data_summary(
+        root, info, report_type_id, data, incident_data
+    ):
+        data_context = FollowUpReport.build_data_context(
+            data,
+            str(uuid.uuid4()),
+            incident_data,
+        )
+        report_type = ReportType.objects.get(pk=report_type_id)
+        renderer_data = report_type.render_followup_data(data_context)
         return {"result": renderer_data}

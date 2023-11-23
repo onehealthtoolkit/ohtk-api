@@ -116,6 +116,10 @@ class BaseTestCase(TestCase):
             definition={},
             published=True,
             renderer_data_template="number of sick {{ data.number_of_sick }} with symptom {{ data.symptom }}",
+            renderer_followup_data_template=(
+                "symptom {{ incident_data.symptom }} last for {{ data.number_of_days }} days "
+                "with {{ data.condition }} condition"
+            ),
         )
         self.mers_report_type.authorities.add(self.thailand)
 

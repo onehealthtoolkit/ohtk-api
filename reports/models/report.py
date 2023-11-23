@@ -131,10 +131,14 @@ class IncidentReport(AbstractIncidentReport):
             return ""
 
     def render_data_context(self):
+        return self.build_data_context(self.data, self.id, self.incident_date)
+
+    @staticmethod
+    def build_data_context(data, id, incident_date):
         return {
-            "data": self.data,
-            "id": self.id,
-            "incident_date": self.incident_date,
+            "data": data,
+            "id": id,
+            "incident_date": incident_date,
         }
 
     def save(self, *args, **kwargs):
@@ -191,10 +195,14 @@ class FollowUpReport(AbstractIncidentReport):
     )
 
     def render_data_context(self):
+        return self.build_data_context(self.data, self.id, self.incident.data)
+
+    @staticmethod
+    def build_data_context(data, id, incident_data):
         return {
-            "data": self.data,
-            "id": self.id,
-            "incident_data": self.incident.data,
+            "data": data,
+            "id": id,
+            "incident_data": incident_data,
         }
 
     def save(self, *args, **kwargs):
