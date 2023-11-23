@@ -89,7 +89,7 @@ class Query(graphene.ObjectType):
         ReportDataSummaryType,
         report_type_id=graphene.UUID(required=True),
         data=GenericScalar(required=True),
-        incident_data=GenericScalar(required=True),
+        incident_report_id=graphene.UUID(required=True),
     )
 
     @staticmethod
@@ -253,12 +253,13 @@ class Query(graphene.ObjectType):
     @staticmethod
     @login_required
     def resolve_followup_report_data_summary(
-        root, info, report_type_id, data, incident_data
+        root, info, report_type_id, data, incident_report_id
     ):
+        incident = IncidentReport.objects.get(pk=incident_report_id)
         data_context = FollowUpReport.build_data_context(
             data,
             str(uuid.uuid4()),
-            incident_data,
+            incident.data,
         )
         report_type = ReportType.objects.get(pk=report_type_id)
         renderer_data = report_type.render_followup_data(data_context)

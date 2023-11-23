@@ -229,18 +229,25 @@ class IncidentReportTestCase(BaseTestCase):
     def test_query_followup_report_data_summary(self):
         self.client.authenticate(self.user)
         query = """
-            query followupReportDataSummary($data: GenericScalar!, $reportTypeId: UUID!, $incidentData: GenericScalar!) {
-                followupReportDataSummary(data: $data, reportTypeId: $reportTypeId, incidentData: $incidentData) {
+            query followupReportDataSummary($data: GenericScalar!, $reportTypeId: UUID!, $incidentReportId: UUID!) {
+                followupReportDataSummary(data: $data, reportTypeId: $reportTypeId, incidentReportId: $incidentReportId) {
                     result
                 }
             }
         """
+        report = IncidentReport.objects.create(
+            data={
+                "symptom": "cough",
+                "number_of_sick": 1,
+            },
+            reported_by=self.user,
+            incident_date=now(),
+            report_type=self.mers_report_type,
+        )
         result = self.client.execute(
             query,
             {
-                "incidentData": {
-                    "symptom": "cough",
-                },
+                "incidentReportId": str(report.id),
                 "data": {
                     "condition": "light",
                     "number_of_days": 2,
