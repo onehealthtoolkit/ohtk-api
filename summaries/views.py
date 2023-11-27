@@ -16,6 +16,7 @@ import pandas as pd
 import tempfile
 from django.http import FileResponse
 import os
+from django.db.models.functions import TruncDay
 
 # Create your views here.
 
@@ -353,6 +354,94 @@ def export_incident_report_xls(request):
 
         return response
         # return HttpResponse("return this string")
+
+
+def export_zero_report_xls(request):
+    authority_id = request.GET.get("authorityId")
+    authority = Authority.objects.get(pk=authority_id)
+    sub_authorities = authority.all_inherits_down()
+
+    from_date, to_date, tzinfo = parse_date_from_str(request)
+
+    rows = (
+        ZeroReport.objects.annotate(day=TruncDay("created_at"))
+        .order_by("-day")
+        .filter(
+            reported_by__in=AuthorityUser.objects.filter(
+                authority__in=sub_authorities
+                # , role=AuthorityUser.Role.REPORTER
+            ),
+        )
+        .values(
+            "day",
+            "reported_by__id",
+            "reported_by__first_name",
+            "reported_by__last_name",
+        )
+        .annotate(total=Count("id"))
+    )
+    if from_date:
+        rows = rows.filter(created_at__gte=from_date)
+    if to_date:
+        rows = rows.filter(created_at__lte=to_date)
+
+    # print(rows.query)
+    dataList = []
+    for row in rows:
+        user_id = row["reported_by__id"]
+        data = next((x for x in dataList if x["user_id"] == user_id), None)
+        if data is None:
+            data = {
+                "user_id": user_id,
+                "Name": row["reported_by__first_name"]
+                + " "
+                + row["reported_by__last_name"],
+            }
+            for i in range(to_date.astimezone().day):
+                data["Day " + str(i + 1)] = ""
+            dataList.append(data)
+        data["Day " + str(row["day"].day)] = row["total"]
+    # print(json.dumps(dataList, indent=4))
+    for item in dataList:
+        item.pop("user_id")
+
+    if len(dataList) == 0:
+        dataList.append({"Data not found.": ""})
+
+    try:
+        tmp = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
+        with open(tmp.name, "w") as fi:
+            with pd.ExcelWriter(tmp.name) as writer:
+                df = pd.DataFrame(dataList)
+                # print(df)
+                df.to_excel(
+                    writer,
+                    sheet_name="zero_report",
+                    index=False,
+                    startrow=4,
+                )
+                # workbook = writer.book
+                worksheet = writer.sheets["zero_report"]
+                worksheet.merge_cells("A1:D1")
+                worksheet["A1"] = "Zero Report"
+                worksheet.merge_cells("A2:D2")
+                worksheet[
+                    "A2"
+                ] = f'From {from_date.astimezone().strftime("%d-%b-%Y")} To {to_date.astimezone().strftime("%d-%b-%Y")}'
+                worksheet.merge_cells("A3:D3")
+                worksheet["A3"] = f"Authority {authority.name}"
+                worksheet.column_dimensions["A"].width = 30
+
+        response = FileResponse(open(tmp.name, "rb"))
+        response[
+            "Content-Disposition"
+        ] = "attachment; filename=%s" % urllib.parse.quote(
+            f'zero_report_{from_date.astimezone().strftime("%m_%Y")}.xlsx'
+        )
+        return response
+    finally:
+        os.remove(tmp.name)
+    # return HttpResponse(json.dumps(dataList, indent=4))
 
 
 def parse_date_from_str(request):
