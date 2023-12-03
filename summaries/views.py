@@ -374,9 +374,10 @@ def export_zero_report_xls(request):
         )
         .values(
             "day",
-            "reported_by__id",
+            "reported_by__username",
             "reported_by__first_name",
             "reported_by__last_name",
+            "reported_by__authorityuser__authority__name",
         )
         .annotate(total=Count("id"))
     )
@@ -388,22 +389,23 @@ def export_zero_report_xls(request):
     # print(rows.query)
     dataList = []
     for row in rows:
-        user_id = row["reported_by__id"]
-        data = next((x for x in dataList if x["user_id"] == user_id), None)
+        username = row["reported_by__username"]
+        data = next((x for x in dataList if x["username"] == username), None)
         if data is None:
             data = {
-                "user_id": user_id,
                 "Name": row["reported_by__first_name"]
                 + " "
                 + row["reported_by__last_name"],
+                "username": username,
+                "Authority": row["reported_by__authorityuser__authority__name"],
             }
             for i in range(to_date.astimezone().day):
                 data["Day " + str(i + 1)] = ""
             dataList.append(data)
         data["Day " + str(row["day"].day)] = row["total"]
     # print(json.dumps(dataList, indent=4))
-    for item in dataList:
-        item.pop("user_id")
+    # for item in dataList:
+    #     item.pop("user_id")
 
     if len(dataList) == 0:
         dataList.append({"Data not found.": ""})
