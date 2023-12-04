@@ -4,6 +4,7 @@ from easy_thumbnails.files import get_thumbnailer
 from graphene.types.generic import GenericScalar
 from graphene_django import DjangoObjectType
 from django.db.models import Q
+from accounts.models import Authority
 
 from accounts.schema.types import UserType, AuthorityType
 from common.types import AdminValidationProblem
@@ -77,6 +78,36 @@ class FollowupType(DjangoObjectType):
         ]
 
 
+## Report type
+class IncidentReportTypeFilter(django_filters.FilterSet):
+    include_child_authorities = django_filters.BooleanFilter(
+        method="child_authorities_filter"
+    )
+
+    class Meta:
+        model = IncidentReport
+        fields = {
+            "created_at": ["lte", "gte"],
+            "incident_date": ["lte", "gte"],
+            "relevant_authorities__name": ["istartswith", "exact"],
+            "relevant_authorities__id": ["in"],
+            "report_type__id": ["in"],
+            "test_flag": ["exact"],
+        }
+
+    def child_authorities_filter(self, queryset, name, value):
+        relevant_authorities = self.data["relevant_authorities__id__in"]
+        if relevant_authorities and len(relevant_authorities) == 1:
+            include_child_authorities = self.data["include_child_authorities"]
+            if include_child_authorities:
+                authority = Authority.objects.get(pk=relevant_authorities[0])
+                child_authorities = authority.all_inherits_down()
+                queryset = queryset.filter(relevant_authorities__in=child_authorities)
+        print(queryset.query)
+
+        return queryset
+
+
 class IncidentReportType(DjangoObjectType):
     data = GenericScalar()
     original_data = GenericScalar()
@@ -115,14 +146,7 @@ class IncidentReportType(DjangoObjectType):
             "followups",
             "is_followable",
         ]
-        filter_fields = {
-            "created_at": ["lte", "gte"],
-            "incident_date": ["lte", "gte"],
-            "relevant_authorities__name": ["istartswith", "exact"],
-            "relevant_authorities__id": ["in"],
-            "report_type__id": ["in"],
-            "test_flag": ["exact"],
-        }
+        filterset_class = IncidentReportTypeFilter
 
     def resolve_gps_location(self, info):
         return self.gps_location_str

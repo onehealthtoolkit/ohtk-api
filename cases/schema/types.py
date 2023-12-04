@@ -2,6 +2,7 @@ import graphene
 import django_filters
 from graphene_django import DjangoObjectType
 from django.db.models import Q
+from accounts.models import Authority
 
 from accounts.schema.types import AuthorityType
 from graphene.types.generic import GenericScalar
@@ -17,6 +18,7 @@ from cases.models import (
     CaseStateTransition,
 )
 from common.types import AdminValidationProblem
+from reports.models.report import IncidentReport
 from reports.schema.types import IncidentReportType
 
 
@@ -257,6 +259,33 @@ class CaseStateType(DjangoObjectType):
         fields = ["id", "state", "transition"]
 
 
+class CaseTypeFilter(django_filters.FilterSet):
+    include_child_authorities = django_filters.BooleanFilter(
+        method="child_authorities_filter"
+    )
+
+    class Meta:
+        model = Case
+        fields = {
+            "report__created_at": ["lte", "gte"],
+            "report__relevant_authorities__id": ["in"],
+            "report__report_type__id": ["in"],
+        }
+
+    def child_authorities_filter(self, queryset, name, value):
+        relevant_authorities = self.data["report__relevant_authorities__id__in"]
+        if relevant_authorities and len(relevant_authorities) == 1:
+            include_child_authorities = self.data["include_child_authorities"]
+            if include_child_authorities:
+                authority = Authority.objects.get(pk=relevant_authorities[0])
+                child_authorities = authority.all_inherits_down()
+                queryset = queryset.filter(
+                    report__relevant_authorities__in=child_authorities
+                )
+
+        return queryset
+
+
 class CaseType(DjangoObjectType):
     state_definition = graphene.Field(DeepStateDefinitionType)
     report = graphene.Field(IncidentReportType)
@@ -278,11 +307,7 @@ class CaseType(DjangoObjectType):
             "outbreak_plan_info",
             "status_label",
         ]
-        filter_fields = {
-            "report__created_at": ["lte", "gte"],
-            "report__relevant_authorities__id": ["in"],
-            "report__report_type__id": ["in"],
-        }
+        filterset_class = CaseTypeFilter
 
     @classmethod
     def get_queryset(cls, queryset, info):
