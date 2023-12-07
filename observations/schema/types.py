@@ -116,6 +116,7 @@ class ObservationSubjectTypeQueryFilter(django_filters.FilterSet):
 
 class ObservationSubjectType(DjangoObjectType):
     form_data = GenericScalar()
+    origin_form_data = GenericScalar()
     monitoring_records = graphene.List(ObservationSubjectMonitoringRecordType)
     definition_id = graphene.Int()
     definition = graphene.Field(ObservationDefinitionType)
@@ -132,6 +133,7 @@ class ObservationSubjectType(DjangoObjectType):
             "description",
             "identity",
             "form_data",
+            "origin_form_data",
             "is_active",
             "created_at",
             "definition",

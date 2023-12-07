@@ -24,6 +24,7 @@ class ObservationSubjectTests(JSONWebTokenTestCase):
         )
         self.assertEqual("title oak", subject.title)
         self.assertEqual("description treeoak", subject.description)
+        self.assertEqual("oak", subject.origin_form_data["name"])
 
     def test_mutation_submit_observation_subject(self):
         mutation = """
@@ -35,6 +36,7 @@ class ObservationSubjectTests(JSONWebTokenTestCase):
                         description
                         isActive
                         formData
+                        originFormData
                         monitoringRecords {
                             id
                             title
@@ -55,3 +57,4 @@ class ObservationSubjectTests(JSONWebTokenTestCase):
         result_data = result.data["submitObservationSubject"]["result"]
         self.assertEqual("title oak", result_data["title"])
         self.assertEqual("description treeoak", result_data["description"])
+        self.assertEqual("oak", result_data["originFormData"]["name"])
