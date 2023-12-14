@@ -409,3 +409,19 @@ class ReporterNoReport(graphene.ObjectType):
 
 class ReportDataSummaryType(graphene.ObjectType):
     result = graphene.String()
+
+
+class SimulationCaseDefinitionType(graphene.ObjectType):
+    id = graphene.Int()
+    description = graphene.String()
+
+
+class SimulationReporterNotificationType(graphene.ObjectType):
+    id = graphene.Int()
+    name = graphene.String()
+
+
+class SimulationReportType(graphene.ObjectType):
+    reporter_notifications = graphene.List(SimulationReporterNotificationType)
+    case_definitions = graphene.List(SimulationCaseDefinitionType)
+    renderer_data = graphene.String()

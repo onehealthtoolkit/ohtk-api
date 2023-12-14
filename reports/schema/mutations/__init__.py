@@ -10,6 +10,7 @@ from .admin_reporter_notification_delete_mutation import *
 from .submit_image_mutation import *
 from .submit_upload_file_mutation import *
 from .submit_incident_report_mutation import *
+from .evaluate_report_simulation_mutation import *
 from .submit_zero_report_mutation import *
 from .submit_followup_report_mutation import *
 from .convert_to_test_report_mutation import *
