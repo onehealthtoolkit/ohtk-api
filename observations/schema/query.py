@@ -40,9 +40,7 @@ class Query(graphene.ObjectType):
         AdminMonitoringDefinitionQueryType, definition_id=graphene.ID(required=True)
     )
 
-    observation_subjects = DjangoPaginationConnectionField(
-        ObservationSubjectType, order_by="-created_at"
-    )
+    observation_subjects = DjangoPaginationConnectionField(ObservationSubjectType)
     observation_subject = graphene.Field(
         ObservationSubjectType, id=graphene.ID(required=True)
     )
@@ -106,6 +104,17 @@ class Query(graphene.ObjectType):
     def resolve_observation_subject_monitoring_record(root, info, id):
         user = info.context.user
         return MonitoringRecord.objects.get(id=id)
+
+    @staticmethod
+    @login_required
+    def resolve_observation_subjects(root, info, **kwargs):
+        user = info.context.user
+        query = (
+            SubjectRecord.objects.all()
+            .order_by("-created_at")
+            .prefetch_related("cover_image", "reported_by", "images", "upload_files")
+        )
+        return query
 
     @staticmethod
     @login_required
