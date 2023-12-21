@@ -10,3 +10,4 @@ from .verify_login_qr_token_mutation import *
 from .confirm_consent_mutation import *
 from .admin_place_mutations import *
 from .admin_configuration_mutations import *
+from .request_to_delete_my_account_mutation import *
