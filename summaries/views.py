@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from accounts.models import Authority, AuthorityUser
 import xlwt
 from django.utils.dateparse import parse_datetime
+from observations.models import Definition, MonitoringRecord, SubjectRecord
 from reports.models.report import IncidentReport, ZeroReport
 from django.db.models import Count, OuterRef, Subquery, Func
 
@@ -439,6 +440,156 @@ def export_zero_report_xls(request):
             "Content-Disposition"
         ] = "attachment; filename=%s" % urllib.parse.quote(
             f'zero_report_{from_date.astimezone().strftime("%m_%Y")}.xlsx'
+        )
+        return response
+    finally:
+        os.remove(tmp.name)
+    # return HttpResponse(json.dumps(dataList, indent=4))
+
+
+def export_observation_xls(request):
+    definition_id = request.GET.get("definitionId")
+    definition = Definition.objects.get(pk=definition_id)
+
+    from_date, to_date, tzinfo = parse_date_from_str(request)
+
+    rows = (
+        SubjectRecord.objects.all()
+        .order_by("-created_at")
+        .filter(
+            definition=definition,
+        )
+        .values(
+            "id",
+            "created_at",
+            "identity",
+            "title",
+            "description",
+            "definition__register_form_definition",
+            "form_data",
+        )
+    )
+    if from_date:
+        rows = rows.filter(created_at__gte=from_date)
+    if to_date:
+        rows = rows.filter(created_at__lte=to_date)
+
+    # print(rows.query)
+    dataList = []
+    headers = {
+        "__created_at": "CREATED AT",
+        "__reportId": "Record ID",
+    }
+    for row in rows:
+        form = parseForm(row["definition__register_form_definition"])
+        dataList = dataList + form.toJsonDataFrameValue(
+            report_td=str(row["id"]),
+            data=row["form_data"],
+            incident_data={
+                "__created_at": str(
+                    row["created_at"].astimezone().strftime("%d-%b-%Y %H:%M:%S")
+                ),
+                "identity": row["identity"],
+                "title": row["title"],
+                "description": row["description"],
+            },
+            header=headers,
+        )
+
+    if len(dataList) == 0:
+        dataList.append({"Data not found.": ""})
+
+    monitoring_rows = (
+        MonitoringRecord.objects.all()
+        .order_by("-created_at")
+        .filter(
+            monitoring_definition__definition=definition,
+        )
+        .values(
+            "subject__id",
+            "created_at",
+            "title",
+            "description",
+            "monitoring_definition__form_definition",
+            "form_data",
+        )
+    )
+    if from_date:
+        monitoring_rows = monitoring_rows.filter(created_at__gte=from_date)
+    if to_date:
+        monitoring_rows = monitoring_rows.filter(created_at__lte=to_date)
+
+    # print(rows.query)
+    monitoringList = []
+    headers = {
+        "__created_at": "CREATED AT",
+        "__reportId": "Record ID",
+    }
+    for row in monitoring_rows:
+        form = parseForm(row["monitoring_definition__form_definition"])
+        monitoringList = monitoringList + form.toJsonDataFrameValue(
+            report_td=str(row["subject__id"]),
+            data=row["form_data"],
+            incident_data={
+                "__created_at": str(
+                    row["created_at"].astimezone().strftime("%d-%b-%Y %H:%M:%S")
+                ),
+                "title": row["title"],
+                "description": row["description"],
+            },
+            header=headers,
+        )
+
+    if len(monitoringList) == 0:
+        monitoringList.append({"Data not found.": ""})
+
+    try:
+        tmp = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
+        with open(tmp.name, "w") as fi:
+            with pd.ExcelWriter(tmp.name) as writer:
+                for item in dataList:
+                    item.pop("__name")
+                df = pd.DataFrame(dataList)
+                # print(df)
+                df.to_excel(
+                    writer,
+                    sheet_name="observation",
+                    index=False,
+                    startrow=4,
+                )
+                # workbook = writer.book
+                worksheet = writer.sheets["observation"]
+                worksheet.merge_cells("A1:D1")
+                worksheet["A1"] = "Observation Report"
+                worksheet.merge_cells("A2:D2")
+                worksheet[
+                    "A2"
+                ] = f'From {from_date.astimezone().strftime("%d-%b-%Y")} To {to_date.astimezone().strftime("%d-%b-%Y")}'
+                worksheet.merge_cells("A3:D3")
+                worksheet["A3"] = f"Defination {definition.name}"
+                worksheet.column_dimensions["A"].width = 30
+
+                for item in monitoringList:
+                    item.pop("__name")
+                df = pd.DataFrame(monitoringList)
+                df.to_excel(
+                    writer,
+                    sheet_name="monitoring",
+                    index=False,
+                    startrow=2,
+                )
+                worksheet = writer.sheets["monitoring"]
+                worksheet.merge_cells("A1:D1")
+                worksheet["A1"] = "Monitoring"
+                worksheet.merge_cells("A2:D2")
+
+                worksheet.column_dimensions["A"].width = 30
+
+        response = FileResponse(open(tmp.name, "rb"))
+        response[
+            "Content-Disposition"
+        ] = "attachment; filename=%s" % urllib.parse.quote(
+            f'observation_report_{from_date.astimezone().strftime("%m_%Y")}.xlsx'
         )
         return response
     finally:

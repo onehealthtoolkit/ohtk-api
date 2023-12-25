@@ -42,6 +42,7 @@ urlpatterns = [
     ),
     path("excels/incident_report", summaries.views.export_incident_report_xls),
     path("excels/zero_report", summaries.views.export_zero_report_xls),
+    path("excels/observation", summaries.views.export_observation_xls),
 ]
 
 if settings.DEBUG:
