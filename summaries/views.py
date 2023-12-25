@@ -474,7 +474,7 @@ def export_observation_xls(request):
     if to_date:
         rows = rows.filter(created_at__lte=to_date)
     if from_date is None and to_date is None:
-        rows = rows.order_by("-id")[:100]
+        rows = rows.order_by("-id")[:10000]
 
     # print(rows.query)
     dataList = []
@@ -521,7 +521,7 @@ def export_observation_xls(request):
     if to_date:
         monitoring_rows = monitoring_rows.filter(created_at__lte=to_date)
     if from_date is None and to_date is None:
-        monitoring_rows = monitoring_rows.order_by("-id")[:100]
+        monitoring_rows = monitoring_rows.order_by("-id")[:10000]
 
     # print(rows.query)
     monitoringList = []
