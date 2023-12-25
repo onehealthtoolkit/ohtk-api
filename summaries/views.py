@@ -497,7 +497,7 @@ def export_observation_xls(request):
         )
 
     if len(dataList) == 0:
-        dataList.append({"Data not found.": ""})
+        dataList.append({"__name": "", "Data not found.": ""})
 
     monitoring_rows = (
         MonitoringRecord.objects.all()
@@ -541,7 +541,7 @@ def export_observation_xls(request):
         )
 
     if len(monitoringList) == 0:
-        monitoringList.append({"Data not found.": ""})
+        monitoringList.append({"__name": "", "Data not found.": ""})
 
     try:
         tmp = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
