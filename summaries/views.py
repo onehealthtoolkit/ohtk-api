@@ -473,6 +473,8 @@ def export_observation_xls(request):
         rows = rows.filter(created_at__gte=from_date)
     if to_date:
         rows = rows.filter(created_at__lte=to_date)
+    if from_date is None and to_date is None:
+        rows = rows.order_by("-id")[:100]
 
     # print(rows.query)
     dataList = []
@@ -518,6 +520,8 @@ def export_observation_xls(request):
         monitoring_rows = monitoring_rows.filter(created_at__gte=from_date)
     if to_date:
         monitoring_rows = monitoring_rows.filter(created_at__lte=to_date)
+    if from_date is None and to_date is None:
+        monitoring_rows = monitoring_rows.order_by("-id")[:100]
 
     # print(rows.query)
     monitoringList = []
@@ -562,11 +566,16 @@ def export_observation_xls(request):
                 worksheet.merge_cells("A1:D1")
                 worksheet["A1"] = "Observation Report"
                 worksheet.merge_cells("A2:D2")
-                worksheet[
-                    "A2"
-                ] = f'From {from_date.astimezone().strftime("%d-%b-%Y")} To {to_date.astimezone().strftime("%d-%b-%Y")}'
+                worksheet["A2"] = f"Defination {definition.name}"
+
                 worksheet.merge_cells("A3:D3")
-                worksheet["A3"] = f"Defination {definition.name}"
+                dtxt = ""
+                if from_date:
+                    dtxt += f'From {from_date.astimezone().strftime("%d-%b-%Y")}'
+                if to_date:
+                    dtxt += f'To {to_date.astimezone().strftime("%d-%b-%Y")}'
+                worksheet["A3"] = dtxt
+
                 worksheet.column_dimensions["A"].width = 30
 
                 for item in monitoringList:
@@ -589,7 +598,7 @@ def export_observation_xls(request):
         response[
             "Content-Disposition"
         ] = "attachment; filename=%s" % urllib.parse.quote(
-            f'observation_report_{from_date.astimezone().strftime("%m_%Y")}.xlsx'
+            f'observation_report{"_"+from_date.astimezone().strftime("%m_%Y") if from_date else  ""}.xlsx'
         )
         return response
     finally:
