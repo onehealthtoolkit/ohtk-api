@@ -221,7 +221,13 @@ class SubjectRecord(AbstractRecord):
         if not self.origin_form_data:
             self.origin_form_data = self.form_data
         super().save(
-            update_fields=["title", "description", "identity", "origin_form_data"]
+            update_fields=[
+                "title",
+                "description",
+                "identity",
+                "origin_form_data",
+                "form_data",
+            ]
         )
 
 
