@@ -8,6 +8,7 @@ from common.eval import build_eval_obj, FormData
 
 from reports.models.report import IncidentReport
 from reports.models.report_type import ReportType
+from reports.models.reporter_notification import ReporterNotification
 from reports.schema.types import SimulationReportType
 from django.template.defaultfilters import striptags
 
@@ -43,6 +44,7 @@ class EvaluateReportSimulation(graphene.Mutation):
             renderer_data = striptags(t.render(c))
 
         reporter_notifications = []
+        notification_templates = []
         case_definitions = []
         if report_type_id is not None:
             report_type = ReportType.objects.get(pk=report_type_id)
@@ -61,6 +63,19 @@ class EvaluateReportSimulation(graphene.Mutation):
                     },
                 }
             )
+
+            for definition in ReporterNotification.objects.filter(
+                report_type=report_type
+            ):
+                if definition.condition:
+                    try:
+                        if eval_context.eval(definition.condition):
+                            reporter_notifications.append(
+                                {"id": definition.id, "name": definition.description}
+                            )
+                    except:
+                        pass
+
             for template in NotificationTemplate.objects.filter(
                 type=NotificationTemplate.Type.REPORT,
                 report_type=report_type,
@@ -68,13 +83,13 @@ class EvaluateReportSimulation(graphene.Mutation):
                 if template.condition:
                     try:
                         if eval_context.eval(template.condition):
-                            reporter_notifications.append(
+                            notification_templates.append(
                                 {"id": template.id, "name": template.name}
                             )
                     except:
                         pass
                 else:
-                    reporter_notifications.append(
+                    notification_templates.append(
                         {"id": template.id, "name": template.name}
                     )
 
@@ -90,6 +105,7 @@ class EvaluateReportSimulation(graphene.Mutation):
         return EvaluateReportSimulation(
             result={
                 "reporter_notifications": reporter_notifications,
+                "notification_templates": notification_templates,
                 "case_definitions": case_definitions,
                 "renderer_data": renderer_data,
             }
