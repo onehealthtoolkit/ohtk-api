@@ -423,5 +423,6 @@ class SimulationReporterNotificationType(graphene.ObjectType):
 
 class SimulationReportType(graphene.ObjectType):
     reporter_notifications = graphene.List(SimulationReporterNotificationType)
+    notification_templates = graphene.List(SimulationReporterNotificationType)
     case_definitions = graphene.List(SimulationCaseDefinitionType)
     renderer_data = graphene.String()
