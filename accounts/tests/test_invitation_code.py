@@ -3,7 +3,7 @@ import json
 from django.conf import settings
 from graphene_django.utils import GraphQLTestCase
 
-from accounts.models import Authority, InvitationCode, User
+from accounts.models import Authority, InvitationCode, User, Configuration
 from accounts.utils import domain
 
 
@@ -31,6 +31,8 @@ class InvitationCodeTestCase(GraphQLTestCase):
                   code
                   name
                 }
+                generatedUsername
+                generatedEmail
               }
             }
             """
@@ -71,6 +73,65 @@ class InvitationCodeTestCase(GraphQLTestCase):
         self.assertEqual(
             self.authority.code,
             content["data"]["checkInvitationCode"]["authority"]["code"],
+        )
+
+    def test_check_query_with_auto_generated_username(self):
+        Configuration.objects.create(
+            key="features.auto_generate_username",
+            value="enable",
+        )
+        response = self.query(
+            self.check_query,
+            variables={"code": self.invitationCode.code},
+        )
+        self.assertResponseNoErrors(response)
+        content = json.loads(response.content)
+        self.assertIsNotNone(
+            content["data"]["checkInvitationCode"]["generatedUsername"],
+        )
+        self.assertIsNone(
+            content["data"]["checkInvitationCode"]["generatedEmail"],
+        )
+
+    def test_check_query_with_auto_generated_email(self):
+        Configuration.objects.create(
+            key="features.auto_generate_email",
+            value="enable",
+        )
+        response = self.query(
+            self.check_query,
+            variables={"code": self.invitationCode.code},
+        )
+        self.assertResponseNoErrors(response)
+        content = json.loads(response.content)
+        self.assertIsNotNone(
+            content["data"]["checkInvitationCode"]["generatedEmail"],
+        )
+        self.assertIsNone(
+            content["data"]["checkInvitationCode"]["generatedUsername"],
+        )
+
+    def test_check_query_with_auto_generated_username_and_email(self):
+        Configuration.objects.create(
+            key="features.auto_generate_username",
+            value="enable",
+        )
+        Configuration.objects.create(
+            key="features.auto_generate_email",
+            value="enable",
+        )
+        response = self.query(
+            self.check_query,
+            variables={"code": self.invitationCode.code},
+        )
+        self.assertResponseNoErrors(response)
+        content = json.loads(response.content)
+        generated_username = content["data"]["checkInvitationCode"]["generatedUsername"]
+
+        self.assertIsNotNone(generated_username)
+        self.assertEqual(
+            content["data"]["checkInvitationCode"]["generatedEmail"],
+            f"{generated_username}@generated.ohtk.org",
         )
 
     def test_user_registration_via_code(self):

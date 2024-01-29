@@ -97,7 +97,7 @@ class Query(graphene.ObjectType):
             code=code, from_date__lte=now(), through_date__gte=now()
         ).first()
         if invitation:
-            # if auto_generate_username is True, return generated username and email
+            # if auto_generate_username is True, return generated username
             auto_generate_username = False
             try:
                 config = Configuration.objects.get(
@@ -119,9 +119,36 @@ class Query(graphene.ObjectType):
                     row = cursor.fetchone()
                     generated_username = f"u{row[0]}"
 
-                generated_email = f"{generated_username}@generated.ohtk.org"
                 info.context.__dict__["generated_username"] = generated_username
-                info.context.__dict__["generated_email"] = generated_email
+
+            # if auto_generate_email is True, return generated email
+            auto_generate_email = False
+            try:
+                config = Configuration.objects.get(key="features.auto_generate_email")
+                if config.value == "enable":
+                    auto_generate_email = True
+
+            except Configuration.DoesNotExist:
+                pass
+
+            if auto_generate_email:
+                # if username was already generated, use it for email
+                if "generated_username" in info.context.__dict__:
+                    generated_username = info.context.__dict__["generated_username"]
+                    generated_email = f"{generated_username}@generated.ohtk.org"
+                    info.context.__dict__["generated_email"] = generated_email
+                else:
+                    # use db sequence to generate email
+                    with connection.cursor() as cursor:
+                        cursor = connection.cursor()
+                        cursor.execute(
+                            "SELECT nextval('accounts_authorityuser_username_seq')"
+                        )
+                        row = cursor.fetchone()
+                        generated_email = f"u{row[0]}"
+
+                    generated_email = f"{generated_email}@generated.ohtk.org"
+                    info.context.__dict__["generated_email"] = generated_email
 
             return invitation
         raise GraphQLError(f"code {code} not found!")
