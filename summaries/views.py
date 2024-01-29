@@ -45,7 +45,11 @@ def export_inactive_reporter_xls(request):
         AuthorityUser.objects.exclude(id__in=exclude)
         .annotate(Count("username"))
         .order_by("username")
-        .filter(authority__in=sub_authorities, role=AuthorityUser.Role.REPORTER)
+        .filter(
+            authority__in=sub_authorities,
+            role=AuthorityUser.Role.REPORTER,
+            is_active=True,
+        )
         .values("username", "first_name", "last_name", "telephone", "authority__name")
     )
 
@@ -130,7 +134,9 @@ def export_reporter_performance_xls(request):
 
     rows = (
         AuthorityUser.objects.filter(
-            authority__in=sub_authorities, role=AuthorityUser.Role.REPORTER
+            authority__in=sub_authorities,
+            role=AuthorityUser.Role.REPORTER,
+            is_active=True,
         )
         .annotate(
             zero_reports=Subquery(zero_reports),
@@ -369,7 +375,8 @@ def export_zero_report_xls(request):
         .order_by("-day")
         .filter(
             reported_by__in=AuthorityUser.objects.filter(
-                authority__in=sub_authorities
+                authority__in=sub_authorities,
+                is_active=True,
                 # , role=AuthorityUser.Role.REPORTER
             ),
         )

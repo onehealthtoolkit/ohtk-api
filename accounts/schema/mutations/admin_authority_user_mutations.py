@@ -278,5 +278,6 @@ class AdminAuthorityUserDeleteMutation(graphene.Mutation):
             else:
                 raise GraphQLError("Permission denied.")
 
-        delete_user.delete()
+        delete_user.is_active = False
+        delete_user.save(update_fields=("is_active",))
         return {"success": True}

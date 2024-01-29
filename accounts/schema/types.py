@@ -184,7 +184,8 @@ class AdminAuthorityUserQueryType(DjangoObjectType):
             )
         elif user.is_authority_role_in([AuthorityUser.Role.REPORTER]):
             raise GraphQLError("Permission denied")
-        queryset.prefetch_related("authority")
+        queryset = queryset.filter(is_active=True).prefetch_related("authority")
+
         return queryset
 
 
