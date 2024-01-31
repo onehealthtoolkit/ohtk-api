@@ -50,7 +50,14 @@ def export_inactive_reporter_xls(request):
             role=AuthorityUser.Role.REPORTER,
             is_active=True,
         )
-        .values("username", "first_name", "last_name", "telephone", "authority__name")
+        .values(
+            "username",
+            "first_name",
+            "last_name",
+            "telephone",
+            "authority__name",
+            "date_joined",
+        )
     )
 
     if dataFrameFormat is not None:
@@ -66,7 +73,7 @@ def export_inactive_reporter_xls(request):
         font_style.font.bold = True
 
         row_num = write_header(
-            row_num, 0, 4, ws, "Inactive Reporter", from_date, to_date, authority
+            row_num, 0, 5, ws, "Inactive Reporter", from_date, to_date, authority
         )
         columns = [
             "Username",
@@ -74,6 +81,7 @@ def export_inactive_reporter_xls(request):
             "Last Name",
             "Telephone",
             "Authority Name",
+            "Join Date",
         ]
 
         for col_num in range(len(columns)):
@@ -91,8 +99,23 @@ def export_inactive_reporter_xls(request):
             row_num += 1
             col_num = 0
             for item in row:
-                auto_column_width(ws, col_num, row[item])
-                ws.write(row_num, col_num, row[item], font_style)
+                if type(row[item]) == datetime:
+                    value = str(
+                        row[item]
+                        .replace(tzinfo=tzinfo)
+                        .astimezone()
+                        .strftime("%d-%b-%Y %H:%M:%S")
+                    )
+                    auto_column_width(ws, col_num, value)
+                    ws.write(
+                        row_num,
+                        col_num,
+                        value,
+                        font_style,
+                    )
+                else:
+                    auto_column_width(ws, col_num, row[item])
+                    ws.write(row_num, col_num, row[item], font_style)
                 col_num += 1
 
         wb.save(response)
@@ -149,6 +172,7 @@ def export_reporter_performance_xls(request):
             "last_name",
             "telephone",
             "authority__name",
+            "date_joined",
             "zero_reports",
             "incident_reports",
         )
@@ -167,7 +191,7 @@ def export_reporter_performance_xls(request):
         font_style.font.bold = True
 
         row_num = write_header(
-            row_num, 0, 6, ws, "Reporter Performance", from_date, to_date, authority
+            row_num, 0, 7, ws, "Reporter Performance", from_date, to_date, authority
         )
 
         columns = [
@@ -176,6 +200,7 @@ def export_reporter_performance_xls(request):
             "Last Name",
             "Telephone",
             "Authority Name",
+            "Join Date",
             "Zero Report",
             "Incident Report",
         ]
@@ -197,7 +222,21 @@ def export_reporter_performance_xls(request):
             row_num += 1
             col_num = 0
             for item in row:
-                ws.write(row_num, col_num, row[item], font_style)
+                if type(row[item]) == datetime:
+                    value = str(
+                        row[item]
+                        .replace(tzinfo=tzinfo)
+                        .astimezone()
+                        .strftime("%d-%b-%Y %H:%M:%S")
+                    )
+                    ws.write(
+                        row_num,
+                        col_num,
+                        value,
+                        font_style,
+                    )
+                else:
+                    ws.write(row_num, col_num, row[item], font_style)
                 col_num += 1
 
         wb.save(response)
@@ -386,6 +425,7 @@ def export_zero_report_xls(request):
             "reported_by__first_name",
             "reported_by__last_name",
             "reported_by__authorityuser__authority__name",
+            "reported_by__date_joined",
         )
         .annotate(total=Count("id"))
     )
@@ -406,6 +446,12 @@ def export_zero_report_xls(request):
                 + row["reported_by__last_name"],
                 "username": username,
                 "Authority": row["reported_by__authorityuser__authority__name"],
+                "Join Date": str(
+                    row["reported_by__date_joined"]
+                    .replace(tzinfo=tzinfo)
+                    .astimezone()
+                    .strftime("%d-%b-%Y %H:%M:%S")
+                ),
             }
             for i in range(to_date.astimezone().day):
                 data["Day " + str(i + 1)] = ""
@@ -432,13 +478,13 @@ def export_zero_report_xls(request):
                 )
                 # workbook = writer.book
                 worksheet = writer.sheets["zero_report"]
-                worksheet.merge_cells("A1:D1")
+                worksheet.merge_cells("A1:E1")
                 worksheet["A1"] = "Zero Report"
-                worksheet.merge_cells("A2:D2")
+                worksheet.merge_cells("A2:E2")
                 worksheet[
                     "A2"
                 ] = f'From {from_date.astimezone().strftime("%d-%b-%Y")} To {to_date.astimezone().strftime("%d-%b-%Y")}'
-                worksheet.merge_cells("A3:D3")
+                worksheet.merge_cells("A3:E3")
                 worksheet["A3"] = f"Authority {authority.name}"
                 worksheet.column_dimensions["A"].width = 30
 
