@@ -17,6 +17,7 @@ from pathlib import Path
 from firebase_admin import initialize_app, credentials
 
 from dotenv import load_dotenv
+from django.utils.translation import gettext_lazy as _
 
 load_dotenv()
 
@@ -107,6 +108,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "oauth2_provider.middleware.OAuth2TokenMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
 ]
 
 # CORS_ALLOWED_ORIGIN_REGEXES = [
@@ -326,6 +328,14 @@ LOGIN_URL = "/accounts/login/"
 OAUTH2_PROVIDER = {"PKCE_REQUIRED": False}
 
 HOURS_TO_EVALUATE_CASE_DEFINITION_FOR_NEW_USER = 6
+
+LOCALE_PATHS = [
+    os.path.join(
+        BASE_DIR,
+        "locale",
+    )
+]
+LANGUAGES = (("en", _("en")), ("la", _("la")))
 
 try:
     from .local import *
