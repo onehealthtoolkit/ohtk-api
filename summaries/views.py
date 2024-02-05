@@ -18,6 +18,7 @@ import tempfile
 from django.http import FileResponse
 import os
 from django.db.models.functions import TruncDay
+from django.utils.translation import gettext as _
 
 # Create your views here.
 
@@ -50,7 +51,14 @@ def export_inactive_reporter_xls(request):
             role=AuthorityUser.Role.REPORTER,
             is_active=True,
         )
-        .values("username", "first_name", "last_name", "telephone", "authority__name")
+        .values(
+            "username",
+            "first_name",
+            "last_name",
+            "telephone",
+            "authority__name",
+            "date_joined",
+        )
     )
 
     if dataFrameFormat is not None:
@@ -66,14 +74,15 @@ def export_inactive_reporter_xls(request):
         font_style.font.bold = True
 
         row_num = write_header(
-            row_num, 0, 4, ws, "Inactive Reporter", from_date, to_date, authority
+            row_num, 0, 5, ws, _("inactiveReporter"), from_date, to_date, authority
         )
         columns = [
-            "Username",
-            "First Name",
-            "Last Name",
-            "Telephone",
-            "Authority Name",
+            _("username"),
+            _("firstName"),
+            _("lastName"),
+            _("telephone"),
+            _("authorityName"),
+            _("joinDate"),
         ]
 
         for col_num in range(len(columns)):
@@ -91,14 +100,29 @@ def export_inactive_reporter_xls(request):
             row_num += 1
             col_num = 0
             for item in row:
-                auto_column_width(ws, col_num, row[item])
-                ws.write(row_num, col_num, row[item], font_style)
+                if type(row[item]) == datetime:
+                    value = str(
+                        row[item]
+                        .replace(tzinfo=tzinfo)
+                        .astimezone()
+                        .strftime("%d-%b-%Y %H:%M:%S")
+                    )
+                    auto_column_width(ws, col_num, value)
+                    ws.write(
+                        row_num,
+                        col_num,
+                        value,
+                        font_style,
+                    )
+                else:
+                    auto_column_width(ws, col_num, row[item])
+                    ws.write(row_num, col_num, row[item], font_style)
                 col_num += 1
 
         wb.save(response)
 
         return response
-        # return HttpResponse("return this string")
+        # return HttpResponse(columns)
 
 
 def export_reporter_performance_xls(request):
@@ -149,6 +173,7 @@ def export_reporter_performance_xls(request):
             "last_name",
             "telephone",
             "authority__name",
+            "date_joined",
             "zero_reports",
             "incident_reports",
         )
@@ -167,17 +192,18 @@ def export_reporter_performance_xls(request):
         font_style.font.bold = True
 
         row_num = write_header(
-            row_num, 0, 6, ws, "Reporter Performance", from_date, to_date, authority
+            row_num, 0, 7, ws, _("reporterPerformance"), from_date, to_date, authority
         )
 
         columns = [
-            "Username",
-            "First Name",
-            "Last Name",
-            "Telephone",
-            "Authority Name",
-            "Zero Report",
-            "Incident Report",
+            _("username"),
+            _("firstName"),
+            _("lastName"),
+            _("telephone"),
+            _("authorityName"),
+            _("joinDate"),
+            _("zeroReport"),
+            _("incidentReport"),
         ]
 
         for col_num in range(len(columns)):
@@ -197,7 +223,21 @@ def export_reporter_performance_xls(request):
             row_num += 1
             col_num = 0
             for item in row:
-                ws.write(row_num, col_num, row[item], font_style)
+                if type(row[item]) == datetime:
+                    value = str(
+                        row[item]
+                        .replace(tzinfo=tzinfo)
+                        .astimezone()
+                        .strftime("%d-%b-%Y %H:%M:%S")
+                    )
+                    ws.write(
+                        row_num,
+                        col_num,
+                        value,
+                        font_style,
+                    )
+                else:
+                    ws.write(row_num, col_num, row[item], font_style)
                 col_num += 1
 
         wb.save(response)
@@ -386,6 +426,7 @@ def export_zero_report_xls(request):
             "reported_by__first_name",
             "reported_by__last_name",
             "reported_by__authorityuser__authority__name",
+            "reported_by__date_joined",
         )
         .annotate(total=Count("id"))
     )
@@ -406,6 +447,12 @@ def export_zero_report_xls(request):
                 + row["reported_by__last_name"],
                 "username": username,
                 "Authority": row["reported_by__authorityuser__authority__name"],
+                "Join Date": str(
+                    row["reported_by__date_joined"]
+                    .replace(tzinfo=tzinfo)
+                    .astimezone()
+                    .strftime("%d-%b-%Y %H:%M:%S")
+                ),
             }
             for i in range(to_date.astimezone().day):
                 data["Day " + str(i + 1)] = ""
@@ -415,8 +462,18 @@ def export_zero_report_xls(request):
     # for item in dataList:
     #     item.pop("user_id")
 
+    header = [_("dataNotFound")]
     if len(dataList) == 0:
-        dataList.append({"Data not found.": ""})
+        dataList.append({"Data": ""})
+    else:
+        header = [
+            _("name"),
+            _("username"),
+            _("authority"),
+            _("joinDate"),
+        ]
+        for i in range(to_date.astimezone().day):
+            header.append(f'{_("day")} {str(i + 1)}')
 
     try:
         tmp = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
@@ -429,17 +486,18 @@ def export_zero_report_xls(request):
                     sheet_name="zero_report",
                     index=False,
                     startrow=4,
+                    header=header,
                 )
                 # workbook = writer.book
                 worksheet = writer.sheets["zero_report"]
-                worksheet.merge_cells("A1:D1")
-                worksheet["A1"] = "Zero Report"
-                worksheet.merge_cells("A2:D2")
+                worksheet.merge_cells("A1:E1")
+                worksheet["A1"] = _("zeroReport")
+                worksheet.merge_cells("A2:E2")
                 worksheet[
                     "A2"
-                ] = f'From {from_date.astimezone().strftime("%d-%b-%Y")} To {to_date.astimezone().strftime("%d-%b-%Y")}'
-                worksheet.merge_cells("A3:D3")
-                worksheet["A3"] = f"Authority {authority.name}"
+                ] = f'{_("from")} {format_date(from_date)} {_("to")} {format_date(to_date)}'
+                worksheet.merge_cells("A3:E3")
+                worksheet["A3"] = f'{_("authority")} {authority.name}'
                 worksheet.column_dimensions["A"].width = 30
 
         response = FileResponse(open(tmp.name, "rb"))
@@ -672,7 +730,7 @@ def write_header(
         row_num,
         left_column,
         right_column,
-        f'From {from_date.astimezone().strftime("%d-%b-%Y")} To {to_date.astimezone().strftime("%d-%b-%Y")}',
+        f'{_("from")} {format_date(from_date)} {_("to")} {format_date(to_date)}',
         sty_header,
     )
     row_num += 1
@@ -682,7 +740,7 @@ def write_header(
         row_num,
         left_column,
         right_column,
-        f"Authority {authority.name}",
+        f'{_("authority")} {authority.name}',
         sty_header,
     )
     row_num += 1
@@ -693,7 +751,7 @@ def write_header(
             row_num,
             left_column,
             right_column,
-            f"Report  {report_type.name}",
+            f"{_('report')}  {report_type.name}",
             sty_header,
         )
         row_num += 1
@@ -726,7 +784,9 @@ def responseJsonExcel(dataList, outputName, header={}):
     for d in dataList:
         data.setdefault(d["__name"], []).append(d)
 
+    data_not_fount = False
     if len(data) == 0:
+        data_not_fount = True
         data = {"__name": [{"__name": "", "Data not found.": ""}]}
 
     try:
@@ -764,6 +824,8 @@ def responseJsonExcel(dataList, outputName, header={}):
                         column=1,
                         value=f'Report  {header["report_type"].name}',
                     )
+                    if data_not_fount:
+                        worksheet.column_dimensions["A"].width = 50
         response = FileResponse(open(tmp.name, "rb"))
         # response = HttpResponse(content_type="application/ms-excel")
         response[
@@ -772,3 +834,9 @@ def responseJsonExcel(dataList, outputName, header={}):
         return response
     finally:
         os.remove(tmp.name)
+
+
+def format_date(date):
+    month_str = _(date.astimezone().strftime("%b"))
+    date_str = date.astimezone().strftime(f"%d-{month_str}-%Y")
+    return date_str
