@@ -45,7 +45,7 @@ msgid "authorityName"
 msgstr "Authority Name"
 
 msgid "joinDate"
-msgstr "Join Date"
+msgstr "Registration date&time"
 
 msgid "reporterPerformance"
 msgstr "Reporter Performance"
