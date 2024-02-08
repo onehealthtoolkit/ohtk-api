@@ -105,7 +105,7 @@ def export_inactive_reporter_xls(request):
                         row[item]
                         .replace(tzinfo=tzinfo)
                         .astimezone()
-                        .strftime("%d-%b-%Y %H:%M:%S")
+                        .strftime("%d/%m/%Y %H:%M:%S")
                     )
                     auto_column_width(ws, col_num, value)
                     ws.write(
@@ -228,7 +228,7 @@ def export_reporter_performance_xls(request):
                         row[item]
                         .replace(tzinfo=tzinfo)
                         .astimezone()
-                        .strftime("%d-%b-%Y %H:%M:%S")
+                        .strftime("%d/%m/%Y %H:%M:%S")
                     )
                     ws.write(
                         row_num,
@@ -451,7 +451,7 @@ def export_zero_report_xls(request):
                     row["reported_by__date_joined"]
                     .replace(tzinfo=tzinfo)
                     .astimezone()
-                    .strftime("%d-%b-%Y %H:%M:%S")
+                    .strftime("%d/%m/%Y %H:%M:%S")
                 ),
             }
             for i in range(to_date.astimezone().day):
