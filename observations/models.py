@@ -202,12 +202,16 @@ class SubjectRecord(AbstractRecord):
             "report_id": self.id,
             "definition_name": self.definition.name,
             "report_date": self.created_at if self.created_at is not None else now,
-            "report_date_str": self.created_at.strftime("%Y-%m-%d %H:%M:%S")
-            if self.created_at is not None
-            else "",
-            "report_date_no_time_str": self.created_at.strftime("%Y-%m-%d")
-            if self.created_at is not None
-            else "",
+            "report_date_str": (
+                self.created_at.strftime("%Y-%m-%d %H:%M:%S")
+                if self.created_at is not None
+                else ""
+            ),
+            "report_date_no_time_str": (
+                self.created_at.strftime("%Y-%m-%d")
+                if self.created_at is not None
+                else ""
+            ),
             "gps_location": self.gps_location_str,
         }
 
@@ -271,6 +275,12 @@ class MonitoringRecord(AbstractRecord):
     def render_data_context(self):
         return {
             "data": self.form_data,
+            "created_at": self.created_at,
+            "created_at_str": self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "subject_title": self.subject.title,
+            "subject_identity": self.subject.identity,
+            "subject_description": self.subject.description,
+            "subject_data": self.subject.form_data,
         }
 
     def save(self, *args, **kwargs):
