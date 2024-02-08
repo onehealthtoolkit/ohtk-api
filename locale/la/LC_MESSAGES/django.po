@@ -38,22 +38,22 @@ msgid "lastName"
 msgstr "ນາມ​ສະ​ກຸນ"
 
 msgid "telephone"
-msgstr "ອົງການ"
+msgstr "ເບີ​ໂທລະ​ສັບ"
 
 msgid "authorityName"
 msgstr "ອົງການ"
 
 msgid "joinDate"
-msgstr "ວັນທີເຂົ້າຮ່ວມ"
+msgstr "ວັນທີແລະເວລາລົງທະບຽນເພື່ອນໍາໃຊ້ລະບົບ"
 
 msgid "reporterPerformance"
-msgstr ""
+msgstr "ຜົນງານຂອງອາສາ"
 
 msgid "zeroReport"
 msgstr "ລາຍ​ງານ​ບໍ່​ມີ​ຄວາມ​ຜິດ​ປົກ​ກະ​ຕິ​"
 
 msgid "incidentReport"
-msgstr ""
+msgstr "ບົດລາຍງານເຫດການ"
 
 msgid "dataNotFound"
 msgstr "ບໍ່ພົບຂໍ້ມູນ"
