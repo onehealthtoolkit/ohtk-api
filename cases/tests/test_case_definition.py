@@ -17,7 +17,7 @@ class CaseDefinitionTestCase(BaseTestCase):
         app.conf.update(CELERY_ALWAYS_EAGER=True)
 
     def test_condition_evaluation_success(self):
-        evaluate_case_definition(self.mers_report.id)
+        evaluate_case_definition(self.mers_report.id, check_new_registerd_user=False)
         self.assertTrue(Case.objects.filter(report_id=self.mers_report.id).exists())
 
     def test_condition_evaluation_not_success(self):

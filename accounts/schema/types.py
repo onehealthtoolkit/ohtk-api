@@ -255,6 +255,7 @@ class AuthorityUserType(DjangoObjectType):
             "last_name",
             "email",
             "telephone",
+            "address",
             "role",
         )
 
@@ -266,6 +267,7 @@ class UserProfileType(graphene.ObjectType):
     last_name = graphene.String(required=True)
     telephone = graphene.String(required=False)
     email = graphene.String()
+    address = graphene.String(required=False)
     authority_name = graphene.String(required=False)
     authority_id = graphene.Int(required=False)
     avatar_url = graphene.String(required=False)

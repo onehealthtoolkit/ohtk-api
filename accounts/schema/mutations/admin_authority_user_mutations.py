@@ -106,6 +106,7 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
         last_name = graphene.String(required=True)
         email = graphene.String(required=True)
         telephone = graphene.String(required=False)
+        address = graphene.String(required=False)
         role = graphene.String(required=False)
 
     result = graphene.Field(AdminAuthorityUserUpdateResult)
@@ -122,6 +123,7 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
         last_name,
         email,
         telephone,
+        address,
         role,
     ):
         try:
@@ -195,6 +197,7 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
         update_user.last_name = last_name
         update_user.email = email
         update_user.telephone = telephone
+        update_user.address = address
         update_user.role = role
         update_user.save()
         return AdminAuthorityUserUpdateMutation(

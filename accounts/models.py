@@ -117,6 +117,7 @@ class AuthorityUser(User):
     avatar_url = models.URLField(max_length=300, blank=True, null=True)
     thumbnail_avatar_url = models.URLField(max_length=300, blank=True, null=True)
     telephone = models.CharField(max_length=20, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
     authority = models.ForeignKey(
         Authority, related_name="users", on_delete=models.CASCADE
     )

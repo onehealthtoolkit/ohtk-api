@@ -9,12 +9,13 @@ class AdminUserUpdateProfileMutation(graphene.Mutation):
         first_name = graphene.String(required=True)
         last_name = graphene.String(required=True)
         telephone = graphene.String(required=False)
+        address = graphene.String(required=False)
 
     success = graphene.Boolean()
 
     @staticmethod
     @login_required
-    def mutate(root, info, first_name, last_name, telephone):
+    def mutate(root, info, first_name, last_name, telephone, address):
         user = info.context.user
         if user.is_authority_user:
             update_user = user.authorityuser
@@ -24,5 +25,6 @@ class AdminUserUpdateProfileMutation(graphene.Mutation):
         update_user.first_name = first_name
         update_user.last_name = last_name
         update_user.telephone = telephone
+        update_user.address = address
         update_user.save()
         return AdminUserUpdateProfileMutation(success=True)

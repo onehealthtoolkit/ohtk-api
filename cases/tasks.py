@@ -9,17 +9,18 @@ logger = get_task_logger(__name__)
 
 
 @app.task
-def evaluate_case_definition(report_id):
+def evaluate_case_definition(report_id, check_new_registerd_user=True):
     report = IncidentReport.objects.get(pk=report_id)
     if report.test_flag:
         return
 
-    # if user is just created, do not promote to case
-    user = report.reported_by
-    hours = settings.HOURS_TO_EVALUATE_CASE_DEFINITION_FOR_NEW_USER or 6
-    if not user.was_joined_more_than(relativedelta(hours=hours)):
-        # report that submit from just created account is not allowed to promote to case
-        return
+    if check_new_registerd_user:
+        # if user is just created, do not promote to case
+        user = report.reported_by
+        hours = settings.HOURS_TO_EVALUATE_CASE_DEFINITION_FOR_NEW_USER or 6
+        if not user.was_joined_more_than(relativedelta(hours=hours)):
+            # report that submit from just created account is not allowed to promote to case
+            return
 
     eval_context = report.evaluate_context()
     for definition in CaseDefinition.objects.filter(report_type=report.report_type):

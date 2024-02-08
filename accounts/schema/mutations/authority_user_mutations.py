@@ -16,6 +16,7 @@ class AuthorityUserRegisterMutation(graphene.Mutation):
         last_name = graphene.String(required=True)
         telephone = graphene.String(required=False)
         email = graphene.String(required=True)
+        address = graphene.String(required=False)
 
     me = graphene.Field(UserProfileType)
     # return only when enable FEATURES.AUTO_LOGIN_AFTER_REGISTER
@@ -32,6 +33,7 @@ class AuthorityUserRegisterMutation(graphene.Mutation):
         last_name,
         email,
         telephone=None,
+        address=None,
     ):
         invitation = InvitationCode.objects.filter(code=invitation_code).first()
         if invitation:
@@ -43,6 +45,7 @@ class AuthorityUserRegisterMutation(graphene.Mutation):
                 last_name=last_name,
                 telephone=telephone,
                 email=email,
+                address=address,
                 authority=invitation.authority,
                 role=invitation.role,
             )

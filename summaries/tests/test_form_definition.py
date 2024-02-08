@@ -23,7 +23,7 @@ class FormDefinitionTestCase(BaseTestCase):
         form = parseForm(self.data["data"]["incidentReport"]["definition"])
         form.loadJsonValue(self.data["data"]["incidentReport"]["data"])
         # print(json.dumps(form.toJsonValue(), indent=4))
-        self.assertIsNotNone(form.toJsonValue()["digestive_system"])
+        self.assertIsNotNone(form.toJsonValue()["sickness_date"])
 
     def test_load_subform_value(self):
         f = open("summaries/tests/subform_data.json")
