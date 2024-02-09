@@ -429,6 +429,8 @@ def export_zero_report_xls(request):
             "reported_by__username",
             "reported_by__first_name",
             "reported_by__last_name",
+            "reported_by__authorityuser__address",
+            "reported_by__authorityuser__telephone",
             "reported_by__authorityuser__authority__name",
             "reported_by__date_joined",
         )
@@ -450,6 +452,8 @@ def export_zero_report_xls(request):
                 + " "
                 + row["reported_by__last_name"],
                 "username": username,
+                "address": row["reported_by__authorityuser__address"],
+                "telephone": row["reported_by__authorityuser__telephone"],
                 "Authority": row["reported_by__authorityuser__authority__name"],
                 "Join Date": str(
                     row["reported_by__date_joined"]
@@ -473,6 +477,8 @@ def export_zero_report_xls(request):
         header = [
             _("name"),
             _("username"),
+            _("address"),
+            _("telephone"),
             _("authority"),
             _("joinDate"),
         ]
