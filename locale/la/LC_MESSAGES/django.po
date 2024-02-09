@@ -40,6 +40,9 @@ msgstr "ນາມ​ສະ​ກຸນ"
 msgid "telephone"
 msgstr "ເບີ​ໂທລະ​ສັບ"
 
+msgid "address"
+msgstr "ທີ່ຢູ່ຂອງອາສາ"
+
 msgid "authorityName"
 msgstr "ອົງການ"
 
