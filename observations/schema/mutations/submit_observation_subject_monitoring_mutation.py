@@ -1,3 +1,4 @@
+from datetime import datetime
 import graphene
 from django.contrib.gis.geos import Point
 from graphene.types.generic import GenericScalar
@@ -33,6 +34,7 @@ class SubmitObservationSubjectMonitoringRecord(graphene.Mutation):
             subject=subject,
             form_data=data,
             reported_by=user,
+            created_at=datetime.now(),
         )
 
         return SubmitObservationSubjectMonitoringRecord(result=monitoring_record)
