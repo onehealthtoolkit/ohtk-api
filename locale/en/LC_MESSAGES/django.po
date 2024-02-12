@@ -42,7 +42,7 @@ msgid "telephone"
 msgstr "Telephone"
 
 msgid "address"
-msgstr "Address reporter"
+msgstr "Reporter address"
 
 msgid "authorityName"
 msgstr "Authority Name"
