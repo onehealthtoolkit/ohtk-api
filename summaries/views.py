@@ -55,6 +55,7 @@ def export_inactive_reporter_xls(request):
             "username",
             "first_name",
             "last_name",
+            "address",
             "telephone",
             "authority__name",
             "date_joined",
@@ -74,12 +75,13 @@ def export_inactive_reporter_xls(request):
         font_style.font.bold = True
 
         row_num = write_header(
-            row_num, 0, 5, ws, _("inactiveReporter"), from_date, to_date, authority
+            row_num, 0, 6, ws, _("inactiveReporter"), from_date, to_date, authority
         )
         columns = [
             _("username"),
             _("firstName"),
             _("lastName"),
+            _("address"),
             _("telephone"),
             _("authorityName"),
             _("joinDate"),
@@ -105,7 +107,7 @@ def export_inactive_reporter_xls(request):
                         row[item]
                         .replace(tzinfo=tzinfo)
                         .astimezone()
-                        .strftime("%d-%b-%Y %H:%M:%S")
+                        .strftime("%d/%m/%Y %H:%M:%S")
                     )
                     auto_column_width(ws, col_num, value)
                     ws.write(
@@ -171,6 +173,7 @@ def export_reporter_performance_xls(request):
             "username",
             "first_name",
             "last_name",
+            "address",
             "telephone",
             "authority__name",
             "date_joined",
@@ -192,13 +195,14 @@ def export_reporter_performance_xls(request):
         font_style.font.bold = True
 
         row_num = write_header(
-            row_num, 0, 7, ws, _("reporterPerformance"), from_date, to_date, authority
+            row_num, 0, 8, ws, _("reporterPerformance"), from_date, to_date, authority
         )
 
         columns = [
             _("username"),
             _("firstName"),
             _("lastName"),
+            _("address"),
             _("telephone"),
             _("authorityName"),
             _("joinDate"),
@@ -228,7 +232,7 @@ def export_reporter_performance_xls(request):
                         row[item]
                         .replace(tzinfo=tzinfo)
                         .astimezone()
-                        .strftime("%d-%b-%Y %H:%M:%S")
+                        .strftime("%d/%m/%Y %H:%M:%S")
                     )
                     ws.write(
                         row_num,
@@ -425,6 +429,8 @@ def export_zero_report_xls(request):
             "reported_by__username",
             "reported_by__first_name",
             "reported_by__last_name",
+            "reported_by__authorityuser__address",
+            "reported_by__authorityuser__telephone",
             "reported_by__authorityuser__authority__name",
             "reported_by__date_joined",
         )
@@ -446,12 +452,14 @@ def export_zero_report_xls(request):
                 + " "
                 + row["reported_by__last_name"],
                 "username": username,
+                "address": row["reported_by__authorityuser__address"],
+                "telephone": row["reported_by__authorityuser__telephone"],
                 "Authority": row["reported_by__authorityuser__authority__name"],
                 "Join Date": str(
                     row["reported_by__date_joined"]
                     .replace(tzinfo=tzinfo)
                     .astimezone()
-                    .strftime("%d-%b-%Y %H:%M:%S")
+                    .strftime("%d/%m/%Y %H:%M:%S")
                 ),
             }
             for i in range(to_date.astimezone().day):
@@ -469,6 +477,8 @@ def export_zero_report_xls(request):
         header = [
             _("name"),
             _("username"),
+            _("address"),
+            _("telephone"),
             _("authority"),
             _("joinDate"),
         ]

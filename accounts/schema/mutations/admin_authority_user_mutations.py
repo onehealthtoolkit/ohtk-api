@@ -30,6 +30,7 @@ class AdminAuthorityUserCreateMutation(graphene.Mutation):
         last_name = graphene.String(required=True)
         email = graphene.String(required=True)
         telephone = graphene.String(required=False)
+        address = graphene.String(required=False)
         role = graphene.String(required=False)
 
     result = graphene.Field(AdminAuthorityUserCreateResult)
@@ -46,6 +47,7 @@ class AdminAuthorityUserCreateMutation(graphene.Mutation):
         last_name,
         email,
         telephone,
+        address,
         role,
     ):
         user = info.context.user
@@ -92,6 +94,7 @@ class AdminAuthorityUserCreateMutation(graphene.Mutation):
             last_name=last_name,
             email=email,
             telephone=telephone,
+            address=address,
             role=role,
         )
         return AdminAuthorityUserCreateMutation(result=user)
