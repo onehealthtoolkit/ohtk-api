@@ -359,7 +359,7 @@ def export_incident_report_xls(request):
             0,
             col_num,
             ws,
-            "Incident Reports",
+            _("incidentReport"),
             from_date,
             to_date,
             authority,
