@@ -8,6 +8,7 @@ from easy_thumbnails.fields import ThumbnailerImageField
 from accounts.models import User, Authority
 from common.models import BaseModel, BaseModelManager
 from common.eval import build_eval_obj, FormData
+from common.utils import convert_datetime_to_local_timezone
 from threads.models import Thread
 from . import ReportType
 
@@ -131,7 +132,35 @@ class IncidentReport(AbstractIncidentReport):
             return ""
 
     def render_data_context(self):
-        return self.build_data_context(self.data, self.id, self.incident_date)
+        return self.build_report_data_context(
+            self.id,
+            self.incident_date,
+            self.created_at,
+            self.data,
+            self.gps_location_str,
+            self.report_type,
+        )
+
+    @staticmethod
+    def build_report_data_context(
+        id, incident_date, created_at, data, gps_location, report_type
+    ):
+        report_date = convert_datetime_to_local_timezone(
+            created_at, data.get("tz", None)
+        )
+        return {
+            "data": data,
+            "incident_date": incident_date,
+            "report_date": report_date.strftime("%Y-%m-%d %H:%M:%S"),
+            "report_date_no_time": report_date.strftime("%Y-%m-%d"),
+            "gps_location": gps_location,
+            "report_id": id,
+            "report_type": {
+                "id": report_type.id,
+                "name": report_type.name,
+                "category": report_type.category,
+            },
+        }
 
     @staticmethod
     def build_data_context(data, id, incident_date):
@@ -163,10 +192,14 @@ class IncidentReport(AbstractIncidentReport):
         return build_eval_obj(self.template_context())
 
     def template_context(self):
+        report_date = convert_datetime_to_local_timezone(
+            self.created_at, self.data.get("tz", None)
+        )
         return {
             "data": self.data,
             "form_data": FormData(self.data),
-            "report_date": self.created_at,
+            "report_date": report_date.strftime("%Y-%m-%d %H:%M:%S"),
+            "report_date_no_time": report_date.strftime("%Y-%m-%d"),
             "incident_date": self.incident_date,
             "gps_location": self.gps_location_str,
             "renderer_data": self.renderer_data,
