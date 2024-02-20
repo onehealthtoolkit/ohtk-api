@@ -1,6 +1,5 @@
 import uuid
 import re
-import pytz
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List
@@ -14,6 +13,7 @@ from easy_thumbnails.fields import ThumbnailerImageField
 
 from accounts.models import User
 from common.models import BaseModel, BaseModelManager
+from common.utils import convert_datetime_to_local_timezone
 
 
 #
@@ -197,19 +197,15 @@ class SubjectRecord(AbstractRecord):
             return ""
 
     def render_data_context(self):
-        report_date = self.created_at
-        data_tz = self.form_data["tz"]
-        if data_tz is not None:
-            tz = pytz.timezone(data_tz)
-            report_date = pytz.utc.localize(report_date).astimezone(tz)
-
+        report_date = convert_datetime_to_local_timezone(
+            self.created_at, self.form_data.get("tz", None)
+        )
         return {
             "data": self.form_data,
             "report_id": self.id,
             "definition_name": self.definition.name,
             "report_date": report_date.strftime("%Y-%m-%d %H:%M:%S"),
-            "report_date_str": report_date.strftime("%Y-%m-%d %H:%M:%S"),
-            "report_date_no_time_str": report_date.strftime("%Y-%m-%d"),
+            "report_date_no_time": report_date.strftime("%Y-%m-%d"),
             "gps_location": self.gps_location_str,
         }
 
@@ -271,17 +267,14 @@ class MonitoringRecord(AbstractRecord):
     description = models.TextField()
 
     def render_data_context(self):
-        report_date = self.created_at
-        data_tz = self.form_data["tz"]
-        if data_tz is not None:
-            tz = pytz.timezone(data_tz)
-            report_date = pytz.utc.localize(report_date).astimezone(tz)
+        create_date = convert_datetime_to_local_timezone(
+            self.created_at, self.form_data.get("tz", None)
+        )
 
         return {
             "data": self.form_data,
-            "created_at": report_date.strftime("%Y-%m-%d %H:%M:%S"),
-            "created_at_str": report_date.strftime("%Y-%m-%d %H:%M:%S"),
-            "created_at_no_time_str": report_date.strftime("%Y-%m-%d"),
+            "created_at": create_date.strftime("%Y-%m-%d %H:%M:%S"),
+            "created_at_no_time": create_date.strftime("%Y-%m-%d"),
             "subject_title": self.subject.title,
             "subject_identity": self.subject.identity,
             "subject_description": self.subject.description,
