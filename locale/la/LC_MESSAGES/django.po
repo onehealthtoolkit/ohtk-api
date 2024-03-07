@@ -58,6 +58,9 @@ msgstr "ລາຍ​ງານ​ບໍ່​ມີ​ຄວາມ​ຜິດ​
 msgid "incidentReport"
 msgstr "ບົດລາຍງານເຫດການ"
 
+msgid "report"
+msgstr "ປະເພດລາຍງານ"
+
 msgid "dataNotFound"
 msgstr "ບໍ່ພົບຂໍ້ມູນ"
 

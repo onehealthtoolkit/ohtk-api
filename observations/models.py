@@ -13,6 +13,7 @@ from easy_thumbnails.fields import ThumbnailerImageField
 
 from accounts.models import User
 from common.models import BaseModel, BaseModelManager
+from common.utils import convert_datetime_to_local_timezone
 
 
 #
@@ -196,22 +197,15 @@ class SubjectRecord(AbstractRecord):
             return ""
 
     def render_data_context(self):
-        now = datetime.now()
+        report_date = convert_datetime_to_local_timezone(
+            self.created_at, self.form_data.get("tz", None)
+        )
         return {
             "data": self.form_data,
             "report_id": self.id,
             "definition_name": self.definition.name,
-            "report_date": self.created_at if self.created_at is not None else now,
-            "report_date_str": (
-                self.created_at.strftime("%Y-%m-%d %H:%M:%S")
-                if self.created_at is not None
-                else ""
-            ),
-            "report_date_no_time_str": (
-                self.created_at.strftime("%Y-%m-%d")
-                if self.created_at is not None
-                else ""
-            ),
+            "report_date": report_date.strftime("%Y-%m-%d %H:%M:%S"),
+            "report_date_no_time": report_date.strftime("%Y-%m-%d"),
             "gps_location": self.gps_location_str,
         }
 
@@ -273,10 +267,14 @@ class MonitoringRecord(AbstractRecord):
     description = models.TextField()
 
     def render_data_context(self):
+        create_date = convert_datetime_to_local_timezone(
+            self.created_at, self.form_data.get("tz", None)
+        )
+
         return {
             "data": self.form_data,
-            "created_at": self.created_at,
-            "created_at_str": self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "created_at": create_date.strftime("%Y-%m-%d %H:%M:%S"),
+            "created_at_no_time": create_date.strftime("%Y-%m-%d"),
             "subject_title": self.subject.title,
             "subject_identity": self.subject.identity,
             "subject_description": self.subject.description,

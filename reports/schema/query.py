@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 import graphene
 import uuid
@@ -84,6 +85,7 @@ class Query(graphene.ObjectType):
         report_type_id=graphene.UUID(required=True),
         data=GenericScalar(required=True),
         incident_date=graphene.Date(required=True),
+        gps_location=graphene.String(),
     )
     followup_report_data_summary = graphene.Field(
         ReportDataSummaryType,
@@ -240,13 +242,18 @@ class Query(graphene.ObjectType):
 
     @staticmethod
     @login_required
-    def resolve_report_data_summary(root, info, report_type_id, data, incident_date):
-        data_context = IncidentReport.build_data_context(
-            data,
+    def resolve_report_data_summary(
+        root, info, report_type_id, data, incident_date, gps_location
+    ):
+        report_type = ReportType.objects.get(pk=report_type_id)
+        data_context = IncidentReport.build_report_data_context(
             str(uuid.uuid4()),
             incident_date,
+            datetime.utcnow(),
+            data,
+            gps_location,
+            report_type,
         )
-        report_type = ReportType.objects.get(pk=report_type_id)
         renderer_data = report_type.render_data(data_context)
         return {"result": renderer_data}
 

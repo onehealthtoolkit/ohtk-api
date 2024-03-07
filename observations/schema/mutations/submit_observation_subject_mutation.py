@@ -1,4 +1,5 @@
 import graphene
+from datetime import datetime
 from django.contrib.gis.geos import Point
 from graphene.types.generic import GenericScalar
 from graphql_jwt.decorators import login_required
@@ -38,6 +39,7 @@ class SubmitObservationSubject(graphene.Mutation):
             form_data=data,
             gps_location=location,
             reported_by=user,
+            created_at=datetime.utcnow(),
         )
 
         return SubmitObservationSubject(result=subject)
