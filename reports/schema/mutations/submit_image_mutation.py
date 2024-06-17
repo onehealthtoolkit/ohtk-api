@@ -33,33 +33,40 @@ class SubmitImage(graphene.Mutation):
         is_followup_report = False
         is_subject_record = False
         is_monitoring_record = False
+        print("report_id", report_id)
+        print("image_id", image_id)
 
         try:
             report = IncidentReport.objects.get(pk=report_id)
             is_incident_report = True
         except IncidentReport.DoesNotExist:
-            ...
+            print("IncidentReport.DoesNotExist")
 
         if not report:
             try:
                 report = FollowUpReport.objects.get(pk=report_id)
                 is_followup_report = True
             except FollowUpReport.DoesNotExist:
-                ...
+                print("FollowUpReport.DoesNotExist")
 
         if not report:
             try:
                 report = SubjectRecord.objects.get(pk=report_id)
                 is_subject_record = True
             except SubjectRecord.DoesNotExist:
-                ...
+                print("SubjectRecord.DoesNotExist")
 
         if not report:
             try:
                 report = MonitoringRecord.objects.get(pk=report_id)
                 is_monitoring_record = True
             except MonitoringRecord.DoesNotExist:
-                ...
+                print("MonitoringRecord.DoesNotExist")
+
+        print("is_incident_report", is_incident_report)
+        print("is_followup_report", is_followup_report)
+        print("is_subject_record", is_subject_record)
+        print("is_monitoring_record", is_monitoring_record)
 
         if is_incident_report or is_followup_report:
             # check idempotent
