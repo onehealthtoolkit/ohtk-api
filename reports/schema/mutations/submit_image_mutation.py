@@ -80,6 +80,7 @@ class SubmitImage(graphene.Mutation):
         else:
             # check idempotent
             if image_id and RecordImage.objects.filter(id=image_id).exists():
+                print("idemponent image_id", image_id)
                 image = RecordImage.objects.get(id=image_id)
                 return SubmitImage(
                     id=image.id,
@@ -93,6 +94,7 @@ class SubmitImage(graphene.Mutation):
                 Q(form_data__house_front__has_key=image_id)
                 | Q(form_data__consent_image__has_key=image_id)
             ).first()
+            print("find image in subject record", record)
 
             if not record:
                 record = MonitoringRecord.objects.filter(
@@ -102,8 +104,10 @@ class SubmitImage(graphene.Mutation):
                     | Q(form_data__outdoor_container_pos__has_key=image_id)
                     | Q(form_data__indoor_container_neg__value__has_key=image_id)
                 ).first()
+                print("find image in monitoring record", record)
 
             if not record:
+                print("Record not found.")
                 raise ValueError("Record not found.")
 
             image = RecordImage.objects.create(
@@ -111,10 +115,13 @@ class SubmitImage(graphene.Mutation):
                 file=image,
                 id=image_id,
             )
+            print("image created", image.id, image.file.url)
 
             if is_cover:
                 record.cover_image_id = image.id
                 record.save(update_fields=("cover_image_id"))
+                print("cover image set", record.cover_image_id)
+
             return SubmitImage(
                 id=image.id,
                 file=image.file.url,
