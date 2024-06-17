@@ -89,20 +89,21 @@ class SubmitImage(graphene.Mutation):
                     image_url=image.file.url,
                 )
 
+            image_id_str = str(image_id)
             # lookup image_id in form_data of subject record
             record = SubjectRecord.objects.filter(
-                Q(form_data__house_front__has_key=image_id)
-                | Q(form_data__consent_image__has_key=image_id)
+                Q(form_data__house_front__has_key=image_id_str)
+                | Q(form_data__consent_image__has_key=image_id_str)
             ).first()
             print("find image in subject record", record)
 
             if not record:
                 record = MonitoringRecord.objects.filter(
-                    Q(form_data__deploy_image__has_key=image_id)
-                    | Q(form_data__indoor_container_neg__has_key=image_id)
-                    | Q(form_data__outdoor_container_neg__has_key=image_id)
-                    | Q(form_data__outdoor_container_pos__has_key=image_id)
-                    | Q(form_data__indoor_container_neg__value__has_key=image_id)
+                    Q(form_data__deploy_image__has_key=image_id_str)
+                    | Q(form_data__indoor_container_neg__has_key=image_id_str)
+                    | Q(form_data__outdoor_container_neg__has_key=image_id_str)
+                    | Q(form_data__outdoor_container_pos__has_key=image_id_str)
+                    | Q(form_data__indoor_container_neg__value__has_key=image_id_str)
                 ).first()
                 print("find image in monitoring record", record)
 
