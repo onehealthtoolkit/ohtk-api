@@ -141,8 +141,24 @@ jobs:
           REGISTRY: ghcr.io
           IMAGE_NAME: onehealthtoolkit/ohtk-api
           IMAGE_TAG: latest
+          DJANGO_SECRET_KEY: django-insecure-ci
+          DJANGO_DEBUG: "False"
+          DJANGO_ALLOWED_HOSTS: 127.0.0.1,localhost
+          USE_INMEMORY_CHANNEL_LAYER: "True"
+          CELERY_TASK_ALWAYS_EAGER: "True"
+          USE_S3: "False"
+          FCM_DRY_RUN: "True"
+          DASHBOARD_URL: http://localhost:3000
         run: |
           docker run --rm --entrypoint python \
+            -e DJANGO_SECRET_KEY \
+            -e DJANGO_DEBUG \
+            -e DJANGO_ALLOWED_HOSTS \
+            -e USE_INMEMORY_CHANNEL_LAYER \
+            -e CELERY_TASK_ALWAYS_EAGER \
+            -e USE_S3 \
+            -e FCM_DRY_RUN \
+            -e DASHBOARD_URL \
             $REGISTRY/$IMAGE_NAME:$IMAGE_TAG \
             manage.py check
 
