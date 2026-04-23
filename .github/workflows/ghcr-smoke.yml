@@ -1,6 +1,9 @@
 name: ghcr smoke
 
 on:
+  push:
+    branches:
+      - codex/ghcr-smoke-test
   workflow_dispatch:
 
 jobs:
