@@ -56,7 +56,7 @@ class StateDefinitionTestCase(TestCase):
         transition2 = StateTransition.objects.create(from_step=step2, to_step=step3)
         transition3 = StateTransition.objects.create(from_step=step1, to_step=step3)
 
-        self.assertEquals(2, step1.to_transitions.count())
+        self.assertEqual(2, step1.to_transitions.count())
         self.assertEqual(1, step2.to_transitions.count())
         self.assertEqual(2, step3.from_transitions.count())
         self.assertEqual(0, step3.to_transitions.count())

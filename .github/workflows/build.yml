@@ -1,38 +1,167 @@
-name: build and push to ECR 
+name: build and push to ECR
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 permissions:
-  id-token: write # This is required for requesting the JWT
-  contents: read  # This is required for actions/checkout
+  id-token: write
+  contents: read
 
 jobs:
+  test:
+    name: Pytest safety net
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgis/postgis:14-3.3-alpine
+        env:
+          POSTGRES_USER: pphetra
+          POSTGRES_PASSWORD: 1234
+          POSTGRES_DB: open_surveillance
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pphetra -d open_surveillance"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:6.2.5-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DB_USER: pphetra
+      DB_PASSWORD: 1234
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_NAME: open_surveillance
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      CELERY_BROKER_URL: redis://127.0.0.1:6379/0
+      CELERY_TASK_ALWAYS_EAGER: "True"
+      DJANGO_SECRET_KEY: django-insecure-ci
+      DJANGO_DEBUG: "False"
+      DJANGO_ALLOWED_HOSTS: 127.0.0.1,localhost
+      USE_INMEMORY_CHANNEL_LAYER: "True"
+      USE_S3: "False"
+      FCM_DRY_RUN: "True"
+      DASHBOARD_URL: http://localhost:3000
+      CPLUS_INCLUDE_PATH: /usr/include/gdal
+      C_INCLUDE_PATH: /usr/include/gdal
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gdal-bin libgdal-dev libproj-dev proj-data proj-bin libmagic1 libmagic-dev build-essential libpq-dev libjpeg-dev zlib1g-dev
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Run Django checks
+        run: python manage.py check
+
+      - name: Run Redis-backed websocket smokes
+        env:
+          USE_INMEMORY_CHANNEL_LAYER: "False"
+        run: |
+          pytest reports/tests/test_websocket.py threads/tests/test_websocket.py -q
+
+      - name: Run serial pytest census
+        # Serial execution is the current containment for the tenant test DB race.
+        # Do not add matrix/parallel/xdist execution here until that fixture issue is fixed.
+        run: |
+          pytest accounts/tests -q
+          pytest cases/tests -q
+          pytest common/tests -q
+          pytest notifications/tests -q
+          pytest observations/tests -q
+          pytest outbreaks/tests -q
+          pytest reports/tests -q
+          pytest summaries/tests -q
+          pytest threads/tests -q
+          pytest tenants/tests.py -q
+
   build:
     name: Docker build
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::317555312301:role/githubaction
           aws-region: us-east-1
 
       - name: login to AWS ECR
         id: login-ecr-public
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
         with:
           registry-type: public
-      
-      - name: build, tag, and push image to ECR
+
+      - name: build image
+        env:
+          REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
+          REGISTRY_ALIAS: g0x0v6d0
+          REPOSITORY: ohtk-api
+          IMAGE_TAG: latest
+          IMAGE_SHA_TAG: sha-${{ github.sha }}
+          PYTHON_GDAL_IMAGE_LOCAL: ohtk-api-py312-gdal-ci
+          PYTHON_GDAL_MAGIC_IMAGE_LOCAL: ohtk-api-py312-gdal-magic-ci
+        run: |
+          docker build --platform linux/amd64 \
+            --build-arg BASE_IMAGE=python:3.12.9-slim-bookworm \
+            -t $PYTHON_GDAL_IMAGE_LOCAL \
+            docker/python3-10-gdal
+          docker build --platform linux/amd64 \
+            --build-arg PYTHON_GDAL_IMAGE=$PYTHON_GDAL_IMAGE_LOCAL \
+            -t $PYTHON_GDAL_MAGIC_IMAGE_LOCAL \
+            docker/python3-10-gdal-magic
+          docker build --platform linux/amd64 \
+            --build-arg PYTHON_GDAL_MAGIC_IMAGE=$PYTHON_GDAL_MAGIC_IMAGE_LOCAL \
+            -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG .
+          docker tag $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_SHA_TAG
+
+      - name: smoke check built image
         env:
           REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
           REGISTRY_ALIAS: g0x0v6d0
           REPOSITORY: ohtk-api
           IMAGE_TAG: latest
         run: |
-          docker build -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG .
+          docker run --rm --entrypoint python \
+            $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG \
+            manage.py check
+
+      - name: push image to ECR
+        env:
+          REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
+          REGISTRY_ALIAS: g0x0v6d0
+          REPOSITORY: ohtk-api
+          IMAGE_TAG: latest
+          IMAGE_SHA_TAG: sha-${{ github.sha }}
+        run: |
+          docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_SHA_TAG
           docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG

@@ -36,6 +36,7 @@ class ReportTypeType(DjangoObjectType):
 
     class Meta:
         model = ReportType
+        fields = "__all__"
 
 
 class ImageType(DjangoObjectType):
@@ -44,6 +45,7 @@ class ImageType(DjangoObjectType):
 
     class Meta:
         model = Image
+        fields = "__all__"
 
     def resolve_thumbnail(self, info):
         return get_thumbnailer(self.file)["thumbnail"].url
@@ -57,6 +59,7 @@ class UploadFileType(DjangoObjectType):
 
     class Meta:
         model = UploadFile
+        fields = "__all__"
 
     def resolve_file_url(self, info):
         return self.file.url
@@ -120,6 +123,7 @@ class IncidentReportType(DjangoObjectType):
     followups = graphene.List(FollowupType)
     authorities = graphene.List(AuthorityType)
     definition = GenericScalar()
+    is_followable = graphene.Boolean()
 
     class Meta:
         model = IncidentReport
@@ -144,7 +148,6 @@ class IncidentReportType(DjangoObjectType):
             "case_id",
             "thread_id",
             "followups",
-            "is_followable",
         ]
         filterset_class = IncidentReportTypeFilter
 
@@ -240,6 +243,7 @@ class AdminCategoryQueryType(DjangoObjectType):
 class AdminCategoryCreateSuccess(DjangoObjectType):
     class Meta:
         model = Category
+        fields = "__all__"
 
 
 class AdminCategoryCreateProblem(AdminValidationProblem):
@@ -304,6 +308,7 @@ class AdminReportTypeQueryType(DjangoObjectType):
 class AdminReportTypeCreateSuccess(DjangoObjectType):
     class Meta:
         model = ReportType
+        fields = "__all__"
 
 
 class AdminReportTypeCreateProblem(AdminValidationProblem):
@@ -338,6 +343,7 @@ class AdminReportTypeUpdateResult(graphene.Union):
 class ReporterNotificationType(DjangoObjectType):
     class Meta:
         model = ReporterNotification
+        fields = "__all__"
 
 
 class AdminReporterNotificationQueryType(DjangoObjectType):
@@ -361,6 +367,7 @@ class AdminReporterNotificationQueryType(DjangoObjectType):
 class AdminReporterNotificationCreateSuccess(DjangoObjectType):
     class Meta:
         model = ReporterNotification
+        fields = "__all__"
 
 
 class AdminReporterNotificationCreateProblem(AdminValidationProblem):

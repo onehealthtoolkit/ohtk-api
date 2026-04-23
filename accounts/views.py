@@ -19,7 +19,7 @@ def userinfo(request):
         authority = None
 
     # get current tenant
-    tenant = connection.get_tenant()
+    tenant = connection.tenant
 
     # render json data
     return JsonResponse(

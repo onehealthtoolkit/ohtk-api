@@ -20,12 +20,12 @@ from django.urls import path, include
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import views as auth_views
 from graphene_file_upload.django import FileUploadGraphQLView
-from graphql_jwt.decorators import jwt_cookie
 from graphql_playground.views import GraphQLPlaygroundView
 import tenants.views
 import accounts.views
 import summaries.views
 from django.conf.urls.i18n import i18n_patterns
+from podd_api.jwt_cookie import jwt_cookie
 
 
 urlpatterns = [

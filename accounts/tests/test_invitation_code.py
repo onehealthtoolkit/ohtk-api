@@ -1,13 +1,15 @@
 import json
 
 from django.conf import settings
-from graphene_django.utils import GraphQLTestCase
+from django.test import TestCase
 
 from accounts.models import Authority, InvitationCode, User, Configuration
 from accounts.utils import domain
 
 
-class InvitationCodeTestCase(GraphQLTestCase):
+class InvitationCodeTestCase(TestCase):
+    graphql_url = "/graphql/"
+
     def setUp(self):
         self.authority = Authority.objects.create(
             code="A1",
@@ -50,6 +52,28 @@ class InvitationCodeTestCase(GraphQLTestCase):
             }
         """
 
+    def graphql_query(self, query, variables=None):
+        body = {"query": query}
+        if variables:
+            body["variables"] = variables
+        return self.client.post(
+            self.graphql_url,
+            data=json.dumps(body),
+            content_type="application/json",
+        )
+
+    def assertGraphQLNoErrors(self, response):
+        self.assertEqual(response.status_code, 200, response.content)
+        content = json.loads(response.content)
+        self.assertNotIn("errors", content, content)
+        return content
+
+    def assertGraphQLHasErrors(self, response):
+        self.assertIn(response.status_code, (200, 400), response.content)
+        content = json.loads(response.content)
+        self.assertIn("errors", content, content)
+        return content
+
     def test_create(self):
         invitation = InvitationCode.objects.create(authority=self.authority)
         self.assertIsNotNone(invitation.code)
@@ -57,16 +81,15 @@ class InvitationCodeTestCase(GraphQLTestCase):
         self.assertIsNotNone(invitation.through_date)
 
     def test_check_query_does_not_exist(self):
-        response = self.query(self.check_query, variables={"code": "7777"})
-        self.assertResponseHasErrors(response)
+        response = self.graphql_query(self.check_query, variables={"code": "7777"})
+        self.assertGraphQLHasErrors(response)
 
     def test_check_query_success(self):
-        response = self.query(
+        response = self.graphql_query(
             self.check_query,
             variables={"code": self.invitationCode.code},
         )
-        self.assertResponseNoErrors(response)
-        content = json.loads(response.content)
+        content = self.assertGraphQLNoErrors(response)
         self.assertEqual(
             self.invitationCode.code, content["data"]["checkInvitationCode"]["code"]
         )
@@ -80,12 +103,11 @@ class InvitationCodeTestCase(GraphQLTestCase):
             key="features.auto_generate_username",
             value="enable",
         )
-        response = self.query(
+        response = self.graphql_query(
             self.check_query,
             variables={"code": self.invitationCode.code},
         )
-        self.assertResponseNoErrors(response)
-        content = json.loads(response.content)
+        content = self.assertGraphQLNoErrors(response)
         self.assertIsNotNone(
             content["data"]["checkInvitationCode"]["generatedUsername"],
         )
@@ -98,12 +120,11 @@ class InvitationCodeTestCase(GraphQLTestCase):
             key="features.auto_generate_email",
             value="enable",
         )
-        response = self.query(
+        response = self.graphql_query(
             self.check_query,
             variables={"code": self.invitationCode.code},
         )
-        self.assertResponseNoErrors(response)
-        content = json.loads(response.content)
+        content = self.assertGraphQLNoErrors(response)
         self.assertIsNotNone(
             content["data"]["checkInvitationCode"]["generatedEmail"],
         )
@@ -120,12 +141,11 @@ class InvitationCodeTestCase(GraphQLTestCase):
             key="features.auto_generate_email",
             value="enable",
         )
-        response = self.query(
+        response = self.graphql_query(
             self.check_query,
             variables={"code": self.invitationCode.code},
         )
-        self.assertResponseNoErrors(response)
-        content = json.loads(response.content)
+        content = self.assertGraphQLNoErrors(response)
         generated_username = content["data"]["checkInvitationCode"]["generatedUsername"]
 
         self.assertIsNotNone(generated_username)
@@ -136,7 +156,7 @@ class InvitationCodeTestCase(GraphQLTestCase):
 
     def test_user_registration_via_code(self):
         settings.AUTO_LOGIN_AFTER_REGISTER = False
-        response = self.query(
+        response = self.graphql_query(
             self.register_mutation,
             variables={
                 "username": "pphetra",
@@ -146,11 +166,11 @@ class InvitationCodeTestCase(GraphQLTestCase):
                 "email": "pphetra@gmail.com",
             },
         )
-        self.assertResponseNoErrors(response)
+        self.assertGraphQLNoErrors(response)
 
     def test_user_registration_via_code_and_auto_login(self):
         settings.AUTO_LOGIN_AFTER_REGISTER = True
-        response = self.query(
+        response = self.graphql_query(
             self.register_mutation,
             variables={
                 "username": "pphetra",
@@ -160,15 +180,14 @@ class InvitationCodeTestCase(GraphQLTestCase):
                 "email": "pphetra@gmail.com",
             },
         )
-        self.assertResponseNoErrors(response)
-        content = json.loads(response.content)
+        content = self.assertGraphQLNoErrors(response)
         payload = content["data"]["authorityUserRegister"]
         self.assertIsNotNone(payload["token"])
         self.assertIsNotNone(payload["refreshToken"])
 
     def test_user_registration_with_duplicate_username(self):
         settings.AUTO_LOGIN_AFTER_REGISTER = False
-        response = self.query(
+        response = self.graphql_query(
             self.register_mutation,
             variables={
                 "username": "polawat",
@@ -178,4 +197,4 @@ class InvitationCodeTestCase(GraphQLTestCase):
                 "email": "pphetra@gmail.com",
             },
         )
-        self.assertResponseHasErrors(response)
+        self.assertGraphQLHasErrors(response)

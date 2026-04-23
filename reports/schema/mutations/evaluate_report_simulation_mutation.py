@@ -1,5 +1,5 @@
-from datetime import datetime
 from django.template import Context, Template
+from django.utils import timezone
 import graphene
 from graphql_jwt.decorators import login_required
 from graphene.types.generic import GenericScalar
@@ -52,7 +52,7 @@ class EvaluateReportSimulation(graphene.Mutation):
                 {
                     "data": data,
                     "form_data": FormData(data),
-                    "report_date": datetime.now(),
+                    "report_date": timezone.now(),
                     "incident_date": incident_date,
                     "renderer_data": renderer_data,
                     "report_id": report_id,

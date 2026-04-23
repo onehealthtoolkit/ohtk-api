@@ -53,6 +53,7 @@ class AdminCaseDefinitionQueryType(DjangoObjectType):
 class AdminCaseDefinitionCreateSuccess(DjangoObjectType):
     class Meta:
         model = CaseDefinition
+        fields = "__all__"
 
 
 class AdminCaseDefinitionCreateProblem(AdminValidationProblem):
@@ -96,6 +97,7 @@ class AdminStateDefinitionQueryType(DjangoObjectType):
 class AdminStateDefinitionCreateSuccess(DjangoObjectType):
     class Meta:
         model = StateDefinition
+        fields = "__all__"
 
 
 class AdminStateDefinitionCreateProblem(AdminValidationProblem):
@@ -138,6 +140,7 @@ class StateStepType(DjangoObjectType):
 class AdminStateStepCreateSuccess(DjangoObjectType):
     class Meta:
         model = StateStep
+        fields = "__all__"
 
 
 class AdminStateStepCreateProblem(AdminValidationProblem):
@@ -174,11 +177,13 @@ class StateTransitionType(DjangoObjectType):
 
     class Meta:
         model = StateTransition
+        fields = "__all__"
 
 
 class AdminStateTransitionCreateSuccess(DjangoObjectType):
     class Meta:
         model = StateTransition
+        fields = "__all__"
 
 
 class AdminStateTransitionCreateProblem(AdminValidationProblem):
@@ -342,6 +347,7 @@ class NotificationTemplateType(DjangoObjectType):
 
     class Meta:
         model = NotificationTemplate
+        fields = "__all__"
 
 
 class AdminNotificationTemplateQueryFilter(django_filters.FilterSet):
@@ -367,6 +373,7 @@ class AdminNotificationTemplateQueryType(DjangoObjectType):
 class AdminNotificationTemplateCreateSuccess(DjangoObjectType):
     class Meta:
         model = NotificationTemplate
+        fields = "__all__"
 
 
 class AdminNotificationTemplateCreateProblem(AdminValidationProblem):
@@ -400,11 +407,13 @@ class AdminNotificationTemplateUpdateResult(graphene.Union):
 class AuthorityNotificationType(DjangoObjectType):
     class Meta:
         model = AuthorityNotification
+        fields = "__all__"
 
 
 class AdminAuthorityNotificationUpsertSuccess(DjangoObjectType):
     class Meta:
         model = AuthorityNotification
+        fields = "__all__"
 
 
 class AdminAuthorityNotificationUpsertProblem(AdminValidationProblem):

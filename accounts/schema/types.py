@@ -125,7 +125,7 @@ class AdminAuthorityInheritLookupType(DjangoObjectType):
         filterset_class = AdminAuthorityInheritLookupFilter
 
 
-class NumberInFilter(django_filters.BaseInFilter, django_filters.CharFilter):
+class NumberInFilter(django_filters.BaseInFilter, django_filters.NumberFilter):
     pass
 
 
@@ -336,11 +336,13 @@ class CheckInvitationCodeType(DjangoObjectType):
 class FeatureType(DjangoObjectType):
     class Meta:
         model = Feature
+        fields = "__all__"
 
 
 class ConfigurationType(DjangoObjectType):
     class Meta:
         model = Configuration
+        fields = "__all__"
 
 
 class PlaceType(DjangoObjectType):
@@ -373,6 +375,7 @@ class PlaceType(DjangoObjectType):
 class AdminAuthorityCreateSuccess(DjangoObjectType):
     class Meta:
         model = Authority
+        fields = "__all__"
 
 
 class AdminAuthorityCreateProblem(AdminValidationProblem):
@@ -406,6 +409,7 @@ class AdminAuthorityUpdateResult(graphene.Union):
 class AdminAuthorityUserCreateSuccess(DjangoObjectType):
     class Meta:
         model = AuthorityUser
+        fields = "__all__"
 
 
 class AdminAuthorityUserCreateProblem(AdminValidationProblem):
@@ -440,6 +444,7 @@ class AdminAuthorityUserUpdateResult(graphene.Union):
 class AdminInvitationCodeCreateSuccess(DjangoObjectType):
     class Meta:
         model = InvitationCode
+        fields = "__all__"
 
 
 class AdminInvitationCodeCreateProblem(AdminValidationProblem):
@@ -495,6 +500,7 @@ class AdminPlaceQueryType(DjangoObjectType):
 class AdminPlaceCreateSuccess(DjangoObjectType):
     class Meta:
         model = Place
+        fields = "__all__"
 
 
 class AdminPlaceCreateProblem(AdminValidationProblem):
@@ -512,6 +518,7 @@ class AdminPlaceUpdateSuccess(DjangoObjectType):
 
     class Meta:
         model = Place
+        fields = "__all__"
 
     def resolve_latitude(self, info):
         if self.location:
@@ -556,6 +563,7 @@ class AdminConfigurationQueryType(DjangoObjectType):
 class AdminConfigurationCreateSuccess(DjangoObjectType):
     class Meta:
         model = Configuration
+        fields = "__all__"
 
 
 class AdminConfigurationCreateProblem(AdminValidationProblem):
@@ -570,6 +578,7 @@ class AdminConfigurationCreateResult(graphene.Union):
 class AdminConfigurationUpdateSuccess(DjangoObjectType):
     class Meta:
         model = Configuration
+        fields = "__all__"
 
 
 class AdminConfigurationUpdateProblem(AdminValidationProblem):

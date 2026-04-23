@@ -33,8 +33,6 @@ RUN \
         libopenjp2-7-dev \
     && rm -rf /var/lib/apt/lists/* \
     \
-# Install numpy
-    && pip install numpy \
 # Build against PROJ master (which will be released as PROJ 6.0)
     && wget "http://download.osgeo.org/proj/proj-6.0.0.tar.gz" \
     && tar -xzf "proj-6.0.0.tar.gz" \
@@ -63,7 +61,7 @@ RUN \
     && cd "gdal-${GDAL_VERSION}" \
     && export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH \
     && ./configure \
-            --with-python \
+            --without-python \
             --with-curl \
             --with-openjpeg \
             --without-libtool \
@@ -71,9 +69,7 @@ RUN \
     && make -j"$(nproc)" \
     && make install \
     && ldconfig \
-    \
-# Install Python bindings as standalone module via pip
-    && pip install GDAL==${GDAL_VERSION} \
+    && gdalinfo --version \
     && cd /usr/local \
     \
 # Clean up

@@ -12,6 +12,7 @@ class CommentAttachmentType(DjangoObjectType):
 
     class Meta:
         model = CommentAttachment
+        fields = "__all__"
 
     def resolve_file(self, info):
         return self.file.url

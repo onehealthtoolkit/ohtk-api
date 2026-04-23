@@ -1,5 +1,6 @@
 # base image
-FROM public.ecr.aws/g0x0v6d0/python-gdal-magic:latest
+ARG PYTHON_GDAL_MAGIC_IMAGE=public.ecr.aws/g0x0v6d0/python-gdal-magic@sha256:4d49a8f812fdb470e2a5e318810f3cf93056573d35fbd29c9b5a47c76d7259ba
+FROM ${PYTHON_GDAL_MAGIC_IMAGE}
 
 ARG SOURCE_DIR=/usr/local/src/python-gdal
 
@@ -47,7 +48,6 @@ ARG C_INCLUDE_PATH=/usr/include/gdal
 
 COPY . $DockerHome
 RUN python3 -m pip install --upgrade pip --no-cache-dir \
-    && python3 -m pip install GDAL --no-cache-dir \
     && python3 -m pip install -r requirements.txt --no-cache-dir
 
 EXPOSE 8000

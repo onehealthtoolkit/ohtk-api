@@ -23,6 +23,7 @@ class ObservationMonitoringDefinitionType(DjangoObjectType):
 
     class Meta:
         model = MonitoringDefinition
+        fields = "__all__"
 
 
 class ObservationDefinitionType(DjangoObjectType):
@@ -31,6 +32,7 @@ class ObservationDefinitionType(DjangoObjectType):
 
     class Meta:
         model = Definition
+        fields = "__all__"
 
     def resolve_monitoring_definitions(self, info):
         return self.monitoringdefinition_set.all()
@@ -42,6 +44,7 @@ class ObservationImageType(DjangoObjectType):
 
     class Meta:
         model = RecordImage
+        fields = "__all__"
 
     def resolve_thumbnail(self, info):
         return get_thumbnailer(self.file)["thumbnail"].url
@@ -55,6 +58,7 @@ class ObservationUploadFileType(DjangoObjectType):
 
     class Meta:
         model = RecordUploadFile
+        fields = "__all__"
 
     def resolve_file_url(self, info):
         return self.file.url
@@ -200,6 +204,7 @@ class AdminMonitoringDefinitionQueryType(DjangoObjectType):
 class AdminObservationDefinitionCreateSuccess(DjangoObjectType):
     class Meta:
         model = Definition
+        fields = "__all__"
 
 
 class AdminObservationDefinitionCreateProblem(AdminValidationProblem):
@@ -233,6 +238,7 @@ class AdminObservationDefinitionUpdateResult(graphene.Union):
 class AdminObservationMonitoringDefinitionCreateSuccess(DjangoObjectType):
     class Meta:
         model = MonitoringDefinition
+        fields = "__all__"
 
 
 class AdminObservationMonitoringDefinitionCreateProblem(AdminValidationProblem):

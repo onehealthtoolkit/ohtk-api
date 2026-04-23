@@ -1,8 +1,8 @@
 from calendar import timegm
-from datetime import datetime
 
 import graphene
 from django.conf import settings
+from django.utils import timezone
 from django.utils.timezone import now
 from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
@@ -222,7 +222,7 @@ class Query(graphene.ObjectType):
         if target_user.role != AuthorityUser.Role.REPORTER:
             raise GraphQLError("Permission denied.")
 
-        exp = datetime.utcnow() + settings.QR_CODE_LOGIN_EXPIRATION_DAYS
+        exp = timezone.now() + settings.QR_CODE_LOGIN_EXPIRATION_DAYS
         payload = {
             "username": target_user.username,
             "domain": info.context.tenant.domain_url,

@@ -21,6 +21,13 @@ from django.utils.translation import gettext_lazy as _
 
 load_dotenv()
 
+
+def env_bool(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.lower() in {"1", "true", "yes", "on"}
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_ROOT = os.path.join(
@@ -38,7 +45,7 @@ SECRET_KEY = os.getenv(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DJANGO_DEBUG", default=True)
+DEBUG = env_bool("DJANGO_DEBUG", default=True)
 
 ALLOWED_HOSTS = os.getenv(
     "DJANGO_ALLOWED_HOSTS", default=".opensur.test,127.0.0.1,localhost,.ngrok.io"
@@ -47,6 +54,7 @@ ALLOWED_HOSTS = os.getenv(
 
 # Application definition
 SHARED_APPS = (
+    "daphne",
     "accounts",
     "django_tenants",
     "tenants",
@@ -138,19 +146,27 @@ TEMPLATES = [
 ]
 
 ASGI_APPLICATION = "podd_api.asgi.application"
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [
-                (
-                    os.getenv("REDIS_HOST", default="127.0.0.1"),
-                    os.getenv("REDIS_PORT", default=6379),
-                )
-            ],
+USE_INMEMORY_CHANNEL_LAYER = env_bool("USE_INMEMORY_CHANNEL_LAYER")
+if USE_INMEMORY_CHANNEL_LAYER:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        }
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [
+                    (
+                        os.getenv("REDIS_HOST", default="127.0.0.1"),
+                        os.getenv("REDIS_PORT", default=6379),
+                    )
+                ],
+            },
         },
-    },
-}
+    }
 
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
@@ -250,7 +266,7 @@ UPLOAD_FILE_MAX_SIZE = 10485760  # 10MB
 
 FIXTURE_DIRS = ["account/fixtures"]
 
-CELERY_TASK_ALWAYS_EAGER = False
+CELERY_TASK_ALWAYS_EAGER = env_bool("CELERY_TASK_ALWAYS_EAGER")
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.getenv("EMAIL_HOST")
@@ -259,12 +275,11 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
-USE_S3 = os.getenv("USE_S3") == "True"
+USE_S3 = env_bool("USE_S3")
 AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME") or "ohtk-media-bucket"
 if USE_S3:
     MEDIA_BUCKET_NAME = os.getenv("S3_MEDIA_BUCKET_NAME", default="ohtk-media-bucket")
-    DEFAULT_FILE_STORAGE = "common.storage.S3MediaStorage"
-    THUMBNAIL_DEFAULT_STORAGE = "common.storage.S3MediaStorage"
+    default_storage_backend = "common.storage.S3MediaStorage"
     AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
     AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", default="ap-southeast-1")
@@ -275,8 +290,18 @@ else:
     MEDIA_URL = "/medias/"
     MEDIA_DOMAIN = "opensur.test"
     MEDIA_BUCKET_NAME = ""
-    DEFAULT_FILE_STORAGE = "common.storage.SimpleFileMediaStorage"
-    THUMBNAIL_DEFAULT_STORAGE = "common.storage.SimpleFileMediaStorage"
+    default_storage_backend = "common.storage.SimpleFileMediaStorage"
+
+STORAGES = {
+    "default": {
+        "BACKEND": default_storage_backend,
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+THUMBNAIL_DEFAULT_STORAGE_ALIAS = "default"
 
 THUMBNAIL_ALIASES = {
     "accounts.User.avatar": {
@@ -300,10 +325,11 @@ EMAIL_DOMAIN = os.getenv("EMAIL_DOMAIN", default="opensur.test")
 DASHBOARD_URL = os.getenv("DASHBOARD_URL", default="http://localhost:3000")
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 QR_CODE_LOGIN_EXPIRATION_DAYS = timedelta(days=7)
 
-FCM_DRY_RUN = os.getenv("FCM_DRY_RUN", default="False") == "True"
+FCM_DRY_RUN = env_bool("FCM_DRY_RUN")
 
 FIREBASE_PRIVATE_KEY = os.getenv("FIREBASE_PRIVATE_KEY", default="")
 if FIREBASE_PRIVATE_KEY:
