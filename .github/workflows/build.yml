@@ -1,11 +1,10 @@
-name: build and push to ECR
+name: build and publish image
 on:
   push:
     branches: [main]
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened]
 permissions:
-  id-token: write
   contents: read
 
 jobs:
@@ -100,35 +99,25 @@ jobs:
           pytest tenants/tests.py -q
 
   build:
-    name: Docker build
+    name: Docker publish
     runs-on: ubuntu-latest
     timeout-minutes: 60
     needs: test
-    # Publishing is temporarily disabled while the registry strategy moves away
-    # from the current AWS ECR path. Keep the safety net live and revisit this
-    # job when the repo is ready to publish to ghcr.io.
-    if: ${{ false }}
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::317555312301:role/githubaction
-          aws-region: us-east-1
-
-      - name: login to AWS ECR
-        id: login-ecr-public
-        uses: aws-actions/amazon-ecr-login@v2
-        with:
-          registry-type: public
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: build image
         env:
-          REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
-          REGISTRY_ALIAS: g0x0v6d0
-          REPOSITORY: ohtk-api
+          REGISTRY: ghcr.io
+          IMAGE_NAME: onehealthtoolkit/ohtk-api
           IMAGE_TAG: latest
           IMAGE_SHA_TAG: sha-${{ github.sha }}
           PYTHON_GDAL_IMAGE_LOCAL: ohtk-api-py312-gdal-ci
@@ -144,27 +133,25 @@ jobs:
             docker/python3-10-gdal-magic
           docker build --platform linux/amd64 \
             --build-arg PYTHON_GDAL_MAGIC_IMAGE=$PYTHON_GDAL_MAGIC_IMAGE_LOCAL \
-            -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG .
-          docker tag $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_SHA_TAG
+            -t $REGISTRY/$IMAGE_NAME:$IMAGE_TAG .
+          docker tag $REGISTRY/$IMAGE_NAME:$IMAGE_TAG $REGISTRY/$IMAGE_NAME:$IMAGE_SHA_TAG
 
       - name: smoke check built image
         env:
-          REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
-          REGISTRY_ALIAS: g0x0v6d0
-          REPOSITORY: ohtk-api
+          REGISTRY: ghcr.io
+          IMAGE_NAME: onehealthtoolkit/ohtk-api
           IMAGE_TAG: latest
         run: |
           docker run --rm --entrypoint python \
-            $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG \
+            $REGISTRY/$IMAGE_NAME:$IMAGE_TAG \
             manage.py check
 
-      - name: push image to ECR
+      - name: push image to GHCR
         env:
-          REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
-          REGISTRY_ALIAS: g0x0v6d0
-          REPOSITORY: ohtk-api
+          REGISTRY: ghcr.io
+          IMAGE_NAME: onehealthtoolkit/ohtk-api
           IMAGE_TAG: latest
           IMAGE_SHA_TAG: sha-${{ github.sha }}
         run: |
-          docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_SHA_TAG
-          docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG
+          docker push $REGISTRY/$IMAGE_NAME:$IMAGE_SHA_TAG
+          docker push $REGISTRY/$IMAGE_NAME:$IMAGE_TAG
