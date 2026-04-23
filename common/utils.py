@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Union
 from django.db import models
 from django.http import parse_cookie
+from django.utils import timezone
 from graphql_jwt.utils import jwt_decode
 import pytz
 
@@ -67,7 +68,9 @@ def extract_jwt_payload_from_asgi_scope(scope):
 def convert_datetime_to_local_timezone(
     target_date: datetime, timezone_name: str
 ) -> datetime:
-    dt = target_date.replace(tzinfo=None) if target_date else datetime.utcnow()
+    dt = target_date.replace(tzinfo=None) if target_date else timezone.now().replace(
+        tzinfo=None
+    )
     if timezone_name is not None:
         tz = pytz.timezone(timezone_name)
         dt = pytz.utc.localize(dt).astimezone(tz)

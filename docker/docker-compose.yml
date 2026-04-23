@@ -2,7 +2,7 @@ version: '3.1'
 
 services:
   ohtk-api:
-    image: public.ecr.aws/g0x0v6d0/ohtk-api:latest
+    image: public.ecr.aws/g0x0v6d0/ohtk-api@sha256:c29118c0fa7542f10b3507d4254ce0b7b6ea596cd3271fe6941da0592c4a95ba
     restart: always
     environment:
       - DB_USER=ohtk

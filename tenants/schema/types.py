@@ -56,6 +56,7 @@ class ClientType(DjangoObjectType):
 class AdminClientCreateSuccess(DjangoObjectType):
     class Meta:
         model = Client
+        fields = "__all__"
 
 
 class AdminClientCreateProblem(AdminValidationProblem):
@@ -70,6 +71,7 @@ class AdminClientCreateResult(graphene.Union):
 class AdminClientUpdateSuccess(DjangoObjectType):
     class Meta:
         model = Client
+        fields = "__all__"
 
 
 class AdminClientUpdateProblem(AdminClientCreateProblem):
@@ -84,6 +86,7 @@ class AdminClientUpdateResult(graphene.Union):
 class AdminDomainCreateSuccess(DjangoObjectType):
     class Meta:
         model = Domain
+        fields = "__all__"
 
 
 class AdminDomainCreateProblem(AdminValidationProblem):
@@ -98,6 +101,7 @@ class AdminDomainCreateResult(graphene.Union):
 class AdminDomainUpdateSuccess(AdminDomainCreateSuccess):
     class Meta:
         model = Domain
+        fields = "__all__"
 
 
 class AdminDomainUpdateProblem(AdminValidationProblem):

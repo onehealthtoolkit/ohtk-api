@@ -1,7 +1,7 @@
-from datetime import datetime
 from typing import List
 import graphene
 import uuid
+from django.utils import timezone
 from graphene.types.generic import GenericScalar
 from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
@@ -249,7 +249,7 @@ class Query(graphene.ObjectType):
         data_context = IncidentReport.build_report_data_context(
             str(uuid.uuid4()),
             incident_date,
-            datetime.utcnow(),
+            timezone.now(),
             data,
             gps_location,
             report_type,

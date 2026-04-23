@@ -1,6 +1,5 @@
-from datetime import datetime
 import graphene
-from django.contrib.gis.geos import Point
+from django.utils import timezone
 from graphene.types.generic import GenericScalar
 from graphql_jwt.decorators import login_required
 
@@ -34,7 +33,7 @@ class SubmitObservationSubjectMonitoringRecord(graphene.Mutation):
             subject=subject,
             form_data=data,
             reported_by=user,
-            created_at=datetime.now(),
+            created_at=timezone.now(),
         )
 
         return SubmitObservationSubjectMonitoringRecord(result=monitoring_record)
