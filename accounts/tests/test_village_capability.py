@@ -71,6 +71,21 @@ class VillageCapabilityTests(JSONWebTokenTestCase):
         configuration.refresh_from_db()
         self.assertEqual(FEATURE_DISABLED_VALUE, configuration.value)
 
+    def test_superuser_can_restore_soft_deleted_village_capability(self):
+        configuration = Configuration.objects.create(
+            key=VILLAGE_CAPABILITY_KEY, value=FEATURE_DISABLED_VALUE
+        )
+        configuration.delete()
+
+        self.client.authenticate(self.super_user)
+        result = self.execute_update(True)
+        self.assertIsNone(result.errors, result.errors)
+        self.assertTrue(result.data["adminVillageCapabilityUpdate"]["enabled"])
+
+        configuration = Configuration.objects.get(key=VILLAGE_CAPABILITY_KEY)
+        self.assertEqual(FEATURE_ENABLED_VALUE, configuration.value)
+        self.assertIsNone(configuration.deleted_at)
+
     def test_non_superuser_cannot_update_village_capability(self):
         self.client.authenticate(self.user)
         result = self.execute_update(True)

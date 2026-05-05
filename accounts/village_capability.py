@@ -13,10 +13,18 @@ def is_village_capability_enabled():
 
 
 def set_village_capability_enabled(enabled):
-    configuration, _ = Configuration.objects.update_or_create(
+    value = FEATURE_ENABLED_VALUE if enabled else FEATURE_DISABLED_VALUE
+    configuration = Configuration._base_manager.filter(
+        key=VILLAGE_CAPABILITY_KEY
+    ).first()
+    if configuration:
+        configuration.value = value
+        configuration.deleted_at = None
+        configuration.save(update_fields=("value", "deleted_at", "updated_at"))
+        return configuration
+
+    configuration = Configuration.objects.create(
         key=VILLAGE_CAPABILITY_KEY,
-        defaults={
-            "value": FEATURE_ENABLED_VALUE if enabled else FEATURE_DISABLED_VALUE
-        },
+        value=value,
     )
     return configuration
