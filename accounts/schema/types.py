@@ -193,7 +193,15 @@ class AdminAuthorityUserQueryType(DjangoObjectType):
 class AdminInvitationCodeQueryType(DjangoObjectType):
     class Meta:
         model = InvitationCode
-        fields = ("id", "code", "authority", "from_date", "through_date", "role")
+        fields = (
+            "id",
+            "code",
+            "authority",
+            "villages",
+            "from_date",
+            "through_date",
+            "role",
+        )
         filter_fields = {
             "role": ["contains", "istartswith", "exact"],
         }
@@ -215,7 +223,15 @@ class AdminInvitationCodeQueryType(DjangoObjectType):
 class InvitationCodeType(DjangoObjectType):
     class Meta:
         model = InvitationCode
-        fields = ("id", "authority", "code", "from_date", "through_date", "role")
+        fields = (
+            "id",
+            "authority",
+            "villages",
+            "code",
+            "from_date",
+            "through_date",
+            "role",
+        )
 
 
 class UserType(DjangoObjectType):
@@ -246,6 +262,8 @@ class UserType(DjangoObjectType):
 
 
 class AuthorityUserType(DjangoObjectType):
+    assigned_villages = graphene.List(lambda: VillageType)
+
     class Meta:
         model = AuthorityUser
         fields = (
@@ -259,6 +277,28 @@ class AuthorityUserType(DjangoObjectType):
             "address",
             "role",
         )
+
+    def resolve_assigned_villages(self, info):
+        return Village.objects.filter(reporter_assignments__reporter=self).distinct()
+
+
+class VillageType(DjangoObjectType):
+    latitude = graphene.Float()
+    longitude = graphene.Float()
+
+    class Meta:
+        model = Village
+        fields = ("id", "code", "name", "authority", "location", "active")
+
+    def resolve_latitude(self, info):
+        if self.location:
+            return self.location.y
+        return None
+
+    def resolve_longitude(self, info):
+        if self.location:
+            return self.location.x
+        return None
 
 
 class UserProfileType(graphene.ObjectType):
@@ -277,6 +317,7 @@ class UserProfileType(graphene.ObjectType):
     role = graphene.String()
     consent = graphene.Boolean()
     features = graphene.List(graphene.String)
+    assigned_villages = graphene.List(VillageType)
 
     def resolve_authority_name(self, info):
         if self.is_authority_user:
@@ -314,6 +355,11 @@ class UserProfileType(graphene.ObjectType):
             ).all()
         ]
 
+    def resolve_assigned_villages(self, info):
+        if self.is_authority_user:
+            return Village.objects.filter(reporter_assignments__reporter=self).distinct()
+        return []
+
 
 class CheckInvitationCodeType(DjangoObjectType):
     generated_username = graphene.String(required=False)
@@ -321,7 +367,7 @@ class CheckInvitationCodeType(DjangoObjectType):
 
     class Meta:
         model = InvitationCode
-        fields = ("code", "authority")
+        fields = ("code", "authority", "villages")
 
     def resolve_generated_username(self, info):
         if "generated_username" in info.context.__dict__:

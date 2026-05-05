@@ -4,8 +4,9 @@ from graphql import GraphQLError
 from graphql_jwt.refresh_token.shortcuts import create_refresh_token
 from graphql_jwt.shortcuts import get_token
 
-from accounts.models import InvitationCode, AuthorityUser
+from accounts.models import InvitationCode, AuthorityUser, VillageReporterAssignment
 from accounts.schema.types import UserProfileType
+from accounts.village_capability import is_village_capability_enabled
 
 
 class AuthorityUserRegisterMutation(graphene.Mutation):
@@ -49,6 +50,18 @@ class AuthorityUserRegisterMutation(graphene.Mutation):
                 authority=invitation.authority,
                 role=invitation.role,
             )
+            if (
+                authority_user.role == AuthorityUser.Role.REPORTER
+                and is_village_capability_enabled()
+            ):
+                VillageReporterAssignment.objects.bulk_create(
+                    [
+                        VillageReporterAssignment(
+                            reporter=authority_user, village=village
+                        )
+                        for village in invitation.villages.all()
+                    ]
+                )
 
             token = None
             refresh_token = None
