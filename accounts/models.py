@@ -5,6 +5,7 @@ from uuid import uuid4
 from dateutil.relativedelta import *
 from django.contrib.auth.models import AbstractUser
 from django.contrib.gis.db import models
+from django.db.models import Q
 from django.utils.timezone import now
 from easy_thumbnails.fields import ThumbnailerImageField
 
@@ -208,3 +209,28 @@ class Place(BaseModel):
     )
     location = models.PointField(null=True, blank=True)
     notification_to = models.TextField(blank=True)
+
+
+class Village(BaseModel):
+    class Meta:
+        ordering = ("name",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["authority", "code"],
+                condition=Q(deleted_at__isnull=True),
+                name="unique_active_village_code_per_authority",
+            )
+        ]
+
+    objects = BaseModelManager()
+
+    authority = models.ForeignKey(
+        Authority, on_delete=models.CASCADE, related_name="villages"
+    )
+    code = models.CharField(max_length=50)
+    name = models.CharField(max_length=200)
+    location = models.PointField(null=True, blank=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name

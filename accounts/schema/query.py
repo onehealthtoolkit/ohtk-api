@@ -16,6 +16,7 @@ from accounts.models import (
     Authority,
     Configuration,
     Place,
+    Village,
 )
 from accounts.schema.types import (
     AdminConfigurationQueryType,
@@ -26,6 +27,7 @@ from accounts.schema.types import (
     UserProfileType,
     FeatureType,
     AuthorityType,
+    AdminVillageQueryType,
     AdminAuthorityQueryType,
     AdminAuthorityUserQueryType,
     AdminAuthorityInheritLookupType,
@@ -68,6 +70,7 @@ class Query(graphene.ObjectType):
         AdminInvitationCodeQueryType
     )
     admin_place_query = DjangoPaginationConnectionField(AdminPlaceQueryType)
+    admin_village_query = DjangoPaginationConnectionField(AdminVillageQueryType)
     place_get = graphene.Field(PlaceType, id=graphene.Int(required=True))
 
     invitation_code = graphene.Field(InvitationCodeType, id=graphene.ID(required=True))
@@ -267,4 +270,15 @@ class Query(graphene.ObjectType):
                     query = query.filter(authority=user.authorityuser.authority)
                 else:
                     raise GraphQLError("Permission denied.")
+        return query
+
+    @staticmethod
+    @login_required
+    def resolve_admin_village_query(root, info, **kwargs):
+        if not is_village_capability_enabled():
+            return Village.objects.none()
+
+        user = info.context.user
+        query = Village.objects.all()
+        query = filter_authority_permission(user, query)
         return query

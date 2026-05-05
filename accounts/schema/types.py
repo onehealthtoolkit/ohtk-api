@@ -16,6 +16,7 @@ from accounts.models import (
     User,
     Configuration,
     Place,
+    Village,
 )
 from common.converter import GeoJSON
 from common.types import AdminValidationProblem
@@ -540,6 +541,95 @@ class AdminPlaceUpdateProblem(AdminValidationProblem):
 class AdminPlaceUpdateResult(graphene.Union):
     class Meta:
         types = (AdminPlaceUpdateSuccess, AdminPlaceUpdateProblem)
+
+
+class AdminVillageQueryFilter(django_filters.FilterSet):
+    q = django_filters.CharFilter(method="filter_q")
+    authority_id = django_filters.NumberFilter(field_name="authority__id")
+    active = django_filters.BooleanFilter()
+
+    class Meta:
+        model = Village
+        fields = ["authority_id", "active"]
+
+    def filter_q(self, queryset, name, value):
+        return queryset.filter(Q(name__icontains=value) | Q(code__icontains=value))
+
+
+class AdminVillageQueryType(DjangoObjectType):
+    latitude = graphene.Float()
+    longitude = graphene.Float()
+
+    class Meta:
+        model = Village
+        fields = ("id", "code", "name", "authority", "location", "active")
+        filterset_class = AdminVillageQueryFilter
+
+    def resolve_latitude(self, info):
+        if self.location:
+            return self.location.y
+        return None
+
+    def resolve_longitude(self, info):
+        if self.location:
+            return self.location.x
+        return None
+
+
+class AdminVillageCreateSuccess(DjangoObjectType):
+    latitude = graphene.Float()
+    longitude = graphene.Float()
+
+    class Meta:
+        model = Village
+        fields = "__all__"
+
+    def resolve_latitude(self, info):
+        if self.location:
+            return self.location.y
+        return None
+
+    def resolve_longitude(self, info):
+        if self.location:
+            return self.location.x
+        return None
+
+
+class AdminVillageCreateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminVillageCreateResult(graphene.Union):
+    class Meta:
+        types = (AdminVillageCreateSuccess, AdminVillageCreateProblem)
+
+
+class AdminVillageUpdateSuccess(DjangoObjectType):
+    latitude = graphene.Float()
+    longitude = graphene.Float()
+
+    class Meta:
+        model = Village
+        fields = "__all__"
+
+    def resolve_latitude(self, info):
+        if self.location:
+            return self.location.y
+        return None
+
+    def resolve_longitude(self, info):
+        if self.location:
+            return self.location.x
+        return None
+
+
+class AdminVillageUpdateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminVillageUpdateResult(graphene.Union):
+    class Meta:
+        types = (AdminVillageUpdateSuccess, AdminVillageUpdateProblem)
 
 
 class AdminConfigurationQueryFilter(django_filters.FilterSet):
