@@ -209,6 +209,27 @@ class AdminVillageTests(JSONWebTokenTestCase):
         self.assertEqual(village["longitude"], 101)
         self.assertTrue(Village.objects.filter(code="V003").exists())
 
+    def test_create_reuses_soft_deleted_village_code(self):
+        set_village_capability_enabled(True)
+        self.village1.delete()
+        self.client.authenticate(self.super_user)
+
+        result = self.execute_create(
+            {
+                "code": "V001",
+                "name": "Village One Replacement",
+                "authorityId": self.authority.id,
+                "active": True,
+            }
+        )
+
+        self.assertIsNone(result.errors, result.errors)
+        village = result.data["adminVillageCreate"]["result"]
+        self.assertEqual(village["__typename"], "AdminVillageCreateSuccess")
+        self.assertEqual(village["code"], "V001")
+        self.assertEqual(village["name"], "Village One Replacement")
+        self.assertEqual(Village.objects.filter(code="V001").count(), 1)
+
     def test_create_rejects_unknown_authority(self):
         set_village_capability_enabled(True)
         self.client.authenticate(self.super_user)

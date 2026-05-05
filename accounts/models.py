@@ -5,6 +5,7 @@ from uuid import uuid4
 from dateutil.relativedelta import *
 from django.contrib.auth.models import AbstractUser
 from django.contrib.gis.db import models
+from django.db.models import Q
 from django.utils.timezone import now
 from easy_thumbnails.fields import ThumbnailerImageField
 
@@ -213,7 +214,13 @@ class Place(BaseModel):
 class Village(BaseModel):
     class Meta:
         ordering = ("name",)
-        unique_together = (("authority", "code"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["authority", "code"],
+                condition=Q(deleted_at__isnull=True),
+                name="unique_active_village_code_per_authority",
+            )
+        ]
 
     objects = BaseModelManager()
 

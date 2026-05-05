@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'ordering': ('name',),
-                'unique_together': {('authority', 'code')},
+                'constraints': [models.UniqueConstraint(condition=models.Q(('deleted_at__isnull', True)), fields=('authority', 'code'), name='unique_active_village_code_per_authority')],
             },
         ),
     ]
