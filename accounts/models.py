@@ -142,6 +142,7 @@ class InvitationCode(BaseModel):
     authority = models.ForeignKey(
         Authority, related_name="invitations", on_delete=models.CASCADE
     )
+    villages = models.ManyToManyField("Village", related_name="invitations", blank=True)
     code = models.CharField(max_length=10, unique=True)
     from_date = models.DateTimeField()
     through_date = models.DateTimeField()
@@ -234,3 +235,26 @@ class Village(BaseModel):
 
     def __str__(self):
         return self.name
+
+
+class VillageReporterAssignment(BaseModel):
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["reporter", "village"],
+                condition=Q(deleted_at__isnull=True),
+                name="unique_active_village_reporter_assignment",
+            )
+        ]
+
+    objects = BaseModelManager()
+
+    reporter = models.ForeignKey(
+        AuthorityUser, on_delete=models.CASCADE, related_name="village_assignments"
+    )
+    village = models.ForeignKey(
+        Village, on_delete=models.CASCADE, related_name="reporter_assignments"
+    )
+
+    def __str__(self):
+        return f"{self.reporter.username} -> {self.village.name}"
