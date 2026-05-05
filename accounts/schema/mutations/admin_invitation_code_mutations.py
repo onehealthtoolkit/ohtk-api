@@ -205,6 +205,13 @@ class AdminInvitationCodeUpdateMutation(graphene.Mutation):
         target_authority = invitation_code.authority
         if authority_id:
             target_authority = Authority.objects.get(pk=authority_id)
+            if not user.is_superuser:
+                if user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
+                    check_permission_on_inherits_down(user, [target_authority.id])
+                elif user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
+                    check_permission_authority_must_be_the_same(
+                        user, target_authority.id
+                    )
 
         effective_role = role if role is not None else invitation_code.role
         villages = None

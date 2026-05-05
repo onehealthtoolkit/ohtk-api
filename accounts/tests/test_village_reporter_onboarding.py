@@ -71,11 +71,13 @@ class VillageReporterOnboardingTests(JSONWebTokenTestCase):
         mutation adminInvitationCodeUpdate(
             $id: ID!,
             $code: String!,
+            $authorityId: Int,
             $villageIds: [Int]
         ) {
             adminInvitationCodeUpdate(
                 id: $id,
                 code: $code,
+                authorityId: $authorityId,
                 villageIds: $villageIds
             ) {
                 result {
@@ -297,6 +299,37 @@ class VillageReporterOnboardingTests(JSONWebTokenTestCase):
             "invitationCode"
         ]["villages"]
         self.assertEqual([village["code"] for village in villages], ["V002"])
+
+    def test_admin_cannot_update_invitation_to_outside_authority(self):
+        set_village_capability_enabled(True)
+        invitation = InvitationCode.objects.create(
+            code="VIL007",
+            authority=self.authority,
+            role=AuthorityUser.Role.REPORTER,
+        )
+        invitation.villages.set([self.village1])
+        admin = AuthorityUser.objects.create(
+            username="authority-admin",
+            authority=self.authority,
+            role=AuthorityUser.Role.ADMIN,
+        )
+        self.client.authenticate(admin)
+
+        result = self.execute_update_invitation(
+            {
+                "id": invitation.id,
+                "code": "VIL007",
+                "authorityId": self.other_authority.id,
+                "villageIds": [self.other_village.id],
+            }
+        )
+
+        self.assertIsNotNone(result.errors)
+        invitation.refresh_from_db()
+        self.assertEqual(invitation.authority_id, self.authority.id)
+        self.assertEqual(
+            list(invitation.villages.values_list("code", flat=True)), ["V001"]
+        )
 
     def test_query_me_returns_assigned_villages(self):
         set_village_capability_enabled(True)
