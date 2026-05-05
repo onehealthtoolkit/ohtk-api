@@ -208,3 +208,22 @@ class Place(BaseModel):
     )
     location = models.PointField(null=True, blank=True)
     notification_to = models.TextField(blank=True)
+
+
+class Village(BaseModel):
+    class Meta:
+        ordering = ("name",)
+        unique_together = (("authority", "code"),)
+
+    objects = BaseModelManager()
+
+    authority = models.ForeignKey(
+        Authority, on_delete=models.CASCADE, related_name="villages"
+    )
+    code = models.CharField(max_length=50)
+    name = models.CharField(max_length=200)
+    location = models.PointField(null=True, blank=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
