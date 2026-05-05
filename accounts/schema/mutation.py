@@ -25,6 +25,7 @@ from accounts.schema.mutations import (
     AdminConfigurationCreateMutation,
     AdminConfigurationUpdateMutation,
     AdminConfigurationDeleteMutation,
+    AdminVillageCapabilityUpdateMutation,
     RequestToDeleteMyAccountMutation,
 )
 
@@ -56,4 +57,5 @@ class Mutation(graphene.ObjectType):
     admin_configuration_create = AdminConfigurationCreateMutation.Field()
     admin_configuration_update = AdminConfigurationUpdateMutation.Field()
     admin_configuration_delete = AdminConfigurationDeleteMutation.Field()
+    admin_village_capability_update = AdminVillageCapabilityUpdateMutation.Field()
     request_to_delete_my_account = RequestToDeleteMyAccountMutation.Field()

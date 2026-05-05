@@ -35,6 +35,7 @@ from accounts.schema.types import (
 )
 from accounts.schema.types import CheckInvitationCodeType
 from accounts.utils import filter_authority_permission
+from accounts.village_capability import is_village_capability_enabled
 from pagination import DjangoPaginationConnectionField
 
 
@@ -78,6 +79,7 @@ class Query(graphene.ObjectType):
     configuration_get = graphene.Field(
         ConfigurationType, key=graphene.String(required=True)
     )
+    village_capability_enabled = graphene.Boolean(required=True)
 
     get_login_qr_token = graphene.Field(
         LoginQrTokenType, user_id=graphene.ID(required=True)
@@ -244,6 +246,11 @@ class Query(graphene.ObjectType):
     @login_required
     def resolve_configuration_get(root, info, key):
         return Configuration.objects.get(key=key)
+
+    @staticmethod
+    @login_required
+    def resolve_village_capability_enabled(root, info):
+        return is_village_capability_enabled()
 
     @staticmethod
     @login_required
