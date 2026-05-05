@@ -469,3 +469,19 @@ class AnimalCensusBackendTests(JSONWebTokenTestCase):
         latest = result.data["latestVillageCensus"]
         self.assertEqual(latest["censusDate"], "2026-05-05")
         self.assertEqual(len(latest["facts"]), 2)
+
+    def test_latest_village_census_returns_null_for_unknown_village(self):
+        self.enable_census()
+        self.client.authenticate(self.reporter)
+        query = """
+        query latestVillageCensus($villageId: Int!) {
+            latestVillageCensus(villageId: $villageId) {
+                id
+            }
+        }
+        """
+
+        result = self.client.execute(query, {"villageId": 999999})
+
+        self.assertIsNone(result.errors, result.errors)
+        self.assertIsNone(result.data["latestVillageCensus"])

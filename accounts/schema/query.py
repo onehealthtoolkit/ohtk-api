@@ -329,7 +329,10 @@ class Query(graphene.ObjectType):
             return None
 
         user = info.context.user
-        village = Village.objects.get(pk=village_id)
+        try:
+            village = Village.objects.get(pk=village_id)
+        except Village.DoesNotExist:
+            return None
         if user.is_superuser:
             pass
         elif user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
