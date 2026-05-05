@@ -17,6 +17,9 @@ from accounts.models import (
     Configuration,
     Place,
     Village,
+    AnimalSpecies,
+    VillageCensusSnapshot,
+    VillageReporterAssignment,
 )
 from accounts.schema.types import (
     AdminConfigurationQueryType,
@@ -34,9 +37,12 @@ from accounts.schema.types import (
     LoginQrTokenType,
     ConfigurationType,
     AdminPlaceQueryType,
+    AdminAnimalSpeciesQueryType,
+    VillageCensusSnapshotType,
 )
 from accounts.schema.types import CheckInvitationCodeType
 from accounts.utils import filter_authority_permission
+from accounts.animal_census_capability import is_animal_census_capability_enabled
 from accounts.village_capability import is_village_capability_enabled
 from pagination import DjangoPaginationConnectionField
 
@@ -71,6 +77,12 @@ class Query(graphene.ObjectType):
     )
     admin_place_query = DjangoPaginationConnectionField(AdminPlaceQueryType)
     admin_village_query = DjangoPaginationConnectionField(AdminVillageQueryType)
+    admin_animal_species_query = DjangoPaginationConnectionField(
+        AdminAnimalSpeciesQueryType
+    )
+    latest_village_census = graphene.Field(
+        VillageCensusSnapshotType, village_id=graphene.Int(required=True)
+    )
     place_get = graphene.Field(PlaceType, id=graphene.Int(required=True))
 
     invitation_code = graphene.Field(InvitationCodeType, id=graphene.ID(required=True))
@@ -83,6 +95,7 @@ class Query(graphene.ObjectType):
         ConfigurationType, key=graphene.String(required=True)
     )
     village_capability_enabled = graphene.Boolean(required=True)
+    animal_census_capability_enabled = graphene.Boolean(required=True)
 
     get_login_qr_token = graphene.Field(
         LoginQrTokenType, user_id=graphene.ID(required=True)
@@ -257,6 +270,11 @@ class Query(graphene.ObjectType):
 
     @staticmethod
     @login_required
+    def resolve_animal_census_capability_enabled(root, info):
+        return is_animal_census_capability_enabled()
+
+    @staticmethod
+    @login_required
     def resolve_admin_place_query(root, info, **kwargs):
         user = info.context.user
         query = Place.objects.all()
@@ -282,3 +300,45 @@ class Query(graphene.ObjectType):
         query = Village.objects.all()
         query = filter_authority_permission(user, query)
         return query
+
+    @staticmethod
+    @login_required
+    def resolve_admin_animal_species_query(root, info, **kwargs):
+        user = info.context.user
+        if not user.is_superuser:
+            raise GraphQLError("Permission denied.")
+        return AnimalSpecies.objects.all()
+
+    @staticmethod
+    @login_required
+    def resolve_latest_village_census(root, info, village_id):
+        if not (
+            is_village_capability_enabled() and is_animal_census_capability_enabled()
+        ):
+            return None
+
+        user = info.context.user
+        village = Village.objects.get(pk=village_id)
+        if user.is_superuser:
+            pass
+        elif user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
+            if not user.authorityuser.authority.is_in_inherits_down(
+                [village.authority_id]
+            ):
+                raise GraphQLError("Permission denied.")
+        elif user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
+            if user.authorityuser.authority_id != village.authority_id:
+                raise GraphQLError("Permission denied.")
+        elif user.is_authority_role_in([AuthorityUser.Role.REPORTER]):
+            if not VillageReporterAssignment.objects.filter(
+                reporter=user.authorityuser, village=village
+            ).exists():
+                raise GraphQLError("Permission denied.")
+        else:
+            raise GraphQLError("Permission denied.")
+
+        return (
+            VillageCensusSnapshot.objects.filter(village=village)
+            .order_by("-census_date", "-created_at")
+            .first()
+        )

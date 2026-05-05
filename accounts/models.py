@@ -238,6 +238,10 @@ class Village(BaseModel):
 
 
 class VillageReporterAssignment(BaseModel):
+    class CensusRole(models.TextChoices):
+        OFFICIAL = "OFF", "Official"
+        VOLUNTEER = "VOL", "Volunteer"
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
@@ -255,6 +259,76 @@ class VillageReporterAssignment(BaseModel):
     village = models.ForeignKey(
         Village, on_delete=models.CASCADE, related_name="reporter_assignments"
     )
+    census_role = models.CharField(
+        choices=CensusRole.choices, max_length=3, default=CensusRole.OFFICIAL
+    )
 
     def __str__(self):
         return f"{self.reporter.username} -> {self.village.name}"
+
+
+class AnimalSpecies(BaseModel):
+    class Meta:
+        ordering = ("sort_order", "name")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["code"],
+                condition=Q(deleted_at__isnull=True),
+                name="unique_active_animal_species_code",
+            )
+        ]
+
+    objects = BaseModelManager()
+
+    code = models.CharField(max_length=50)
+    name = models.CharField(max_length=200)
+    active = models.BooleanField(default=True)
+    sort_order = models.IntegerField(default=0)
+
+    def __str__(self):
+        return self.name
+
+
+class VillageCensusSnapshot(BaseModel):
+    class Meta:
+        ordering = ("-census_date", "-created_at")
+
+    objects = BaseModelManager()
+
+    village = models.ForeignKey(
+        Village, on_delete=models.CASCADE, related_name="census_snapshots"
+    )
+    reporter = models.ForeignKey(
+        AuthorityUser, on_delete=models.CASCADE, related_name="census_snapshots"
+    )
+    census_date = models.DateField()
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.village.name} {self.census_date}"
+
+
+class AnimalCensusFact(BaseModel):
+    class Meta:
+        ordering = ("species__sort_order", "species__name")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["snapshot", "species"],
+                condition=Q(deleted_at__isnull=True),
+                name="unique_active_census_fact_species",
+            )
+        ]
+
+    objects = BaseModelManager()
+
+    snapshot = models.ForeignKey(
+        VillageCensusSnapshot, on_delete=models.CASCADE, related_name="facts"
+    )
+    species = models.ForeignKey(
+        AnimalSpecies, on_delete=models.CASCADE, related_name="census_facts"
+    )
+    animal_quantity = models.PositiveIntegerField(default=0)
+    household_quantity = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.snapshot} {self.species.name}"

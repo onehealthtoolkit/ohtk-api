@@ -28,6 +28,10 @@ from accounts.schema.mutations import (
     AdminVillageCapabilityUpdateMutation,
     AdminVillageCreateMutation,
     AdminVillageUpdateMutation,
+    AdminAnimalCensusCapabilityUpdateMutation,
+    AdminAnimalSpeciesCreateMutation,
+    AdminAnimalSpeciesUpdateMutation,
+    SubmitVillageCensusSnapshotMutation,
     RequestToDeleteMyAccountMutation,
 )
 
@@ -62,4 +66,10 @@ class Mutation(graphene.ObjectType):
     admin_village_capability_update = AdminVillageCapabilityUpdateMutation.Field()
     admin_village_create = AdminVillageCreateMutation.Field()
     admin_village_update = AdminVillageUpdateMutation.Field()
+    admin_animal_census_capability_update = (
+        AdminAnimalCensusCapabilityUpdateMutation.Field()
+    )
+    admin_animal_species_create = AdminAnimalSpeciesCreateMutation.Field()
+    admin_animal_species_update = AdminAnimalSpeciesUpdateMutation.Field()
+    submit_village_census_snapshot = SubmitVillageCensusSnapshotMutation.Field()
     request_to_delete_my_account = RequestToDeleteMyAccountMutation.Field()

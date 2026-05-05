@@ -17,6 +17,9 @@ from accounts.models import (
     Configuration,
     Place,
     Village,
+    AnimalSpecies,
+    VillageCensusSnapshot,
+    AnimalCensusFact,
 )
 from common.converter import GeoJSON
 from common.types import AdminValidationProblem
@@ -676,6 +679,89 @@ class AdminVillageUpdateProblem(AdminValidationProblem):
 class AdminVillageUpdateResult(graphene.Union):
     class Meta:
         types = (AdminVillageUpdateSuccess, AdminVillageUpdateProblem)
+
+
+class AdminAnimalSpeciesQueryFilter(django_filters.FilterSet):
+    q = django_filters.CharFilter(method="filter_q")
+    active = django_filters.BooleanFilter()
+
+    class Meta:
+        model = AnimalSpecies
+        fields = ["active"]
+
+    def filter_q(self, queryset, name, value):
+        return queryset.filter(Q(name__icontains=value) | Q(code__icontains=value))
+
+
+class AnimalSpeciesType(DjangoObjectType):
+    class Meta:
+        model = AnimalSpecies
+        fields = ("id", "code", "name", "active", "sort_order")
+
+
+class AdminAnimalSpeciesQueryType(DjangoObjectType):
+    class Meta:
+        model = AnimalSpecies
+        fields = ("id", "code", "name", "active", "sort_order")
+        filterset_class = AdminAnimalSpeciesQueryFilter
+
+
+class AdminAnimalSpeciesCreateSuccess(DjangoObjectType):
+    class Meta:
+        model = AnimalSpecies
+        fields = "__all__"
+
+
+class AdminAnimalSpeciesCreateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminAnimalSpeciesCreateResult(graphene.Union):
+    class Meta:
+        types = (AdminAnimalSpeciesCreateSuccess, AdminAnimalSpeciesCreateProblem)
+
+
+class AdminAnimalSpeciesUpdateSuccess(DjangoObjectType):
+    class Meta:
+        model = AnimalSpecies
+        fields = "__all__"
+
+
+class AdminAnimalSpeciesUpdateProblem(AdminValidationProblem):
+    pass
+
+
+class AdminAnimalSpeciesUpdateResult(graphene.Union):
+    class Meta:
+        types = (AdminAnimalSpeciesUpdateSuccess, AdminAnimalSpeciesUpdateProblem)
+
+
+class AnimalCensusFactType(DjangoObjectType):
+    class Meta:
+        model = AnimalCensusFact
+        fields = ("id", "species", "animal_quantity", "household_quantity")
+
+
+class VillageCensusSnapshotType(DjangoObjectType):
+    class Meta:
+        model = VillageCensusSnapshot
+        fields = (
+            "id",
+            "village",
+            "reporter",
+            "census_date",
+            "submitted_at",
+            "facts",
+        )
+
+
+class VillageCensusSnapshotProblem(AdminValidationProblem):
+    pass
+
+
+class VillageCensusSnapshotResult(graphene.Union):
+    class Meta:
+        types = (VillageCensusSnapshotType, VillageCensusSnapshotProblem)
 
 
 class AdminConfigurationQueryFilter(django_filters.FilterSet):

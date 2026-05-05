@@ -12,4 +12,7 @@ from .admin_place_mutations import *
 from .admin_configuration_mutations import *
 from .admin_village_capability_mutations import *
 from .admin_village_mutations import *
+from .admin_animal_census_capability_mutations import *
+from .admin_animal_species_mutations import *
+from .village_census_mutations import *
 from .request_to_delete_my_account_mutation import *
