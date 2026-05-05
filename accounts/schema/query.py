@@ -38,6 +38,7 @@ from accounts.schema.types import (
     ConfigurationType,
     AdminPlaceQueryType,
     AdminAnimalSpeciesQueryType,
+    AnimalSpeciesType,
     VillageCensusSnapshotType,
 )
 from accounts.schema.types import CheckInvitationCodeType
@@ -80,6 +81,7 @@ class Query(graphene.ObjectType):
     admin_animal_species_query = DjangoPaginationConnectionField(
         AdminAnimalSpeciesQueryType
     )
+    animal_species = graphene.List(AnimalSpeciesType)
     latest_village_census = graphene.Field(
         VillageCensusSnapshotType, village_id=graphene.Int(required=True)
     )
@@ -308,6 +310,15 @@ class Query(graphene.ObjectType):
         if not user.is_superuser:
             raise GraphQLError("Permission denied.")
         return AnimalSpecies.objects.all()
+
+    @staticmethod
+    @login_required
+    def resolve_animal_species(root, info):
+        if not (
+            is_village_capability_enabled() and is_animal_census_capability_enabled()
+        ):
+            return AnimalSpecies.objects.none()
+        return AnimalSpecies.objects.filter(active=True).order_by("sort_order", "code")
 
     @staticmethod
     @login_required

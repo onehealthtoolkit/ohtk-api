@@ -251,6 +251,30 @@ class AnimalCensusBackendTests(JSONWebTokenTestCase):
         self.assertEqual(updated["name"], "Cattle Updated")
         self.assertFalse(updated["active"])
 
+    def test_reporter_can_query_active_animal_species_when_census_enabled(self):
+        self.enable_census()
+        cattle, buffalo = self.create_species()
+        buffalo.active = False
+        buffalo.save()
+        self.client.authenticate(self.reporter)
+        query = """
+        query animalSpecies {
+            animalSpecies {
+                id
+                code
+                name
+                active
+                sortOrder
+            }
+        }
+        """
+
+        result = self.client.execute(query)
+
+        self.assertIsNone(result.errors, result.errors)
+        self.assertEqual(len(result.data["animalSpecies"]), 1)
+        self.assertEqual(result.data["animalSpecies"][0]["code"], cattle.code)
+
     def test_official_assigned_reporter_can_submit_complete_snapshot_with_zeros(self):
         self.enable_census()
         cattle, buffalo = self.create_species()
