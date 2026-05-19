@@ -48,6 +48,36 @@ class ReportImageTestCase(BaseTestCase):
         imgs = Image.objects.filter(report_id=self.report.id)
         self.assertEqual(2, len(imgs))
 
+    def test_incident_reports_ignore_invalid_image_thumbnail(self):
+        self.report.relevant_authorities.add(self.thailand)
+        invalid_file = SimpleUploadedFile(
+            "not-image.txt", b"not an image", content_type="text/plain"
+        )
+        Image.objects.create(file=invalid_file, report=self.report)
+        self.client.authenticate(self.user)
+        query = """
+            query {
+                incidentReports {
+                    results {
+                        id
+                        images {
+                            id
+                            thumbnail
+                            imageUrl
+                        }
+                    }
+                }
+            }
+        """
+
+        result = self.client.execute(query)
+
+        self.assertIsNone(result.errors, msg=result.errors)
+        report = result.data["incidentReports"]["results"][0]
+        self.assertEqual(str(self.report.id), report["id"])
+        self.assertIsNone(report["images"][0]["thumbnail"])
+        self.assertTrue(report["images"][0]["imageUrl"].endswith("not-image.txt"))
+
     def test_mutation(self):
         self.client.authenticate(self.user)
         query = """

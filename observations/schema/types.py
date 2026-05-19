@@ -1,11 +1,10 @@
 import graphene
 import django_filters
-from easy_thumbnails.files import get_thumbnailer
 from django.db.models import Q
 from graphene_django.filter.filters import ListFilter
 from graphene_django import DjangoObjectType
 from graphene.types.generic import GenericScalar
-from accounts.schema.types import UserType
+from accounts.schema.types import UserType, resolve_thumbnail_url
 from common.types import AdminValidationProblem
 
 from observations.models import (
@@ -48,7 +47,7 @@ class ObservationImageType(DjangoObjectType):
         fields = "__all__"
 
     def resolve_thumbnail(self, info):
-        return get_thumbnailer(self.file)["thumbnail"].url
+        return resolve_thumbnail_url(self.file)
 
     def resolve_image_url(self, info):
         return self.file.url
