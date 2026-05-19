@@ -31,6 +31,15 @@ from common.converter import GeoJSON
 from common.types import AdminFieldValidationProblem, AdminValidationProblem
 
 
+def resolve_thumbnail_url(image):
+    if not image:
+        return None
+    try:
+        return get_thumbnailer(image)["thumbnail"].url
+    except Exception:
+        return None
+
+
 @convert_django_field.register(models.PointField)
 @convert_django_field.register(models.PolygonField)
 @convert_django_field.register(models.MultiPolygonField)
@@ -264,10 +273,7 @@ class UserType(DjangoObjectType):
             return ""
 
     def resolve_avatar_url(self, info):
-        if self.avatar:
-            return get_thumbnailer(self.avatar)["thumbnail"].url
-        else:
-            return None
+        return resolve_thumbnail_url(self.avatar)
 
 
 class AuthorityUserType(DjangoObjectType):
@@ -345,10 +351,7 @@ class UserProfileType(graphene.ObjectType):
             return ""
 
     def resolve_avatar_url(self, info):
-        if self.avatar:
-            return get_thumbnailer(self.avatar)["thumbnail"].url
-        else:
-            return None
+        return resolve_thumbnail_url(self.avatar)
 
     def resolve_consent(self, info):
         if self.is_authority_user:

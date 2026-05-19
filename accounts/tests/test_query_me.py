@@ -24,6 +24,20 @@ class QueryMeTests(JSONWebTokenTestCase):
         self.assertEqual(self.user.id, result.data["me"]["id"])
         self.assertEqual(self.user.username, result.data["me"]["username"])
 
+    def test_query_me_ignores_invalid_avatar_file(self):
+        self.user.avatar = "avatars/not-an-image.test"
+        self.user.save(update_fields=["avatar"])
+        query = """
+        query me {
+            me {
+                avatarUrl
+            }
+        }
+        """
+        result = self.client.execute(query, {})
+        self.assertIsNone(result.errors, result.errors)
+        self.assertIsNone(result.data["me"]["avatarUrl"])
+
     def test_query_me_features_excludes_village_capability_by_default(self):
         query = """
         query me {
