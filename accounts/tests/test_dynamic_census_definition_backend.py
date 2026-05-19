@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.utils import timezone
 from django.db import IntegrityError, transaction
 from graphql_jwt.testcases import JSONWebTokenTestCase
@@ -204,6 +206,35 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         """
         return self.client.execute(mutation, variables)
 
+    def execute_active_kind_summary(self):
+        query = """
+        query activeVillageCensusDefinitions($villageId: Int!) {
+            activeVillageCensusDefinitions(villageId: $villageId) {
+                kind
+                name
+                enabled
+                activeVersion {
+                    id
+                    version
+                    status
+                    definition {
+                        kind
+                    }
+                }
+                latestSnapshot {
+                    id
+                    censusDate
+                    definitionVersion {
+                        definition {
+                            kind
+                        }
+                    }
+                }
+            }
+        }
+        """
+        return self.client.execute(query, {"villageId": self.village.id})
+
     def test_reporter_can_query_runtime_animal_census_schema(self):
         self.enable_census()
         cattle, _buffalo = self.create_species()
@@ -235,6 +266,78 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         self.assertEqual(version["schema"]["row_source"], "ACTIVE_ANIMAL_SPECIES")
         self.assertEqual(version["runtimeSchema"]["rows"][0]["species_id"], cattle.id)
         self.assertEqual(result.data["censusDefinitions"][0]["kind"], "ANIMAL")
+
+    def test_reporter_can_query_active_animal_kind_summary(self):
+        self.enable_census()
+        self.create_animal_definition()
+        self.client.authenticate(self.reporter)
+
+        result = self.execute_active_kind_summary()
+
+        self.assertIsNone(result.errors, result.errors)
+        summaries = result.data["activeVillageCensusDefinitions"]
+        self.assertEqual(len(summaries), 1)
+        self.assertEqual(summaries[0]["kind"], "ANIMAL")
+        self.assertEqual(summaries[0]["name"], "Animal census")
+        self.assertTrue(summaries[0]["enabled"])
+        self.assertEqual(summaries[0]["activeVersion"]["version"], 1)
+        self.assertIsNone(summaries[0]["latestSnapshot"])
+
+    def test_reporter_can_query_active_human_kind_summary(self):
+        self.enable_census()
+        self.create_human_definition()
+        self.client.authenticate(self.reporter)
+
+        result = self.execute_active_kind_summary()
+
+        self.assertIsNone(result.errors, result.errors)
+        summaries = result.data["activeVillageCensusDefinitions"]
+        self.assertEqual(len(summaries), 1)
+        self.assertEqual(summaries[0]["kind"], "HUMAN")
+        self.assertEqual(summaries[0]["name"], "Human census")
+        self.assertEqual(summaries[0]["activeVersion"]["definition"]["kind"], "HUMAN")
+
+    def test_reporter_can_query_multiple_kind_summaries_with_latest_snapshot(self):
+        self.enable_census()
+        self.create_animal_definition()
+        _definition, human_version = self.create_human_definition()
+        VillageCensusSnapshot.objects.create(
+            village=self.village,
+            reporter=self.reporter,
+            definition_version=human_version,
+            census_date=date(2026, 5, 19),
+        )
+        self.client.authenticate(self.reporter)
+
+        result = self.execute_active_kind_summary()
+
+        self.assertIsNone(result.errors, result.errors)
+        summaries = result.data["activeVillageCensusDefinitions"]
+        self.assertEqual([summary["kind"] for summary in summaries], ["ANIMAL", "HUMAN"])
+        human = summaries[1]
+        self.assertEqual(human["latestSnapshot"]["censusDate"], "2026-05-19")
+        self.assertEqual(
+            human["latestSnapshot"]["definitionVersion"]["definition"]["kind"],
+            "HUMAN",
+        )
+
+    def test_active_kind_summary_returns_empty_when_no_kind_is_configured(self):
+        self.enable_census()
+        self.client.authenticate(self.reporter)
+
+        result = self.execute_active_kind_summary()
+
+        self.assertIsNone(result.errors, result.errors)
+        self.assertEqual(result.data["activeVillageCensusDefinitions"], [])
+
+    def test_active_kind_summary_returns_empty_when_census_feature_is_disabled(self):
+        self.create_animal_definition()
+        self.client.authenticate(self.reporter)
+
+        result = self.execute_active_kind_summary()
+
+        self.assertIsNone(result.errors, result.errors)
+        self.assertEqual(result.data["activeVillageCensusDefinitions"], [])
 
     def test_admin_can_ensure_default_definitions_and_species(self):
         super_user = AuthorityUser.objects.create(

@@ -871,6 +871,14 @@ class VillageCensusSnapshotResult(graphene.Union):
         types = (VillageCensusSnapshotType, VillageCensusSnapshotProblem)
 
 
+class CensusKindSummaryType(graphene.ObjectType):
+    kind = graphene.String(required=True)
+    name = graphene.String(required=True)
+    enabled = graphene.Boolean(required=True)
+    active_version = graphene.Field(CensusDefinitionVersionType)
+    latest_snapshot = graphene.Field(VillageCensusSnapshotType)
+
+
 class AdminConfigurationQueryFilter(django_filters.FilterSet):
     q = django_filters.CharFilter(method="filter_q")
 
