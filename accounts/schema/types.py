@@ -28,7 +28,7 @@ from accounts.models import (
     HumanCensusFact,
 )
 from common.converter import GeoJSON
-from common.types import AdminValidationProblem
+from common.types import AdminFieldValidationProblem, AdminValidationProblem
 
 
 @convert_django_field.register(models.PointField)
@@ -826,6 +826,18 @@ class CurrentHumanCensusFactType(DjangoObjectType):
     class Meta:
         model = CurrentHumanCensusFact
         fields = ("id", "fact", "updated_at")
+
+
+class AdminCensusDefinitionSetupPayload(graphene.ObjectType):
+    definitions = graphene.List(CensusDefinitionType)
+    versions = graphene.List(CensusDefinitionVersionType)
+    fields = graphene.List(AdminFieldValidationProblem)
+
+
+class AdminCensusDefinitionVersionPublishPayload(graphene.ObjectType):
+    definition = graphene.Field(CensusDefinitionType)
+    version = graphene.Field(CensusDefinitionVersionType)
+    fields = graphene.List(AdminFieldValidationProblem)
 
 
 class VillageCensusSnapshotType(DjangoObjectType):

@@ -1,4 +1,5 @@
 from django.utils import timezone
+from django.db import IntegrityError, transaction
 from graphql_jwt.testcases import JSONWebTokenTestCase
 
 from accounts.animal_census_capability import set_animal_census_capability_enabled
@@ -234,6 +235,116 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         self.assertEqual(version["schema"]["row_source"], "ACTIVE_ANIMAL_SPECIES")
         self.assertEqual(version["runtimeSchema"]["rows"][0]["species_id"], cattle.id)
         self.assertEqual(result.data["censusDefinitions"][0]["kind"], "ANIMAL")
+
+    def test_admin_can_ensure_default_definitions_and_species(self):
+        super_user = AuthorityUser.objects.create(
+            username="platform-admin",
+            authority=self.authority,
+            role=AuthorityUser.Role.ADMIN,
+            is_superuser=True,
+        )
+        self.client.authenticate(super_user)
+        mutation = """
+        mutation ensureDefaults {
+            adminCensusDefinitionsEnsureDefaults {
+                definitions {
+                    kind
+                    enabled
+                }
+                versions {
+                    version
+                    definition {
+                        kind
+                    }
+                    schema
+                    runtimeSchema
+                }
+                fields {
+                    name
+                    message
+                }
+            }
+        }
+        """
+
+        result = self.client.execute(mutation)
+
+        self.assertIsNone(result.errors, result.errors)
+        payload = result.data["adminCensusDefinitionsEnsureDefaults"]
+        self.assertEqual(
+            {definition["kind"] for definition in payload["definitions"]},
+            {"ANIMAL", "HUMAN"},
+        )
+        animal_version = next(
+            version
+            for version in payload["versions"]
+            if version["definition"]["kind"] == "ANIMAL"
+        )
+        self.assertEqual(
+            animal_version["schema"]["row_source"], "ACTIVE_ANIMAL_SPECIES"
+        )
+        self.assertEqual(animal_version["runtimeSchema"]["rows"][0]["species_code"], "CATTLE")
+        self.assertTrue(AnimalSpecies.objects.filter(code="POULTRY").exists())
+
+    def test_admin_can_publish_new_human_schema_version(self):
+        super_user = AuthorityUser.objects.create(
+            username="schema-admin",
+            authority=self.authority,
+            role=AuthorityUser.Role.ADMIN,
+            is_superuser=True,
+        )
+        self.client.authenticate(super_user)
+        mutation = """
+        mutation publishHumanSchema($schema: GenericScalar!) {
+            adminCensusDefinitionVersionPublish(kind: "HUMAN", schema: $schema) {
+                definition {
+                    kind
+                    enabled
+                }
+                version {
+                    version
+                    status
+                    schema
+                }
+                fields {
+                    name
+                    message
+                }
+            }
+        }
+        """
+        schema = {
+            "rows": [
+                {
+                    "key": "adult",
+                    "label": "Adult",
+                    "dimensions": {"age_group": "adult"},
+                }
+            ],
+            "measures": [
+                {
+                    "key": "population",
+                    "label": "Population",
+                    "type": "integer",
+                    "required": True,
+                }
+            ],
+        }
+
+        result = self.client.execute(mutation, {"schema": schema})
+
+        self.assertIsNone(result.errors, result.errors)
+        payload = result.data["adminCensusDefinitionVersionPublish"]
+        self.assertEqual(payload["definition"]["kind"], "HUMAN")
+        self.assertEqual(payload["version"]["version"], 1)
+        self.assertEqual(payload["version"]["schema"]["rows"][0]["key"], "adult")
+
+    def test_census_definition_kind_is_unique(self):
+        CensusDefinition.objects.create(kind=CensusDefinition.Kind.ANIMAL)
+
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                CensusDefinition.objects.create(kind=CensusDefinition.Kind.ANIMAL)
 
     def test_official_reporter_can_submit_animal_snapshot_and_current_fact_pointers(self):
         self.enable_census()
