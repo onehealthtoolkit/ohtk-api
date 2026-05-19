@@ -294,7 +294,8 @@ class AnimalCensusBackendTests(JSONWebTokenTestCase):
         self.assertEqual(len(snapshot["facts"]), 2)
         self.assertTrue(
             AnimalCensusFact.objects.filter(
-                species=cattle, animal_quantity=0, household_quantity=0
+                animal_species=cattle,
+                measures={"animal_quantity": 0, "household_quantity": 0},
             ).exists()
         )
 
@@ -431,15 +432,15 @@ class AnimalCensusBackendTests(JSONWebTokenTestCase):
         )
         AnimalCensusFact.objects.create(
             snapshot=old_snapshot,
-            species=cattle,
-            animal_quantity=1,
-            household_quantity=1,
+            animal_species=cattle,
+            row_key="species:CATTLE",
+            measures={"animal_quantity": 1, "household_quantity": 1},
         )
         AnimalCensusFact.objects.create(
             snapshot=old_snapshot,
-            species=buffalo,
-            animal_quantity=1,
-            household_quantity=1,
+            animal_species=buffalo,
+            row_key="species:BUFFALO",
+            measures={"animal_quantity": 1, "household_quantity": 1},
         )
         self.client.authenticate(self.reporter)
         self.execute_submit(

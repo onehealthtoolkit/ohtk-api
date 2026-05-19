@@ -289,7 +289,67 @@ class AnimalSpecies(BaseModel):
         return self.name
 
 
+class CensusDefinition(BaseModel):
+    class Kind(models.TextChoices):
+        ANIMAL = "ANIMAL", "Animal"
+        HUMAN = "HUMAN", "Human"
+
+    class Meta:
+        ordering = ("sort_order", "kind")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["kind"],
+                condition=Q(deleted_at__isnull=True),
+                name="unique_active_census_definition_kind",
+            )
+        ]
+
+    objects = BaseModelManager()
+
+    kind = models.CharField(choices=Kind.choices, max_length=20)
+    enabled = models.BooleanField(default=True)
+    sort_order = models.IntegerField(default=0)
+
+    def __str__(self):
+        return self.kind
+
+
+class CensusDefinitionVersion(BaseModel):
+    class Status(models.TextChoices):
+        DRAFT = "DRAFT", "Draft"
+        PUBLISHED = "PUBLISHED", "Published"
+        RETIRED = "RETIRED", "Retired"
+
+    class Meta:
+        ordering = ("definition__sort_order", "definition__kind", "-version")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["definition", "version"],
+                condition=Q(deleted_at__isnull=True),
+                name="unique_active_census_definition_version",
+            )
+        ]
+
+    objects = BaseModelManager()
+
+    definition = models.ForeignKey(
+        CensusDefinition, on_delete=models.CASCADE, related_name="versions"
+    )
+    version = models.PositiveIntegerField(default=1)
+    status = models.CharField(
+        choices=Status.choices, max_length=20, default=Status.DRAFT
+    )
+    schema = models.JSONField(default=dict, blank=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.definition.kind} v{self.version}"
+
+
 class VillageCensusSnapshot(BaseModel):
+    class Status(models.TextChoices):
+        SUBMITTED = "SUBMITTED", "Submitted"
+
     class Meta:
         ordering = ("-census_date", "-created_at")
 
@@ -301,7 +361,18 @@ class VillageCensusSnapshot(BaseModel):
     reporter = models.ForeignKey(
         AuthorityUser, on_delete=models.CASCADE, related_name="census_snapshots"
     )
+    definition_version = models.ForeignKey(
+        CensusDefinitionVersion,
+        on_delete=models.PROTECT,
+        related_name="snapshots",
+        null=True,
+        blank=True,
+    )
     census_date = models.DateField()
+    form_data = models.JSONField(default=dict, blank=True)
+    status = models.CharField(
+        choices=Status.choices, max_length=20, default=Status.SUBMITTED
+    )
     submitted_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -310,12 +381,12 @@ class VillageCensusSnapshot(BaseModel):
 
 class AnimalCensusFact(BaseModel):
     class Meta:
-        ordering = ("species__sort_order", "species__name")
+        ordering = ("animal_species__sort_order", "animal_species__name", "row_key")
         constraints = [
             models.UniqueConstraint(
-                fields=["snapshot", "species"],
+                fields=["snapshot", "row_key"],
                 condition=Q(deleted_at__isnull=True),
-                name="unique_active_census_fact_species",
+                name="unique_active_animal_census_fact_row",
             )
         ]
 
@@ -324,11 +395,58 @@ class AnimalCensusFact(BaseModel):
     snapshot = models.ForeignKey(
         VillageCensusSnapshot, on_delete=models.CASCADE, related_name="facts"
     )
-    species = models.ForeignKey(
+    animal_species = models.ForeignKey(
         AnimalSpecies, on_delete=models.CASCADE, related_name="census_facts"
     )
-    animal_quantity = models.PositiveIntegerField(default=0)
-    household_quantity = models.PositiveIntegerField(default=0)
+    row_key = models.CharField(max_length=100)
+    extra_dimensions = models.JSONField(default=dict, blank=True)
+    measures = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
-        return f"{self.snapshot} {self.species.name}"
+        return f"{self.snapshot} {self.animal_species.name}"
+
+
+class HumanCensusFact(BaseModel):
+    class Meta:
+        ordering = ("row_key",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["snapshot", "row_key"],
+                condition=Q(deleted_at__isnull=True),
+                name="unique_active_human_census_fact_row",
+            )
+        ]
+
+    objects = BaseModelManager()
+
+    snapshot = models.ForeignKey(
+        VillageCensusSnapshot, on_delete=models.CASCADE, related_name="human_facts"
+    )
+    row_key = models.CharField(max_length=100)
+    dimensions = models.JSONField(default=dict, blank=True)
+    measures = models.JSONField(default=dict, blank=True)
+
+    def __str__(self):
+        return f"{self.snapshot} {self.row_key}"
+
+
+class CurrentAnimalCensusFact(BaseModel):
+    objects = BaseModelManager()
+
+    fact = models.OneToOneField(
+        AnimalCensusFact, on_delete=models.CASCADE, related_name="current_pointer"
+    )
+
+    def __str__(self):
+        return str(self.fact)
+
+
+class CurrentHumanCensusFact(BaseModel):
+    objects = BaseModelManager()
+
+    fact = models.OneToOneField(
+        HumanCensusFact, on_delete=models.CASCADE, related_name="current_pointer"
+    )
+
+    def __str__(self):
+        return str(self.fact)

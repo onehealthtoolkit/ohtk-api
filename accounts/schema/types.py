@@ -3,6 +3,7 @@ import django_filters
 from django.db.models import Q
 from easy_thumbnails.files import get_thumbnailer
 from graphene_django import DjangoObjectType
+from graphene.types.generic import GenericScalar
 
 from django.contrib.gis.db import models
 from graphene_django.converter import convert_django_field
@@ -20,6 +21,11 @@ from accounts.models import (
     AnimalSpecies,
     VillageCensusSnapshot,
     AnimalCensusFact,
+    CensusDefinition,
+    CensusDefinitionVersion,
+    CurrentAnimalCensusFact,
+    CurrentHumanCensusFact,
+    HumanCensusFact,
 )
 from common.converter import GeoJSON
 from common.types import AdminValidationProblem
@@ -737,21 +743,107 @@ class AdminAnimalSpeciesUpdateResult(graphene.Union):
 
 
 class AnimalCensusFactType(DjangoObjectType):
+    species = graphene.Field(AnimalSpeciesType)
+    animal_quantity = graphene.Int()
+    household_quantity = graphene.Int()
+    extra_dimensions = GenericScalar()
+    measures = GenericScalar()
+
     class Meta:
         model = AnimalCensusFact
-        fields = ("id", "species", "animal_quantity", "household_quantity")
+        fields = (
+            "id",
+            "animal_species",
+            "row_key",
+            "extra_dimensions",
+            "measures",
+        )
+
+    def resolve_species(self, info):
+        return self.animal_species
+
+    def resolve_animal_quantity(self, info):
+        return self.measures.get("animal_quantity", 0)
+
+    def resolve_household_quantity(self, info):
+        return self.measures.get("household_quantity", 0)
+
+
+class CensusDefinitionType(DjangoObjectType):
+    class Meta:
+        model = CensusDefinition
+        fields = ("id", "kind", "enabled", "sort_order")
+
+
+class CensusDefinitionVersionType(DjangoObjectType):
+    schema = GenericScalar()
+    runtime_schema = GenericScalar()
+
+    class Meta:
+        model = CensusDefinitionVersion
+        fields = (
+            "id",
+            "definition",
+            "version",
+            "status",
+            "schema",
+            "published_at",
+        )
+
+    def resolve_runtime_schema(self, info):
+        schema = dict(self.schema or {})
+        if self.definition.kind == CensusDefinition.Kind.ANIMAL:
+            schema["rows"] = [
+                {
+                    "species_id": species.id,
+                    "species_code": species.code,
+                    "label": species.name,
+                    "row_key": f"species:{species.code}",
+                }
+                for species in AnimalSpecies.objects.filter(active=True).order_by(
+                    "sort_order", "code"
+                )
+            ]
+        return schema
+
+
+class HumanCensusFactType(DjangoObjectType):
+    dimensions = GenericScalar()
+    measures = GenericScalar()
+
+    class Meta:
+        model = HumanCensusFact
+        fields = ("id", "row_key", "dimensions", "measures")
+
+
+class CurrentAnimalCensusFactType(DjangoObjectType):
+    class Meta:
+        model = CurrentAnimalCensusFact
+        fields = ("id", "fact", "updated_at")
+
+
+class CurrentHumanCensusFactType(DjangoObjectType):
+    class Meta:
+        model = CurrentHumanCensusFact
+        fields = ("id", "fact", "updated_at")
 
 
 class VillageCensusSnapshotType(DjangoObjectType):
+    form_data = GenericScalar()
+
     class Meta:
         model = VillageCensusSnapshot
         fields = (
             "id",
             "village",
             "reporter",
+            "definition_version",
             "census_date",
+            "form_data",
+            "status",
             "submitted_at",
             "facts",
+            "human_facts",
         )
 
 

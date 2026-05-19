@@ -32,6 +32,7 @@ from accounts.schema.mutations import (
     AdminAnimalSpeciesCreateMutation,
     AdminAnimalSpeciesUpdateMutation,
     SubmitVillageCensusSnapshotMutation,
+    SubmitVillageCensusSnapshotV2Mutation,
     RequestToDeleteMyAccountMutation,
 )
 
@@ -72,4 +73,5 @@ class Mutation(graphene.ObjectType):
     admin_animal_species_create = AdminAnimalSpeciesCreateMutation.Field()
     admin_animal_species_update = AdminAnimalSpeciesUpdateMutation.Field()
     submit_village_census_snapshot = SubmitVillageCensusSnapshotMutation.Field()
+    submit_village_census_snapshot_v2 = SubmitVillageCensusSnapshotV2Mutation.Field()
     request_to_delete_my_account = RequestToDeleteMyAccountMutation.Field()

@@ -18,6 +18,10 @@ from accounts.models import (
     Place,
     Village,
     AnimalSpecies,
+    CensusDefinition,
+    CensusDefinitionVersion,
+    CurrentAnimalCensusFact,
+    CurrentHumanCensusFact,
     VillageCensusSnapshot,
     VillageReporterAssignment,
 )
@@ -39,6 +43,10 @@ from accounts.schema.types import (
     AdminPlaceQueryType,
     AdminAnimalSpeciesQueryType,
     AnimalSpeciesType,
+    CensusDefinitionType,
+    CensusDefinitionVersionType,
+    CurrentAnimalCensusFactType,
+    CurrentHumanCensusFactType,
     VillageCensusSnapshotType,
 )
 from accounts.schema.types import CheckInvitationCodeType
@@ -82,8 +90,23 @@ class Query(graphene.ObjectType):
         AdminAnimalSpeciesQueryType
     )
     animal_species = graphene.List(AnimalSpeciesType)
+    census_definitions = graphene.List(CensusDefinitionType)
+    active_census_definition_version = graphene.Field(
+        CensusDefinitionVersionType, kind=graphene.String(required=True)
+    )
     latest_village_census = graphene.Field(
         VillageCensusSnapshotType, village_id=graphene.Int(required=True)
+    )
+    latest_village_census_v2 = graphene.Field(
+        VillageCensusSnapshotType,
+        village_id=graphene.Int(required=True),
+        kind=graphene.String(required=True),
+    )
+    current_animal_census_facts = graphene.List(
+        CurrentAnimalCensusFactType, village_id=graphene.Int(required=True)
+    )
+    current_human_census_facts = graphene.List(
+        CurrentHumanCensusFactType, village_id=graphene.Int(required=True)
     )
     place_get = graphene.Field(PlaceType, id=graphene.Int(required=True))
 
@@ -322,6 +345,35 @@ class Query(graphene.ObjectType):
 
     @staticmethod
     @login_required
+    def resolve_census_definitions(root, info):
+        if not (
+            is_village_capability_enabled() and is_animal_census_capability_enabled()
+        ):
+            return CensusDefinition.objects.none()
+        return CensusDefinition.objects.filter(enabled=True).order_by(
+            "sort_order", "kind"
+        )
+
+    @staticmethod
+    @login_required
+    def resolve_active_census_definition_version(root, info, kind):
+        if not (
+            is_village_capability_enabled() and is_animal_census_capability_enabled()
+        ):
+            return None
+        return (
+            CensusDefinitionVersion.objects.select_related("definition")
+            .filter(
+                definition__kind=kind,
+                definition__enabled=True,
+                status=CensusDefinitionVersion.Status.PUBLISHED,
+            )
+            .order_by("-version")
+            .first()
+        )
+
+    @staticmethod
+    @login_required
     def resolve_latest_village_census(root, info, village_id):
         if not (
             is_village_capability_enabled() and is_animal_census_capability_enabled()
@@ -356,3 +408,56 @@ class Query(graphene.ObjectType):
             .order_by("-census_date", "-created_at")
             .first()
         )
+
+    @staticmethod
+    @login_required
+    def resolve_latest_village_census_v2(root, info, village_id, kind):
+        if not (
+            is_village_capability_enabled() and is_animal_census_capability_enabled()
+        ):
+            return None
+
+        user = info.context.user
+        try:
+            village = Village.objects.get(pk=village_id)
+        except Village.DoesNotExist:
+            return None
+        if user.is_superuser:
+            pass
+        elif user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
+            if not user.authorityuser.authority.is_in_inherits_down(
+                [village.authority_id]
+            ):
+                raise GraphQLError("Permission denied.")
+        elif user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
+            if user.authorityuser.authority_id != village.authority_id:
+                raise GraphQLError("Permission denied.")
+        elif user.is_authority_role_in([AuthorityUser.Role.REPORTER]):
+            if not VillageReporterAssignment.objects.filter(
+                reporter=user.authorityuser, village=village
+            ).exists():
+                raise GraphQLError("Permission denied.")
+        else:
+            raise GraphQLError("Permission denied.")
+
+        return (
+            VillageCensusSnapshot.objects.filter(
+                village=village, definition_version__definition__kind=kind
+            )
+            .order_by("-census_date", "-created_at")
+            .first()
+        )
+
+    @staticmethod
+    @login_required
+    def resolve_current_animal_census_facts(root, info, village_id):
+        return CurrentAnimalCensusFact.objects.filter(
+            fact__snapshot__village_id=village_id
+        ).select_related("fact", "fact__animal_species")
+
+    @staticmethod
+    @login_required
+    def resolve_current_human_census_facts(root, info, village_id):
+        return CurrentHumanCensusFact.objects.filter(
+            fact__snapshot__village_id=village_id
+        ).select_related("fact")
