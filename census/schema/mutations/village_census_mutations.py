@@ -26,6 +26,8 @@ from census.schema.types import (
 from accounts.village_capability import is_village_capability_enabled
 from common.types import AdminFieldValidationProblem
 
+ACTIVE_ANIMAL_SPECIES_CHANGED = "ACTIVE_ANIMAL_SPECIES_CHANGED"
+
 
 class AnimalCensusFactInput(graphene.InputObjectType):
     species_id = graphene.Int(required=True)
@@ -98,7 +100,7 @@ def validate_fact_inputs(facts, problems):
     if missing_species_ids:
         problems.append(
             AdminFieldValidationProblem(
-                name="facts", message="all active species must be submitted"
+                name="facts", message=ACTIVE_ANIMAL_SPECIES_CHANGED
             )
         )
 
@@ -286,7 +288,7 @@ def validate_animal_form_data(form_data, definition_version, problems):
     if supplied_species_id_set != required_species_ids:
         problems.append(
             AdminFieldValidationProblem(
-                name="form_data.rows", message="all active species must be submitted"
+                name="form_data.rows", message=ACTIVE_ANIMAL_SPECIES_CHANGED
             )
         )
 

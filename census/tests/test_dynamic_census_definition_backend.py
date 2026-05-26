@@ -691,6 +691,28 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         self.assertEqual(fields[0]["name"], "form_data.rows")
         self.assertFalse(VillageCensusSnapshot.objects.exists())
 
+    def test_submit_v2_reports_stale_animal_form_when_species_added(self):
+        self.enable_census()
+        cattle, buffalo = self.create_species()
+        _definition, version = self.create_animal_definition()
+        self.client.authenticate(self.reporter)
+        form_data = self.animal_form_data(cattle, buffalo)
+        AnimalSpecies.objects.create(code="FISH", name="Fish", sort_order=3)
+
+        result = self.execute_submit_v2(
+            {
+                "villageId": self.village.id,
+                "definitionVersionId": version.id,
+                "censusDate": "2026-05-19",
+                "formData": form_data,
+            }
+        )
+
+        fields = result.data["submitVillageCensusSnapshotV2"]["result"]["fields"]
+        self.assertEqual(fields[0]["name"], "form_data.rows")
+        self.assertEqual(fields[0]["message"], "ACTIVE_ANIMAL_SPECIES_CHANGED")
+        self.assertFalse(VillageCensusSnapshot.objects.exists())
+
     def test_submit_v2_rejects_disabled_definition_with_stable_code(self):
         self.enable_census()
         human_definition, version = self.create_human_definition()
