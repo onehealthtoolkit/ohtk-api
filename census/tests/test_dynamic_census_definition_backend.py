@@ -4,22 +4,24 @@ from django.utils import timezone
 from django.db import IntegrityError, transaction
 from graphql_jwt.testcases import JSONWebTokenTestCase
 
-from accounts.animal_census_capability import set_animal_census_capability_enabled
+from census.animal_census_capability import set_animal_census_capability_enabled
 from accounts.models import (
-    AnimalCensusFact,
-    AnimalSpecies,
     Authority,
     AuthorityUser,
+    Village,
+    VillageReporterAssignment,
+)
+from accounts.village_capability import set_village_capability_enabled
+from census.models import (
+    AnimalCensusFact,
+    AnimalSpecies,
     CensusDefinition,
     CensusDefinitionVersion,
     CurrentAnimalCensusFact,
     CurrentHumanCensusFact,
     HumanCensusFact,
-    Village,
     VillageCensusSnapshot,
-    VillageReporterAssignment,
 )
-from accounts.village_capability import set_village_capability_enabled
 
 
 class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
@@ -97,14 +99,9 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
             schema={
                 "rows": [
                     {
-                        "key": "male",
-                        "label": "Male",
-                        "dimensions": {"gender": "male"},
-                    },
-                    {
-                        "key": "female",
-                        "label": "Female",
-                        "dimensions": {"gender": "female"},
+                        "key": "total",
+                        "label": "Total",
+                        "dimensions": {},
                     },
                 ],
                 "measures": [
@@ -143,8 +140,7 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
     def human_form_data(self):
         return {
             "rows": [
-                {"row_key": "male", "measures": {"population": 20}},
-                {"row_key": "female", "measures": {"population": 25}},
+                {"row_key": "total", "measures": {"population": 45}},
             ]
         }
 
@@ -500,19 +496,19 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         self.assertIsNone(result.errors, result.errors)
         snapshot = result.data["submitVillageCensusSnapshotV2"]["result"]
         self.assertEqual(snapshot["definitionVersion"]["definition"]["kind"], "HUMAN")
-        self.assertEqual(len(snapshot["humanFacts"]), 2)
-        male_fact = next(
-            fact for fact in snapshot["humanFacts"] if fact["rowKey"] == "male"
+        self.assertEqual(len(snapshot["humanFacts"]), 1)
+        total_fact = next(
+            fact for fact in snapshot["humanFacts"] if fact["rowKey"] == "total"
         )
-        self.assertEqual(male_fact["dimensions"], {"gender": "male"})
+        self.assertEqual(total_fact["dimensions"], {})
         self.assertTrue(
             HumanCensusFact.objects.filter(
-                row_key="male",
-                dimensions={"gender": "male"},
-                measures={"population": 20},
+                row_key="total",
+                dimensions={},
+                measures={"population": 45},
             ).exists()
         )
-        self.assertEqual(CurrentHumanCensusFact.objects.count(), 2)
+        self.assertEqual(CurrentHumanCensusFact.objects.count(), 1)
 
     def test_submit_v2_rejects_missing_required_measure(self):
         self.enable_census()

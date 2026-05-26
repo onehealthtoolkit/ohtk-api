@@ -1,7 +1,7 @@
 import graphene
 from graphql_jwt.decorators import login_required, superuser_required
 
-from accounts.animal_census_capability import set_animal_census_capability_enabled
+from census.animal_census_capability import set_animal_census_capability_enabled
 from common.types import AdminFieldValidationProblem
 
 

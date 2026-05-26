@@ -4,6 +4,8 @@ from tenants.schema import Query as TenantsQuery
 from tenants.schema import Mutation as TenantsMutation
 from accounts.schema import Query as AccountsQuery
 from accounts.schema import Mutation as AccountsMutation
+from census.schema import Query as CensusQuery
+from census.schema import Mutation as CensusMutation
 from threads.schema import Query as ThreadQuery
 from threads.schema import Mutation as ThreadMutation
 from reports.schema import Query as ReportsQuery
@@ -22,6 +24,7 @@ from observations.schema import Mutation as ObservationsMutation
 class Query(
     TenantsQuery,
     AccountsQuery,
+    CensusQuery,
     ReportsQuery,
     CasesQuery,
     NotificationsQuery,
@@ -37,6 +40,7 @@ class Query(
 class Mutation(
     TenantsMutation,
     AccountsMutation,
+    CensusMutation,
     ReportsMutation,
     CasesMutation,
     NotificationsMutation,

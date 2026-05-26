@@ -2,7 +2,7 @@ from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
 
-from accounts.models import AnimalSpecies, CensusDefinition, CensusDefinitionVersion
+from census.models import AnimalSpecies, CensusDefinition, CensusDefinitionVersion
 
 
 DEFAULT_ANIMAL_SCHEMA = {
@@ -27,14 +27,9 @@ DEFAULT_ANIMAL_SCHEMA = {
 DEFAULT_HUMAN_SCHEMA = {
     "rows": [
         {
-            "key": "male",
-            "label": "Male",
-            "dimensions": {"gender": "male"},
-        },
-        {
-            "key": "female",
-            "label": "Female",
-            "dimensions": {"gender": "female"},
+            "key": "total",
+            "label": "Total",
+            "dimensions": {},
         },
     ],
     "measures": [

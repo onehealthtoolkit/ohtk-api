@@ -2,14 +2,14 @@ import graphene
 from graphql_jwt.decorators import login_required, superuser_required
 from graphene.types.generic import GenericScalar
 
-from accounts.census_definition_defaults import (
+from census.census_definition_defaults import (
     default_schema_for_kind,
     ensure_default_census_setup,
     ensure_definition,
     publish_schema_version,
 )
-from accounts.models import CensusDefinition
-from accounts.schema.types import (
+from census.models import CensusDefinition
+from census.schema.types import (
     AdminCensusDefinitionSetupPayload,
     AdminCensusDefinitionVersionPublishPayload,
 )

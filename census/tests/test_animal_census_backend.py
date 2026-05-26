@@ -1,22 +1,20 @@
 from graphql_jwt.testcases import JSONWebTokenTestCase
 
-from accounts.animal_census_capability import (
+from census.animal_census_capability import (
     ANIMAL_CENSUS_CAPABILITY_KEY,
     is_animal_census_capability_enabled,
     set_animal_census_capability_enabled,
 )
 from accounts.models import (
-    AnimalCensusFact,
-    AnimalSpecies,
     Authority,
     AuthorityUser,
     Configuration,
     User,
     Village,
-    VillageCensusSnapshot,
     VillageReporterAssignment,
 )
 from accounts.village_capability import set_village_capability_enabled
+from census.models import AnimalCensusFact, AnimalSpecies, VillageCensusSnapshot
 
 
 class AnimalCensusBackendTests(JSONWebTokenTestCase):

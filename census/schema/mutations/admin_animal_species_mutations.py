@@ -1,8 +1,8 @@
 import graphene
 from graphql_jwt.decorators import login_required, superuser_required
 
-from accounts.models import AnimalSpecies
-from accounts.schema.types import (
+from census.models import AnimalSpecies
+from census.schema.types import (
     AdminAnimalSpeciesCreateProblem,
     AdminAnimalSpeciesCreateResult,
     AdminAnimalSpeciesUpdateProblem,

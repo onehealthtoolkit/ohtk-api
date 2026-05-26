@@ -4,20 +4,22 @@ from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
 from graphene.types.generic import GenericScalar
 
-from accounts.animal_census_capability import is_animal_census_capability_enabled
 from accounts.models import (
+    AuthorityUser,
+    Village,
+    VillageReporterAssignment,
+)
+from census.animal_census_capability import is_animal_census_capability_enabled
+from census.models import (
     AnimalCensusFact,
     AnimalSpecies,
-    AuthorityUser,
     CensusDefinitionVersion,
     CurrentAnimalCensusFact,
     CurrentHumanCensusFact,
     HumanCensusFact,
-    Village,
     VillageCensusSnapshot,
-    VillageReporterAssignment,
 )
-from accounts.schema.types import (
+from census.schema.types import (
     VillageCensusSnapshotProblem,
     VillageCensusSnapshotResult,
 )
