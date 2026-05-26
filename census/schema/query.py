@@ -83,9 +83,10 @@ class Query(graphene.ObjectType):
             is_village_capability_enabled() and is_animal_census_capability_enabled()
         ):
             return CensusDefinition.objects.none()
-        return CensusDefinition.objects.filter(enabled=True).order_by(
-            "sort_order", "kind"
-        )
+        queryset = CensusDefinition.objects.order_by("sort_order", "kind")
+        if info.context.user.is_superuser:
+            return queryset
+        return queryset.filter(enabled=True)
 
     @staticmethod
     @login_required

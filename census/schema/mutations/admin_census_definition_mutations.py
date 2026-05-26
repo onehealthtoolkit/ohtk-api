@@ -8,8 +8,9 @@ from census.census_definition_defaults import (
     ensure_definition,
     publish_schema_version,
 )
-from census.models import CensusDefinition
+from census.models import CensusDefinition, CensusDefinitionVersion
 from census.schema.types import (
+    AdminCensusDefinitionSetEnabledPayload,
     AdminCensusDefinitionSetupPayload,
     AdminCensusDefinitionVersionPublishPayload,
 )
@@ -67,5 +68,42 @@ class AdminCensusDefinitionVersionPublishMutation(graphene.Mutation):
             definition, schema if schema is not None else default_schema_for_kind(kind)
         )
         return AdminCensusDefinitionVersionPublishPayload(
+            definition=definition, version=version, fields=[]
+        )
+
+
+class AdminCensusDefinitionSetEnabledMutation(graphene.Mutation):
+    class Arguments:
+        kind = graphene.String(required=True)
+        enabled = graphene.Boolean(required=True)
+
+    Output = AdminCensusDefinitionSetEnabledPayload
+
+    @staticmethod
+    @login_required
+    @superuser_required
+    def mutate(root, info, kind, enabled):
+        if kind not in CensusDefinition.Kind.values:
+            return AdminCensusDefinitionSetEnabledPayload(
+                definition=None,
+                version=None,
+                fields=[
+                    AdminFieldValidationProblem(
+                        name="kind", message="unsupported census definition kind"
+                    )
+                ],
+            )
+
+        definition = ensure_definition(
+            kind,
+            enabled=enabled,
+            sort_order=1 if kind == CensusDefinition.Kind.ANIMAL else 2,
+        )
+        version = (
+            definition.versions.filter(status=CensusDefinitionVersion.Status.PUBLISHED)
+            .order_by("-version")
+            .first()
+        )
+        return AdminCensusDefinitionSetEnabledPayload(
             definition=definition, version=version, fields=[]
         )

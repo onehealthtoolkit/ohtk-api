@@ -309,12 +309,77 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
 
         self.assertIsNone(result.errors, result.errors)
         summaries = result.data["activeVillageCensusDefinitions"]
-        self.assertEqual([summary["kind"] for summary in summaries], ["ANIMAL", "HUMAN"])
+        self.assertEqual(
+            [summary["kind"] for summary in summaries], ["ANIMAL", "HUMAN"]
+        )
         human = summaries[1]
         self.assertEqual(human["latestSnapshot"]["censusDate"], "2026-05-19")
         self.assertEqual(
             human["latestSnapshot"]["definitionVersion"]["definition"]["kind"],
             "HUMAN",
+        )
+
+    def test_disabling_human_keeps_animal_active_for_mobile(self):
+        self.enable_census()
+        self.create_animal_definition()
+        human_definition, human_version = self.create_human_definition()
+        VillageCensusSnapshot.objects.create(
+            village=self.village,
+            reporter=self.reporter,
+            definition_version=human_version,
+            census_date=date(2026, 5, 19),
+        )
+        human_definition.enabled = False
+        human_definition.save(update_fields=["enabled"])
+        self.client.authenticate(self.reporter)
+
+        summary_result = self.execute_active_kind_summary()
+        version_result = self.client.execute(
+            """
+            query activeHumanDefinition($villageId: Int!, $kind: String!) {
+                activeCensusDefinitionVersion(kind: $kind) {
+                    id
+                }
+                latestVillageCensusV2(villageId: $villageId, kind: $kind) {
+                    id
+                    censusDate
+                    definitionVersion {
+                        definition {
+                            kind
+                        }
+                    }
+                }
+                censusDefinitions {
+                    kind
+                    enabled
+                }
+            }
+            """,
+            {"villageId": self.village.id, "kind": "HUMAN"},
+        )
+
+        self.assertIsNone(summary_result.errors, summary_result.errors)
+        self.assertEqual(
+            [
+                summary["kind"]
+                for summary in summary_result.data["activeVillageCensusDefinitions"]
+            ],
+            ["ANIMAL"],
+        )
+        self.assertIsNone(version_result.errors, version_result.errors)
+        self.assertIsNone(version_result.data["activeCensusDefinitionVersion"])
+        self.assertEqual(
+            version_result.data["latestVillageCensusV2"]["definitionVersion"][
+                "definition"
+            ]["kind"],
+            "HUMAN",
+        )
+        self.assertEqual(
+            [
+                definition["kind"]
+                for definition in version_result.data["censusDefinitions"]
+            ],
+            ["ANIMAL"],
         )
 
     def test_active_kind_summary_returns_empty_when_no_kind_is_configured(self):
@@ -382,7 +447,9 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         self.assertEqual(
             animal_version["schema"]["row_source"], "ACTIVE_ANIMAL_SPECIES"
         )
-        self.assertEqual(animal_version["runtimeSchema"]["rows"][0]["species_code"], "CATTLE")
+        self.assertEqual(
+            animal_version["runtimeSchema"]["rows"][0]["species_code"], "CATTLE"
+        )
         self.assertTrue(AnimalSpecies.objects.filter(code="POULTRY").exists())
 
     def test_admin_can_publish_new_human_schema_version(self):
@@ -438,6 +505,74 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         self.assertEqual(payload["version"]["version"], 1)
         self.assertEqual(payload["version"]["schema"]["rows"][0]["key"], "adult")
 
+    def test_admin_can_disable_human_definition_without_publishing_new_version(self):
+        self.enable_census()
+        _animal_definition, _animal_version = self.create_animal_definition()
+        human_definition, human_version = self.create_human_definition()
+        super_user = AuthorityUser.objects.create(
+            username="schema-admin-disable",
+            authority=self.authority,
+            role=AuthorityUser.Role.ADMIN,
+            is_superuser=True,
+        )
+        self.client.authenticate(super_user)
+        mutation = """
+        mutation setHumanEnabled($enabled: Boolean!) {
+            adminCensusDefinitionSetEnabled(kind: "HUMAN", enabled: $enabled) {
+                definition {
+                    id
+                    kind
+                    enabled
+                }
+                version {
+                    id
+                    version
+                    status
+                    definition {
+                        kind
+                    }
+                }
+                fields {
+                    name
+                    message
+                }
+            }
+            censusDefinitions {
+                kind
+                enabled
+            }
+            activeCensusDefinitionVersion(kind: "HUMAN") {
+                id
+            }
+        }
+        """
+
+        result = self.client.execute(mutation, {"enabled": False})
+
+        self.assertIsNone(result.errors, result.errors)
+        payload = result.data["adminCensusDefinitionSetEnabled"]
+        self.assertEqual(payload["fields"], [])
+        self.assertEqual(payload["definition"]["kind"], "HUMAN")
+        self.assertFalse(payload["definition"]["enabled"])
+        self.assertEqual(payload["version"]["id"], str(human_version.id))
+        self.assertEqual(payload["version"]["version"], 1)
+        self.assertEqual(
+            CensusDefinitionVersion.objects.filter(definition=human_definition).count(),
+            1,
+        )
+        human_definition.refresh_from_db()
+        human_version.refresh_from_db()
+        self.assertFalse(human_definition.enabled)
+        self.assertEqual(human_version.status, CensusDefinitionVersion.Status.PUBLISHED)
+        self.assertIsNone(result.data["activeCensusDefinitionVersion"])
+        self.assertEqual(
+            {
+                definition["kind"]: definition["enabled"]
+                for definition in result.data["censusDefinitions"]
+            },
+            {"ANIMAL": True, "HUMAN": False},
+        )
+
     def test_census_definition_kind_is_unique(self):
         CensusDefinition.objects.create(kind=CensusDefinition.Kind.ANIMAL)
 
@@ -445,7 +580,9 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
             with transaction.atomic():
                 CensusDefinition.objects.create(kind=CensusDefinition.Kind.ANIMAL)
 
-    def test_official_reporter_can_submit_animal_snapshot_and_current_fact_pointers(self):
+    def test_official_reporter_can_submit_animal_snapshot_and_current_fact_pointers(
+        self,
+    ):
         self.enable_census()
         cattle, buffalo = self.create_species()
         _definition, version = self.create_animal_definition()
@@ -479,7 +616,9 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         )
         self.assertEqual(CurrentAnimalCensusFact.objects.count(), 2)
 
-    def test_official_reporter_can_submit_human_snapshot_and_current_fact_pointers(self):
+    def test_official_reporter_can_submit_human_snapshot_and_current_fact_pointers(
+        self,
+    ):
         self.enable_census()
         _definition, version = self.create_human_definition()
         self.client.authenticate(self.reporter)
@@ -550,6 +689,28 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
 
         fields = result.data["submitVillageCensusSnapshotV2"]["result"]["fields"]
         self.assertEqual(fields[0]["name"], "form_data.rows")
+        self.assertFalse(VillageCensusSnapshot.objects.exists())
+
+    def test_submit_v2_rejects_disabled_definition_with_stable_code(self):
+        self.enable_census()
+        human_definition, version = self.create_human_definition()
+        human_definition.enabled = False
+        human_definition.save(update_fields=["enabled"])
+        self.client.authenticate(self.reporter)
+
+        result = self.execute_submit_v2(
+            {
+                "villageId": self.village.id,
+                "definitionVersionId": version.id,
+                "censusDate": "2026-05-19",
+                "formData": self.human_form_data(),
+            }
+        )
+
+        self.assertIsNone(result.errors, result.errors)
+        fields = result.data["submitVillageCensusSnapshotV2"]["result"]["fields"]
+        self.assertEqual(fields[0]["name"], "definition_version_id")
+        self.assertEqual(fields[0]["message"], "DEFINITION_DISABLED")
         self.assertFalse(VillageCensusSnapshot.objects.exists())
 
     def test_submit_v2_rejects_negative_integer_measure(self):

@@ -4,6 +4,7 @@ from census.schema.mutations import (
     AdminAnimalCensusCapabilityUpdateMutation,
     AdminAnimalSpeciesCreateMutation,
     AdminAnimalSpeciesUpdateMutation,
+    AdminCensusDefinitionSetEnabledMutation,
     AdminCensusDefinitionsEnsureDefaultsMutation,
     AdminCensusDefinitionVersionPublishMutation,
     SubmitVillageCensusSnapshotMutation,
@@ -22,6 +23,9 @@ class Mutation(graphene.ObjectType):
     )
     admin_census_definition_version_publish = (
         AdminCensusDefinitionVersionPublishMutation.Field()
+    )
+    admin_census_definition_set_enabled = (
+        AdminCensusDefinitionSetEnabledMutation.Field()
     )
     submit_village_census_snapshot = SubmitVillageCensusSnapshotMutation.Field()
     submit_village_census_snapshot_v2 = SubmitVillageCensusSnapshotV2Mutation.Field()

@@ -137,7 +137,7 @@ def validate_census_definition_version(definition_version_id, problems):
     if not definition_version.definition.enabled:
         problems.append(
             AdminFieldValidationProblem(
-                name="definition_version_id", message="census definition is not enabled"
+                name="definition_version_id", message="DEFINITION_DISABLED"
             )
         )
     if definition_version.status != CensusDefinitionVersion.Status.PUBLISHED:

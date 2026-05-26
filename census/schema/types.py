@@ -170,6 +170,12 @@ class AdminCensusDefinitionVersionPublishPayload(graphene.ObjectType):
     fields = graphene.List(AdminFieldValidationProblem)
 
 
+class AdminCensusDefinitionSetEnabledPayload(graphene.ObjectType):
+    definition = graphene.Field(CensusDefinitionType)
+    version = graphene.Field(CensusDefinitionVersionType)
+    fields = graphene.List(AdminFieldValidationProblem)
+
+
 class VillageCensusSnapshotType(DjangoObjectType):
     form_data = GenericScalar()
 
