@@ -17,6 +17,7 @@ from accounts.models import (
     Configuration,
     Place,
     Village,
+    VillageReporterAssignment,
 )
 from common.converter import GeoJSON
 from common.types import AdminFieldValidationProblem, AdminValidationProblem
@@ -269,6 +270,7 @@ class UserType(DjangoObjectType):
 
 class AuthorityUserType(DjangoObjectType):
     assigned_villages = graphene.List(lambda: VillageType)
+    assigned_village_assignments = graphene.List(lambda: VillageReporterAssignmentType)
 
     class Meta:
         model = AuthorityUser
@@ -286,6 +288,13 @@ class AuthorityUserType(DjangoObjectType):
 
     def resolve_assigned_villages(self, info):
         return Village.objects.filter(reporter_assignments__reporter=self).distinct()
+
+    def resolve_assigned_village_assignments(self, info):
+        return (
+            VillageReporterAssignment.objects.filter(reporter=self)
+            .select_related("village", "village__authority")
+            .order_by("village__code")
+        )
 
 
 class VillageType(DjangoObjectType):
@@ -305,6 +314,12 @@ class VillageType(DjangoObjectType):
         if self.location:
             return self.location.x
         return None
+
+
+class VillageReporterAssignmentType(DjangoObjectType):
+    class Meta:
+        model = VillageReporterAssignment
+        fields = ("id", "village", "census_role")
 
 
 class UserProfileType(graphene.ObjectType):
@@ -360,7 +375,9 @@ class UserProfileType(graphene.ObjectType):
 
     def resolve_assigned_villages(self, info):
         if self.is_authority_user:
-            return Village.objects.filter(reporter_assignments__reporter=self).distinct()
+            return Village.objects.filter(
+                reporter_assignments__reporter=self
+            ).distinct()
         return []
 
 
