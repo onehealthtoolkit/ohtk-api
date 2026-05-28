@@ -41,9 +41,6 @@ class Query(graphene.ObjectType):
     active_village_census_definitions = graphene.List(
         CensusKindSummaryType, village_id=graphene.Int(required=True)
     )
-    latest_village_census = graphene.Field(
-        VillageCensusSnapshotType, village_id=graphene.Int(required=True)
-    )
     latest_village_census_v2 = graphene.Field(
         VillageCensusSnapshotType,
         village_id=graphene.Int(required=True),
@@ -172,24 +169,6 @@ class Query(graphene.ObjectType):
                 )
             )
         return summaries
-
-    @staticmethod
-    @login_required
-    def resolve_latest_village_census(root, info, village_id):
-        if not (
-            is_village_capability_enabled() and is_animal_census_capability_enabled()
-        ):
-            return None
-
-        village = _get_permitted_census_village(info, village_id)
-        if village is None:
-            return None
-
-        return (
-            VillageCensusSnapshot.objects.filter(village=village)
-            .order_by("-census_date", "-created_at")
-            .first()
-        )
 
     @staticmethod
     @login_required

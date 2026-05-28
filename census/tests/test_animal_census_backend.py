@@ -1,4 +1,5 @@
 from graphql_jwt.testcases import JSONWebTokenTestCase
+from django.utils import timezone
 
 from census.animal_census_capability import (
     ANIMAL_CENSUS_CAPABILITY_KEY,
@@ -14,14 +15,22 @@ from accounts.models import (
     VillageReporterAssignment,
 )
 from accounts.village_capability import set_village_capability_enabled
-from census.models import AnimalCensusFact, AnimalSpecies, VillageCensusSnapshot
+from census.models import (
+    AnimalCensusFact,
+    AnimalSpecies,
+    CensusDefinition,
+    CensusDefinitionVersion,
+    VillageCensusSnapshot,
+)
 
 
 class AnimalCensusBackendTests(JSONWebTokenTestCase):
     def setUp(self):
         self.super_user = User.objects.create(username="platform", is_superuser=True)
         self.authority = Authority.objects.create(name="test authority", code="TA")
-        self.other_authority = Authority.objects.create(name="other authority", code="OA")
+        self.other_authority = Authority.objects.create(
+            name="other authority", code="OA"
+        )
         self.village = Village.objects.create(
             code="V001", name="Village One", authority=self.authority
         )
@@ -422,11 +431,30 @@ class AnimalCensusBackendTests(JSONWebTokenTestCase):
         self.assertEqual(fields[0]["name"], "village_id")
         self.assertFalse(VillageCensusSnapshot.objects.exists())
 
-    def test_latest_village_census_returns_newest_snapshot(self):
+    def test_latest_village_census_v2_returns_newest_animal_snapshot(self):
         self.enable_census()
         cattle, buffalo = self.create_species()
+        definition = CensusDefinition.objects.create(
+            kind=CensusDefinition.Kind.ANIMAL,
+            enabled=True,
+            sort_order=1,
+        )
+        version = CensusDefinitionVersion.objects.create(
+            definition=definition,
+            version=1,
+            status=CensusDefinitionVersion.Status.PUBLISHED,
+            schema={
+                "row_source": "ACTIVE_ANIMAL_SPECIES",
+                "measures": [],
+                "extra_dimensions": [],
+            },
+            published_at=timezone.now(),
+        )
         old_snapshot = VillageCensusSnapshot.objects.create(
-            village=self.village, reporter=self.reporter, census_date="2026-05-01"
+            village=self.village,
+            reporter=self.reporter,
+            definition_version=version,
+            census_date="2026-05-01",
         )
         AnimalCensusFact.objects.create(
             snapshot=old_snapshot,
@@ -440,17 +468,28 @@ class AnimalCensusBackendTests(JSONWebTokenTestCase):
             row_key="species:BUFFALO",
             measures={"animal_quantity": 1, "household_quantity": 1},
         )
-        self.client.authenticate(self.reporter)
-        self.execute_submit(
-            {
-                "villageId": self.village.id,
-                "censusDate": "2026-05-05",
-                "facts": self.fact_variables(cattle, buffalo),
-            }
+        latest_snapshot = VillageCensusSnapshot.objects.create(
+            village=self.village,
+            reporter=self.reporter,
+            definition_version=version,
+            census_date="2026-05-05",
         )
+        AnimalCensusFact.objects.create(
+            snapshot=latest_snapshot,
+            animal_species=cattle,
+            row_key="species:CATTLE",
+            measures={"animal_quantity": 0, "household_quantity": 0},
+        )
+        AnimalCensusFact.objects.create(
+            snapshot=latest_snapshot,
+            animal_species=buffalo,
+            row_key="species:BUFFALO",
+            measures={"animal_quantity": 7, "household_quantity": 3},
+        )
+        self.client.authenticate(self.reporter)
         query = """
-        query latestVillageCensus($villageId: Int!) {
-            latestVillageCensus(villageId: $villageId) {
+        query latestVillageCensusV2($villageId: Int!) {
+            latestVillageCensusV2(villageId: $villageId, kind: "ANIMAL") {
                 censusDate
                 facts {
                     species {
@@ -465,16 +504,16 @@ class AnimalCensusBackendTests(JSONWebTokenTestCase):
         result = self.client.execute(query, {"villageId": self.village.id})
 
         self.assertIsNone(result.errors, result.errors)
-        latest = result.data["latestVillageCensus"]
+        latest = result.data["latestVillageCensusV2"]
         self.assertEqual(latest["censusDate"], "2026-05-05")
         self.assertEqual(len(latest["facts"]), 2)
 
-    def test_latest_village_census_returns_null_for_unknown_village(self):
+    def test_latest_village_census_v2_returns_null_for_unknown_village(self):
         self.enable_census()
         self.client.authenticate(self.reporter)
         query = """
-        query latestVillageCensus($villageId: Int!) {
-            latestVillageCensus(villageId: $villageId) {
+        query latestVillageCensusV2($villageId: Int!) {
+            latestVillageCensusV2(villageId: $villageId, kind: "ANIMAL") {
                 id
             }
         }
@@ -483,4 +522,4 @@ class AnimalCensusBackendTests(JSONWebTokenTestCase):
         result = self.client.execute(query, {"villageId": 999999})
 
         self.assertIsNone(result.errors, result.errors)
-        self.assertIsNone(result.data["latestVillageCensus"])
+        self.assertIsNone(result.data["latestVillageCensusV2"])
