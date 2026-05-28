@@ -134,6 +134,52 @@ class VillageReporterOnboardingTests(JSONWebTokenTestCase):
         """
         return self.client.execute(mutation, variables)
 
+    def execute_update_user_assignments(self, variables):
+        mutation = """
+        mutation adminAuthorityUserUpdate(
+            $id: ID!,
+            $authorityId: Int!,
+            $username: String!,
+            $firstName: String!,
+            $lastName: String!,
+            $email: String!,
+            $role: String,
+            $villageAssignments: [VillageReporterAssignmentInput]
+        ) {
+            adminAuthorityUserUpdate(
+                id: $id,
+                authorityId: $authorityId,
+                username: $username,
+                firstName: $firstName,
+                lastName: $lastName,
+                email: $email,
+                role: $role,
+                villageAssignments: $villageAssignments
+            ) {
+                result {
+                    __typename
+                    ... on AdminAuthorityUserUpdateSuccess {
+                        authorityUser {
+                            assignedVillageAssignments {
+                                censusRole
+                                village {
+                                    code
+                                }
+                            }
+                        }
+                    }
+                    ... on AdminAuthorityUserUpdateProblem {
+                        fields {
+                            name
+                            message
+                        }
+                    }
+                }
+            }
+        }
+        """
+        return self.client.execute(mutation, variables)
+
     def create_village_invitation(self, code, village_ids):
         self.client.authenticate(self.super_user)
         result = self.execute_create_invitation(
@@ -576,3 +622,113 @@ class VillageReporterOnboardingTests(JSONWebTokenTestCase):
         payload = result.data["adminAuthorityUserUpdate"]["result"]
         self.assertEqual(payload["__typename"], "AdminAuthorityUserUpdateProblem")
         self.assertEqual(payload["fields"][0]["name"], "village_assignments")
+
+    def test_admin_village_query_filters_by_authority_hierarchy(self):
+        set_village_capability_enabled(True)
+        child_authority = Authority.objects.create(name="child authority", code="CA")
+        child_authority.inherits.add(self.authority)
+        Village.objects.create(
+            code="V003", name="Child Village", authority=child_authority
+        )
+        self.client.authenticate(self.super_user)
+        query = """
+        query villages($authorityId: Decimal) {
+            adminVillageQuery(
+                limit: 20,
+                offset: 0,
+                authorityId: $authorityId,
+                ordering: "code,asc"
+            ) {
+                results {
+                    code
+                }
+            }
+        }
+        """
+
+        result = self.client.execute(query, {"authorityId": self.authority.id})
+
+        self.assertIsNone(result.errors, result.errors)
+        codes = [
+            village["code"] for village in result.data["adminVillageQuery"]["results"]
+        ]
+        self.assertEqual(codes, ["V001", "V002", "V003"])
+        self.assertNotIn("V999", codes)
+
+    def test_admin_can_assign_descendant_village_to_existing_reporter(self):
+        set_village_capability_enabled(True)
+        child_authority = Authority.objects.create(name="child authority", code="CA")
+        child_authority.inherits.add(self.authority)
+        child_village = Village.objects.create(
+            code="V003", name="Child Village", authority=child_authority
+        )
+        reporter = AuthorityUser.objects.create(
+            username="reporter-nine",
+            authority=self.authority,
+            role=AuthorityUser.Role.REPORTER,
+        )
+        self.client.authenticate(self.super_user)
+
+        result = self.execute_update_user_assignments(
+            {
+                "id": reporter.id,
+                "authorityId": self.authority.id,
+                "username": "reporter-nine",
+                "firstName": "Reporter",
+                "lastName": "Nine",
+                "email": "reporter-nine@example.com",
+                "role": AuthorityUser.Role.REPORTER,
+                "villageAssignments": [
+                    {
+                        "villageId": child_village.id,
+                        "censusRole": VillageReporterAssignment.CensusRole.OFFICIAL,
+                    }
+                ],
+            }
+        )
+
+        self.assertIsNone(result.errors, result.errors)
+        payload = result.data["adminAuthorityUserUpdate"]["result"]
+        self.assertEqual(payload["__typename"], "AdminAuthorityUserUpdateSuccess")
+        self.assertEqual(
+            list(
+                VillageReporterAssignment.objects.filter(reporter=reporter)
+                .values_list("village__code", "census_role")
+                .order_by("village__code")
+            ),
+            [("V003", VillageReporterAssignment.CensusRole.OFFICIAL)],
+        )
+
+    def test_admin_can_unassign_reporter_village_assignment(self):
+        set_village_capability_enabled(True)
+        reporter = AuthorityUser.objects.create(
+            username="reporter-ten",
+            authority=self.authority,
+            role=AuthorityUser.Role.REPORTER,
+        )
+        VillageReporterAssignment.objects.create(
+            reporter=reporter,
+            village=self.village1,
+            census_role=VillageReporterAssignment.CensusRole.OFFICIAL,
+        )
+        self.client.authenticate(self.super_user)
+
+        result = self.execute_update_user_assignments(
+            {
+                "id": reporter.id,
+                "authorityId": self.authority.id,
+                "username": "reporter-ten",
+                "firstName": "Reporter",
+                "lastName": "Ten",
+                "email": "reporter-ten@example.com",
+                "role": AuthorityUser.Role.REPORTER,
+                "villageAssignments": [],
+            }
+        )
+
+        self.assertIsNone(result.errors, result.errors)
+        payload = result.data["adminAuthorityUserUpdate"]["result"]
+        self.assertEqual(payload["__typename"], "AdminAuthorityUserUpdateSuccess")
+        self.assertFalse(
+            VillageReporterAssignment.objects.filter(reporter=reporter).exists()
+        )

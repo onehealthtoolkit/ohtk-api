@@ -611,7 +611,7 @@ class AdminPlaceUpdateResult(graphene.Union):
 
 class AdminVillageQueryFilter(django_filters.FilterSet):
     q = django_filters.CharFilter(method="filter_q")
-    authority_id = django_filters.NumberFilter(field_name="authority__id")
+    authority_id = django_filters.NumberFilter(method="filter_authority_id")
     active = django_filters.BooleanFilter()
 
     class Meta:
@@ -620,6 +620,13 @@ class AdminVillageQueryFilter(django_filters.FilterSet):
 
     def filter_q(self, queryset, name, value):
         return queryset.filter(Q(name__icontains=value) | Q(code__icontains=value))
+
+    def filter_authority_id(self, queryset, name, value):
+        try:
+            authority = Authority.objects.get(pk=value)
+        except Authority.DoesNotExist:
+            return queryset.none()
+        return queryset.filter(authority__in=authority.all_inherits_down())
 
 
 class AdminVillageQueryType(DjangoObjectType):
