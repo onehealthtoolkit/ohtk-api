@@ -1,12 +1,10 @@
 import graphene
-from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
 
 from accounts.models import AuthorityUser, Village, VillageReporterAssignment
 from accounts.village_capability import is_village_capability_enabled
 from census.animal_census_capability import is_animal_census_capability_enabled
 from census.models import (
-    AnimalSpecies,
     CensusDefinition,
     CensusDefinitionVersion,
     CurrentAnimalCensusFact,
@@ -14,8 +12,6 @@ from census.models import (
     VillageCensusSnapshot,
 )
 from census.schema.types import (
-    AdminAnimalSpeciesQueryType,
-    AnimalSpeciesType,
     CensusDefinitionType,
     CensusDefinitionVersionType,
     CensusKindSummaryType,
@@ -23,14 +19,9 @@ from census.schema.types import (
     CurrentHumanCensusFactType,
     VillageCensusSnapshotType,
 )
-from pagination import DjangoPaginationConnectionField
 
 
 class Query(graphene.ObjectType):
-    admin_animal_species_query = DjangoPaginationConnectionField(
-        AdminAnimalSpeciesQueryType
-    )
-    animal_species = graphene.List(AnimalSpeciesType)
     census_definitions = graphene.List(CensusDefinitionType)
     active_census_definition_version = graphene.Field(
         CensusDefinitionVersionType, kind=graphene.String(required=True)
@@ -58,23 +49,6 @@ class Query(graphene.ObjectType):
     @login_required
     def resolve_animal_census_capability_enabled(root, info):
         return is_animal_census_capability_enabled()
-
-    @staticmethod
-    @login_required
-    def resolve_admin_animal_species_query(root, info, **kwargs):
-        user = info.context.user
-        if not user.is_superuser:
-            raise GraphQLError("Permission denied.")
-        return AnimalSpecies.objects.all()
-
-    @staticmethod
-    @login_required
-    def resolve_animal_species(root, info):
-        if not (
-            is_village_capability_enabled() and is_animal_census_capability_enabled()
-        ):
-            return AnimalSpecies.objects.none()
-        return AnimalSpecies.objects.filter(active=True).order_by("sort_order", "code")
 
     @staticmethod
     @login_required
@@ -195,7 +169,7 @@ class Query(graphene.ObjectType):
     def resolve_current_animal_census_facts(root, info, village_id):
         return CurrentAnimalCensusFact.objects.filter(
             fact__snapshot__village_id=village_id
-        ).select_related("fact", "fact__animal_species")
+        ).select_related("fact")
 
     @staticmethod
     @login_required

@@ -17,7 +17,6 @@ from accounts.models import (
 from accounts.village_capability import set_village_capability_enabled
 from census.models import (
     AnimalCensusFact,
-    AnimalSpecies,
     CensusDefinition,
     CensusDefinitionVersion,
     VillageCensusSnapshot,
@@ -34,9 +33,6 @@ class AnimalCensusBackendTests(JSONWebTokenTestCase):
         self.village = Village.objects.create(
             code="V001", name="Village One", authority=self.authority
         )
-        self.other_village = Village.objects.create(
-            code="V999", name="Other Village", authority=self.other_authority
-        )
         self.reporter = AuthorityUser.objects.create(
             username="official-reporter",
             authority=self.authority,
@@ -52,137 +48,49 @@ class AnimalCensusBackendTests(JSONWebTokenTestCase):
         set_village_capability_enabled(True)
         set_animal_census_capability_enabled(True)
 
-    def create_species(self):
-        cattle = AnimalSpecies.objects.create(
-            code="CATTLE", name="Cattle", sort_order=1
+    def create_animal_definition(self):
+        definition = CensusDefinition.objects.create(
+            kind=CensusDefinition.Kind.ANIMAL,
+            enabled=True,
+            sort_order=1,
         )
-        buffalo = AnimalSpecies.objects.create(
-            code="BUFFALO", name="Buffalo", sort_order=2
+        version = CensusDefinitionVersion.objects.create(
+            definition=definition,
+            version=1,
+            status=CensusDefinitionVersion.Status.PUBLISHED,
+            schema={
+                "rows": [
+                    {
+                        "key": "species:CATTLE",
+                        "row_key": "species:CATTLE",
+                        "label": "Cattle",
+                        "dimensions": {"species": "CATTLE"},
+                    },
+                    {
+                        "key": "species:BUFFALO",
+                        "row_key": "species:BUFFALO",
+                        "label": "Buffalo",
+                        "dimensions": {"species": "BUFFALO"},
+                    },
+                ],
+                "measures": [
+                    {
+                        "key": "animal_quantity",
+                        "label": "Animal quantity",
+                        "type": "integer",
+                        "required": True,
+                    },
+                    {
+                        "key": "household_quantity",
+                        "label": "Households",
+                        "type": "integer",
+                        "required": True,
+                    },
+                ],
+            },
+            published_at=timezone.now(),
         )
-        return cattle, buffalo
-
-    def execute_species_create(self, variables):
-        mutation = """
-        mutation adminAnimalSpeciesCreate(
-            $code: String!,
-            $name: String!,
-            $active: Boolean,
-            $sortOrder: Int
-        ) {
-            adminAnimalSpeciesCreate(
-                code: $code,
-                name: $name,
-                active: $active,
-                sortOrder: $sortOrder
-            ) {
-                result {
-                    __typename
-                    ... on AdminAnimalSpeciesCreateSuccess {
-                        id
-                        code
-                        name
-                        active
-                        sortOrder
-                    }
-                    ... on AdminAnimalSpeciesCreateProblem {
-                        fields {
-                            name
-                            message
-                        }
-                    }
-                }
-            }
-        }
-        """
-        return self.client.execute(mutation, variables)
-
-    def execute_species_update(self, variables):
-        mutation = """
-        mutation adminAnimalSpeciesUpdate(
-            $id: Int!,
-            $code: String!,
-            $name: String!,
-            $active: Boolean!,
-            $sortOrder: Int
-        ) {
-            adminAnimalSpeciesUpdate(
-                id: $id,
-                code: $code,
-                name: $name,
-                active: $active,
-                sortOrder: $sortOrder
-            ) {
-                result {
-                    __typename
-                    ... on AdminAnimalSpeciesUpdateSuccess {
-                        id
-                        code
-                        name
-                        active
-                        sortOrder
-                    }
-                    ... on AdminAnimalSpeciesUpdateProblem {
-                        fields {
-                            name
-                            message
-                        }
-                    }
-                }
-            }
-        }
-        """
-        return self.client.execute(mutation, variables)
-
-    def execute_submit(self, variables):
-        mutation = """
-        mutation submitVillageCensusSnapshot(
-            $villageId: Int!,
-            $censusDate: Date!,
-            $facts: [AnimalCensusFactInput!]!
-        ) {
-            submitVillageCensusSnapshot(
-                villageId: $villageId,
-                censusDate: $censusDate,
-                facts: $facts
-            ) {
-                result {
-                    __typename
-                    ... on VillageCensusSnapshotType {
-                        id
-                        censusDate
-                        facts {
-                            species {
-                                code
-                            }
-                            animalQuantity
-                            householdQuantity
-                        }
-                    }
-                    ... on VillageCensusSnapshotProblem {
-                        fields {
-                            name
-                            message
-                        }
-                    }
-                }
-            }
-        }
-        """
-        return self.client.execute(mutation, variables)
-
-    def fact_variables(self, cattle, buffalo):
-        return [
-            {
-                "speciesId": cattle.id,
-                "animalQuantity": 0,
-                "householdQuantity": 0,
-            },
-            {
-                "speciesId": buffalo.id,
-                "animalQuantity": 7,
-                "householdQuantity": 3,
-            },
-        ]
+        return definition, version
 
     def test_animal_census_capability_requires_village_capability(self):
         self.client.authenticate(self.super_user)
@@ -229,227 +137,9 @@ class AnimalCensusBackendTests(JSONWebTokenTestCase):
             "enable",
         )
 
-    def test_admin_can_create_and_update_animal_species(self):
-        self.client.authenticate(self.super_user)
-        result = self.execute_species_create(
-            {
-                "code": "CATTLE",
-                "name": "Cattle",
-                "active": True,
-                "sortOrder": 1,
-            }
-        )
-        self.assertIsNone(result.errors, result.errors)
-        species = result.data["adminAnimalSpeciesCreate"]["result"]
-        self.assertEqual(species["__typename"], "AdminAnimalSpeciesCreateSuccess")
-
-        result = self.execute_species_update(
-            {
-                "id": int(species["id"]),
-                "code": "CATTLE",
-                "name": "Cattle Updated",
-                "active": False,
-                "sortOrder": 2,
-            }
-        )
-
-        self.assertIsNone(result.errors, result.errors)
-        updated = result.data["adminAnimalSpeciesUpdate"]["result"]
-        self.assertEqual(updated["name"], "Cattle Updated")
-        self.assertFalse(updated["active"])
-
-    def test_reporter_can_query_active_animal_species_when_census_enabled(self):
+    def test_latest_village_census_v2_returns_row_backed_animal_snapshot(self):
         self.enable_census()
-        cattle, buffalo = self.create_species()
-        buffalo.active = False
-        buffalo.save()
-        self.client.authenticate(self.reporter)
-        query = """
-        query animalSpecies {
-            animalSpecies {
-                id
-                code
-                name
-                active
-                sortOrder
-            }
-        }
-        """
-
-        result = self.client.execute(query)
-
-        self.assertIsNone(result.errors, result.errors)
-        self.assertEqual(len(result.data["animalSpecies"]), 1)
-        self.assertEqual(result.data["animalSpecies"][0]["code"], cattle.code)
-
-    def test_official_assigned_reporter_can_submit_complete_snapshot_with_zeros(self):
-        self.enable_census()
-        cattle, buffalo = self.create_species()
-        self.client.authenticate(self.reporter)
-
-        result = self.execute_submit(
-            {
-                "villageId": self.village.id,
-                "censusDate": "2026-05-05",
-                "facts": self.fact_variables(cattle, buffalo),
-            }
-        )
-
-        self.assertIsNone(result.errors, result.errors)
-        snapshot = result.data["submitVillageCensusSnapshot"]["result"]
-        self.assertEqual(snapshot["__typename"], "VillageCensusSnapshotType")
-        self.assertEqual(len(snapshot["facts"]), 2)
-        self.assertTrue(
-            AnimalCensusFact.objects.filter(
-                animal_species=cattle,
-                measures={"animal_quantity": 0, "household_quantity": 0},
-            ).exists()
-        )
-
-    def test_submit_rejects_when_animal_census_disabled(self):
-        set_village_capability_enabled(True)
-        cattle, buffalo = self.create_species()
-        self.client.authenticate(self.reporter)
-
-        result = self.execute_submit(
-            {
-                "villageId": self.village.id,
-                "censusDate": "2026-05-05",
-                "facts": self.fact_variables(cattle, buffalo),
-            }
-        )
-
-        self.assertIsNone(result.errors, result.errors)
-        fields = result.data["submitVillageCensusSnapshot"]["result"]["fields"]
-        self.assertEqual(fields[0]["name"], "animal_census_enabled")
-        self.assertFalse(VillageCensusSnapshot.objects.exists())
-
-    def test_submit_rejects_missing_active_species(self):
-        self.enable_census()
-        cattle, _buffalo = self.create_species()
-        self.client.authenticate(self.reporter)
-
-        result = self.execute_submit(
-            {
-                "villageId": self.village.id,
-                "censusDate": "2026-05-05",
-                "facts": [
-                    {
-                        "speciesId": cattle.id,
-                        "animalQuantity": 1,
-                        "householdQuantity": 1,
-                    }
-                ],
-            }
-        )
-
-        fields = result.data["submitVillageCensusSnapshot"]["result"]["fields"]
-        self.assertEqual(fields[0]["name"], "facts")
-        self.assertFalse(VillageCensusSnapshot.objects.exists())
-
-    def test_submit_rejects_when_no_active_species_configured(self):
-        self.enable_census()
-        self.client.authenticate(self.reporter)
-
-        result = self.execute_submit(
-            {
-                "villageId": self.village.id,
-                "censusDate": "2026-05-05",
-                "facts": [],
-            }
-        )
-
-        fields = result.data["submitVillageCensusSnapshot"]["result"]["fields"]
-        self.assertEqual(fields[0]["name"], "facts")
-        self.assertFalse(VillageCensusSnapshot.objects.exists())
-
-    def test_submit_rejects_inactive_species(self):
-        self.enable_census()
-        cattle, buffalo = self.create_species()
-        buffalo.active = False
-        buffalo.save()
-        self.client.authenticate(self.reporter)
-
-        result = self.execute_submit(
-            {
-                "villageId": self.village.id,
-                "censusDate": "2026-05-05",
-                "facts": self.fact_variables(cattle, buffalo),
-            }
-        )
-
-        fields = result.data["submitVillageCensusSnapshot"]["result"]["fields"]
-        self.assertEqual(fields[0]["name"], "facts")
-        self.assertFalse(VillageCensusSnapshot.objects.exists())
-
-    def test_submit_rejects_volunteer_reporter(self):
-        self.enable_census()
-        cattle, buffalo = self.create_species()
-        volunteer = AuthorityUser.objects.create(
-            username="volunteer",
-            authority=self.authority,
-            role=AuthorityUser.Role.REPORTER,
-        )
-        VillageReporterAssignment.objects.create(
-            reporter=volunteer,
-            village=self.village,
-            census_role=VillageReporterAssignment.CensusRole.VOLUNTEER,
-        )
-        self.client.authenticate(volunteer)
-
-        result = self.execute_submit(
-            {
-                "villageId": self.village.id,
-                "censusDate": "2026-05-05",
-                "facts": self.fact_variables(cattle, buffalo),
-            }
-        )
-
-        fields = result.data["submitVillageCensusSnapshot"]["result"]["fields"]
-        self.assertEqual(fields[0]["name"], "village_id")
-        self.assertFalse(VillageCensusSnapshot.objects.exists())
-
-    def test_submit_rejects_unassigned_reporter(self):
-        self.enable_census()
-        cattle, buffalo = self.create_species()
-        unassigned = AuthorityUser.objects.create(
-            username="unassigned",
-            authority=self.authority,
-            role=AuthorityUser.Role.REPORTER,
-        )
-        self.client.authenticate(unassigned)
-
-        result = self.execute_submit(
-            {
-                "villageId": self.village.id,
-                "censusDate": "2026-05-05",
-                "facts": self.fact_variables(cattle, buffalo),
-            }
-        )
-
-        fields = result.data["submitVillageCensusSnapshot"]["result"]["fields"]
-        self.assertEqual(fields[0]["name"], "village_id")
-        self.assertFalse(VillageCensusSnapshot.objects.exists())
-
-    def test_latest_village_census_v2_returns_newest_animal_snapshot(self):
-        self.enable_census()
-        cattle, buffalo = self.create_species()
-        definition = CensusDefinition.objects.create(
-            kind=CensusDefinition.Kind.ANIMAL,
-            enabled=True,
-            sort_order=1,
-        )
-        version = CensusDefinitionVersion.objects.create(
-            definition=definition,
-            version=1,
-            status=CensusDefinitionVersion.Status.PUBLISHED,
-            schema={
-                "row_source": "ACTIVE_ANIMAL_SPECIES",
-                "measures": [],
-                "extra_dimensions": [],
-            },
-            published_at=timezone.now(),
-        )
+        _definition, version = self.create_animal_definition()
         old_snapshot = VillageCensusSnapshot.objects.create(
             village=self.village,
             reporter=self.reporter,
@@ -458,14 +148,8 @@ class AnimalCensusBackendTests(JSONWebTokenTestCase):
         )
         AnimalCensusFact.objects.create(
             snapshot=old_snapshot,
-            animal_species=cattle,
             row_key="species:CATTLE",
-            measures={"animal_quantity": 1, "household_quantity": 1},
-        )
-        AnimalCensusFact.objects.create(
-            snapshot=old_snapshot,
-            animal_species=buffalo,
-            row_key="species:BUFFALO",
+            row_label="Cattle",
             measures={"animal_quantity": 1, "household_quantity": 1},
         )
         latest_snapshot = VillageCensusSnapshot.objects.create(
@@ -476,14 +160,14 @@ class AnimalCensusBackendTests(JSONWebTokenTestCase):
         )
         AnimalCensusFact.objects.create(
             snapshot=latest_snapshot,
-            animal_species=cattle,
             row_key="species:CATTLE",
+            row_label="Cattle",
             measures={"animal_quantity": 0, "household_quantity": 0},
         )
         AnimalCensusFact.objects.create(
             snapshot=latest_snapshot,
-            animal_species=buffalo,
             row_key="species:BUFFALO",
+            row_label="Buffalo",
             measures={"animal_quantity": 7, "household_quantity": 3},
         )
         self.client.authenticate(self.reporter)
@@ -492,10 +176,10 @@ class AnimalCensusBackendTests(JSONWebTokenTestCase):
             latestVillageCensusV2(villageId: $villageId, kind: "ANIMAL") {
                 censusDate
                 facts {
-                    species {
-                        code
-                    }
+                    rowKey
+                    rowLabel
                     animalQuantity
+                    householdQuantity
                 }
             }
         }
@@ -506,7 +190,24 @@ class AnimalCensusBackendTests(JSONWebTokenTestCase):
         self.assertIsNone(result.errors, result.errors)
         latest = result.data["latestVillageCensusV2"]
         self.assertEqual(latest["censusDate"], "2026-05-05")
-        self.assertEqual(len(latest["facts"]), 2)
+        facts = sorted(latest["facts"], key=lambda fact: fact["rowKey"])
+        self.assertEqual(
+            facts,
+            [
+                {
+                    "rowKey": "species:BUFFALO",
+                    "rowLabel": "Buffalo",
+                    "animalQuantity": 7,
+                    "householdQuantity": 3,
+                },
+                {
+                    "rowKey": "species:CATTLE",
+                    "rowLabel": "Cattle",
+                    "animalQuantity": 0,
+                    "householdQuantity": 0,
+                },
+            ],
+        )
 
     def test_latest_village_census_v2_returns_null_for_unknown_village(self):
         self.enable_census()

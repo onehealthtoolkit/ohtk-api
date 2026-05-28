@@ -5,29 +5,6 @@ from accounts.models import AuthorityUser, Village
 from common.models import BaseModel, BaseModelManager
 
 
-class AnimalSpecies(BaseModel):
-    class Meta:
-        db_table = "accounts_animalspecies"
-        ordering = ("sort_order", "name")
-        constraints = [
-            models.UniqueConstraint(
-                fields=["code"],
-                condition=Q(deleted_at__isnull=True),
-                name="unique_active_animal_species_code",
-            )
-        ]
-
-    objects = BaseModelManager()
-
-    code = models.CharField(max_length=50)
-    name = models.CharField(max_length=200)
-    active = models.BooleanField(default=True)
-    sort_order = models.IntegerField(default=0)
-
-    def __str__(self):
-        return self.name
-
-
 class CensusDefinition(BaseModel):
     class Kind(models.TextChoices):
         ANIMAL = "ANIMAL", "Animal"
@@ -125,7 +102,7 @@ class VillageCensusSnapshot(BaseModel):
 class AnimalCensusFact(BaseModel):
     class Meta:
         db_table = "accounts_animalcensusfact"
-        ordering = ("animal_species__sort_order", "animal_species__name", "row_key")
+        ordering = ("row_key",)
         constraints = [
             models.UniqueConstraint(
                 fields=["snapshot", "row_key"],
@@ -139,15 +116,13 @@ class AnimalCensusFact(BaseModel):
     snapshot = models.ForeignKey(
         VillageCensusSnapshot, on_delete=models.CASCADE, related_name="facts"
     )
-    animal_species = models.ForeignKey(
-        AnimalSpecies, on_delete=models.CASCADE, related_name="census_facts"
-    )
     row_key = models.CharField(max_length=100)
+    row_label = models.CharField(max_length=200)
     extra_dimensions = models.JSONField(default=dict, blank=True)
     measures = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
-        return f"{self.snapshot} {self.animal_species.name}"
+        return f"{self.snapshot} {self.row_label}"
 
 
 class HumanCensusFact(BaseModel):

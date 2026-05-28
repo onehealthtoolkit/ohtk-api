@@ -1,13 +1,10 @@
-import django_filters
 import graphene
-from django.db.models import Q
 from graphene.types.generic import GenericScalar
 from graphene_django import DjangoObjectType
 
 from census.definition_schema import runtime_schema_for_version
 from census.models import (
     AnimalCensusFact,
-    AnimalSpecies,
     CensusDefinition,
     CensusDefinitionVersion,
     CurrentAnimalCensusFact,
@@ -18,63 +15,7 @@ from census.models import (
 from common.types import AdminFieldValidationProblem, AdminValidationProblem
 
 
-class AdminAnimalSpeciesQueryFilter(django_filters.FilterSet):
-    q = django_filters.CharFilter(method="filter_q")
-    active = django_filters.BooleanFilter()
-
-    class Meta:
-        model = AnimalSpecies
-        fields = ["active"]
-
-    def filter_q(self, queryset, name, value):
-        return queryset.filter(Q(name__icontains=value) | Q(code__icontains=value))
-
-
-class AnimalSpeciesType(DjangoObjectType):
-    class Meta:
-        model = AnimalSpecies
-        fields = ("id", "code", "name", "active", "sort_order")
-
-
-class AdminAnimalSpeciesQueryType(DjangoObjectType):
-    class Meta:
-        model = AnimalSpecies
-        fields = ("id", "code", "name", "active", "sort_order")
-        filterset_class = AdminAnimalSpeciesQueryFilter
-
-
-class AdminAnimalSpeciesCreateSuccess(DjangoObjectType):
-    class Meta:
-        model = AnimalSpecies
-        fields = "__all__"
-
-
-class AdminAnimalSpeciesCreateProblem(AdminValidationProblem):
-    pass
-
-
-class AdminAnimalSpeciesCreateResult(graphene.Union):
-    class Meta:
-        types = (AdminAnimalSpeciesCreateSuccess, AdminAnimalSpeciesCreateProblem)
-
-
-class AdminAnimalSpeciesUpdateSuccess(DjangoObjectType):
-    class Meta:
-        model = AnimalSpecies
-        fields = "__all__"
-
-
-class AdminAnimalSpeciesUpdateProblem(AdminValidationProblem):
-    pass
-
-
-class AdminAnimalSpeciesUpdateResult(graphene.Union):
-    class Meta:
-        types = (AdminAnimalSpeciesUpdateSuccess, AdminAnimalSpeciesUpdateProblem)
-
-
 class AnimalCensusFactType(DjangoObjectType):
-    species = graphene.Field(AnimalSpeciesType)
     animal_quantity = graphene.Int()
     household_quantity = graphene.Int()
     extra_dimensions = GenericScalar()
@@ -84,14 +25,11 @@ class AnimalCensusFactType(DjangoObjectType):
         model = AnimalCensusFact
         fields = (
             "id",
-            "animal_species",
             "row_key",
+            "row_label",
             "extra_dimensions",
             "measures",
         )
-
-    def resolve_species(self, info):
-        return self.animal_species
 
     def resolve_animal_quantity(self, info):
         return self.measures.get("animal_quantity", 0)

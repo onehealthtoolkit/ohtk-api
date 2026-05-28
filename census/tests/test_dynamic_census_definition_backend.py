@@ -1,4 +1,5 @@
 from datetime import date
+from types import SimpleNamespace
 
 from django.utils import timezone
 from django.db import IntegrityError, transaction
@@ -15,7 +16,6 @@ from accounts.village_capability import set_village_capability_enabled
 from census.definition_schema import generate_runtime_schema
 from census.models import (
     AnimalCensusFact,
-    AnimalSpecies,
     CensusDefinition,
     CensusDefinitionVersion,
     CurrentAnimalCensusFact,
@@ -47,11 +47,9 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         set_animal_census_capability_enabled(True)
 
     def create_species(self):
-        cattle = AnimalSpecies.objects.create(
-            code="CATTLE", name="Cattle", sort_order=1
-        )
-        buffalo = AnimalSpecies.objects.create(
-            code="BUFFALO", name="Buffalo", sort_order=2
+        cattle = SimpleNamespace(code="CATTLE", name="Cattle", row_key="species:CATTLE")
+        buffalo = SimpleNamespace(
+            code="BUFFALO", name="Buffalo", row_key="species:BUFFALO"
         )
         return cattle, buffalo
 
@@ -66,7 +64,20 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
             version=1,
             status=CensusDefinitionVersion.Status.PUBLISHED,
             schema={
-                "row_source": "ACTIVE_ANIMAL_SPECIES",
+                "rows": [
+                    {
+                        "key": "species:CATTLE",
+                        "row_key": "species:CATTLE",
+                        "label": "Cattle",
+                        "dimensions": {"species": "CATTLE"},
+                    },
+                    {
+                        "key": "species:BUFFALO",
+                        "row_key": "species:BUFFALO",
+                        "label": "Buffalo",
+                        "dimensions": {"species": "BUFFALO"},
+                    },
+                ],
                 "measures": [
                     {
                         "key": "animal_quantity",
@@ -100,8 +111,8 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
                     "key": "species",
                     "label": {"default": "Species"},
                     "values": [
-                        {"key": "cattle", "label": {"default": "Cattle"}},
-                        {"key": "buffalo", "label": {"default": "Buffalo"}},
+                        {"key": "CATTLE", "label": {"default": "Cattle"}},
+                        {"key": "BUFFALO", "label": {"default": "Buffalo"}},
                     ],
                 }
             ],
@@ -165,14 +176,14 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         return {
             "rows": [
                 {
-                    "species_id": cattle.id,
+                    "row_key": cattle.row_key,
                     "measures": {
                         "animal_quantity": 10,
                         "household_quantity": 4,
                     },
                 },
                 {
-                    "species_id": buffalo.id,
+                    "row_key": buffalo.row_key,
                     "measures": {
                         "animal_quantity": 2,
                         "household_quantity": 1,
@@ -185,14 +196,14 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         return {
             "rows": [
                 {
-                    "row_key": "species:cattle",
+                    "row_key": "species:CATTLE",
                     "measures": {
                         "animal_quantity": 10,
                         "household_quantity": 4,
                     },
                 },
                 {
-                    "row_key": "species:buffalo",
+                    "row_key": "species:BUFFALO",
                     "measures": {
                         "animal_quantity": 2,
                         "household_quantity": 1,
@@ -237,12 +248,7 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
                         }
                         facts {
                             rowKey
-                            animalSpecies {
-                                code
-                            }
-                            species {
-                                code
-                            }
+                            rowLabel
                             extraDimensions
                             measures
                             animalQuantity
@@ -297,7 +303,6 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
 
     def test_reporter_can_query_runtime_animal_census_schema(self):
         self.enable_census()
-        cattle, _buffalo = self.create_species()
         self.create_animal_definition()
         self.client.authenticate(self.reporter)
         query = """
@@ -323,8 +328,10 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         self.assertIsNone(result.errors, result.errors)
         version = result.data["activeCensusDefinitionVersion"]
         self.assertEqual(version["definition"]["kind"], "ANIMAL")
-        self.assertEqual(version["schema"]["row_source"], "ACTIVE_ANIMAL_SPECIES")
-        self.assertEqual(version["runtimeSchema"]["rows"][0]["species_id"], cattle.id)
+        self.assertEqual(version["schema"]["rows"][0]["row_key"], "species:CATTLE")
+        self.assertEqual(
+            version["runtimeSchema"]["rows"][0]["row_key"], "species:CATTLE"
+        )
         self.assertEqual(result.data["censusDefinitions"][0]["kind"], "ANIMAL")
 
     def test_reporter_can_query_active_animal_kind_summary(self):
@@ -464,7 +471,7 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         self.assertIsNone(result.errors, result.errors)
         self.assertEqual(result.data["activeVillageCensusDefinitions"], [])
 
-    def test_admin_can_ensure_default_definitions_and_species(self):
+    def test_admin_can_ensure_default_definitions(self):
         super_user = AuthorityUser.objects.create(
             username="platform-admin",
             authority=self.authority,
@@ -513,12 +520,11 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
             animal_version["definitionSchema"]["dimensions"][0]["key"], "species"
         )
         self.assertEqual(
-            animal_version["schema"]["rows"][0]["dimensions"]["species"], "cattle"
+            animal_version["schema"]["rows"][0]["dimensions"]["species"], "CATTLE"
         )
         self.assertEqual(
-            animal_version["runtimeSchema"]["rows"][0]["species_code"], "CATTLE"
+            animal_version["runtimeSchema"]["rows"][0]["row_key"], "species:CATTLE"
         )
-        self.assertTrue(AnimalSpecies.objects.filter(code="POULTRY").exists())
 
     def test_admin_can_publish_new_human_schema_version(self):
         super_user = AuthorityUser.objects.create(
@@ -737,16 +743,18 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         snapshot = result.data["submitVillageCensusSnapshotV2"]["result"]
         self.assertEqual(snapshot["__typename"], "VillageCensusSnapshotType")
         self.assertEqual(snapshot["definitionVersion"]["definition"]["kind"], "ANIMAL")
-        self.assertEqual(snapshot["formData"]["rows"][0]["species_id"], cattle.id)
+        self.assertEqual(snapshot["formData"]["rows"][0]["row_key"], cattle.row_key)
         self.assertEqual(len(snapshot["facts"]), 2)
-        self.assertEqual(snapshot["facts"][0]["animalSpecies"]["code"], "CATTLE")
-        self.assertEqual(snapshot["facts"][0]["species"]["code"], "CATTLE")
-        self.assertEqual(snapshot["facts"][0]["animalQuantity"], 10)
+        cattle_fact = next(
+            fact for fact in snapshot["facts"] if fact["rowKey"] == "species:CATTLE"
+        )
+        self.assertEqual(cattle_fact["rowLabel"], "Cattle")
+        self.assertEqual(cattle_fact["animalQuantity"], 10)
         self.assertTrue(
             AnimalCensusFact.objects.filter(
-                animal_species=cattle,
                 row_key="species:CATTLE",
-                extra_dimensions={},
+                row_label="Cattle",
+                extra_dimensions={"species": "CATTLE"},
                 measures={"animal_quantity": 10, "household_quantity": 4},
             ).exists()
         )
@@ -774,25 +782,24 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         self.assertEqual(snapshot["__typename"], "VillageCensusSnapshotType")
         self.assertEqual(snapshot["definitionVersion"]["definition"]["kind"], "ANIMAL")
         cattle_fact = next(
-            fact for fact in snapshot["facts"] if fact["rowKey"] == "species:cattle"
+            fact for fact in snapshot["facts"] if fact["rowKey"] == "species:CATTLE"
         )
-        self.assertEqual(cattle_fact["animalSpecies"]["code"], "CATTLE")
-        self.assertEqual(cattle_fact["extraDimensions"], {"species": "cattle"})
+        self.assertEqual(cattle_fact["rowLabel"], "Cattle")
+        self.assertEqual(cattle_fact["extraDimensions"], {"species": "CATTLE"})
         self.assertTrue(
             AnimalCensusFact.objects.filter(
-                animal_species=cattle,
-                row_key="species:cattle",
-                extra_dimensions={"species": "cattle"},
+                row_key="species:CATTLE",
+                row_label="Cattle",
+                extra_dimensions={"species": "CATTLE"},
                 measures={"animal_quantity": 10, "household_quantity": 4},
             ).exists()
         )
         self.assertEqual(CurrentAnimalCensusFact.objects.count(), 2)
 
-    def test_authored_animal_definition_is_stable_when_species_are_added(self):
+    def test_authored_animal_definition_is_stable_without_species_catalog(self):
         self.enable_census()
         cattle, buffalo = self.create_species()
         _definition, version = self.create_authored_animal_definition()
-        AnimalSpecies.objects.create(code="FISH", name="Fish", sort_order=3)
         self.client.authenticate(self.reporter)
 
         result = self.execute_submit_v2(
@@ -810,20 +817,20 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         self.assertEqual(len(snapshot["facts"]), 2)
         self.assertEqual(
             {fact["rowKey"] for fact in snapshot["facts"]},
-            {"species:cattle", "species:buffalo"},
+            {"species:CATTLE", "species:BUFFALO"},
         )
         self.assertTrue(
             AnimalCensusFact.objects.filter(
-                animal_species=cattle,
-                row_key="species:cattle",
-                extra_dimensions={"species": "cattle"},
+                row_key="species:CATTLE",
+                row_label="Cattle",
+                extra_dimensions={"species": "CATTLE"},
             ).exists()
         )
         self.assertTrue(
             AnimalCensusFact.objects.filter(
-                animal_species=buffalo,
-                row_key="species:buffalo",
-                extra_dimensions={"species": "buffalo"},
+                row_key="species:BUFFALO",
+                row_label="Buffalo",
+                extra_dimensions={"species": "BUFFALO"},
             ).exists()
         )
         self.assertEqual(CurrentAnimalCensusFact.objects.count(), 2)
@@ -882,13 +889,13 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         self.assertEqual(fields[0]["name"], "form_data.rows")
         self.assertFalse(VillageCensusSnapshot.objects.exists())
 
-    def test_submit_v2_rejects_unknown_animal_species(self):
+    def test_submit_v2_rejects_unknown_animal_row_key(self):
         self.enable_census()
         cattle, buffalo = self.create_species()
         _definition, version = self.create_animal_definition()
         self.client.authenticate(self.reporter)
         form_data = self.animal_form_data(cattle, buffalo)
-        form_data["rows"][1]["species_id"] = 999999
+        form_data["rows"][1]["row_key"] = "species:FISH"
 
         result = self.execute_submit_v2(
             {
@@ -903,13 +910,13 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         self.assertEqual(fields[0]["name"], "form_data.rows")
         self.assertFalse(VillageCensusSnapshot.objects.exists())
 
-    def test_submit_v2_reports_stale_animal_form_when_species_added(self):
+    def test_submit_v2_reports_stale_animal_form_when_row_missing(self):
         self.enable_census()
         cattle, buffalo = self.create_species()
         _definition, version = self.create_animal_definition()
         self.client.authenticate(self.reporter)
         form_data = self.animal_form_data(cattle, buffalo)
-        AnimalSpecies.objects.create(code="FISH", name="Fish", sort_order=3)
+        form_data["rows"] = form_data["rows"][:1]
 
         result = self.execute_submit_v2(
             {

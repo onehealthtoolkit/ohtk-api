@@ -2,7 +2,6 @@ from itertools import product
 
 
 SUPPORTED_MEASURE_TYPES = {"integer"}
-ACTIVE_ANIMAL_SPECIES = "ACTIVE_ANIMAL_SPECIES"
 
 
 def generate_runtime_schema(definition_schema):
@@ -80,54 +79,25 @@ def normalize_measure(measure):
 
 
 def runtime_schema_for_version(version):
-    from census.models import AnimalSpecies, CensusDefinition
+    from census.models import CensusDefinition
 
     schema = dict(version.schema or {})
     if version.definition.kind != CensusDefinition.Kind.ANIMAL:
         return schema
 
-    if schema.get("row_source") == ACTIVE_ANIMAL_SPECIES:
-        schema["rows"] = [
-            {
-                "species_id": species.id,
-                "species_code": species.code,
-                "label": species.name,
-                "row_key": f"species:{species.code}",
-                "sort_order": species.sort_order,
-            }
-            for species in AnimalSpecies.objects.filter(active=True).order_by(
-                "sort_order", "code"
-            )
-        ]
-        return schema
-
-    species_by_code = {
-        species.code.lower(): species for species in AnimalSpecies.objects.all()
-    }
     enriched_rows = []
     for index, row in enumerate(schema.get("rows") or []):
         if not isinstance(row, dict):
             continue
         enriched_row = dict(row)
-        dimensions = enriched_row.get("dimensions") or {}
-        species_code = (
-            enriched_row.get("species_code")
-            or dimensions.get("species")
-            or dimensions.get("animal_species")
-        )
-        species = species_by_code.get(str(species_code or "").lower())
-        if species:
-            enriched_row["species_id"] = species.id
-            enriched_row["species_code"] = species.code
-            enriched_row["sort_order"] = species.sort_order
-        enriched_row["row_key"] = (
-            enriched_row.get("row_key")
-            or enriched_row.get("key")
-            or f"row_{str(index + 1).zfill(3)}"
-        )
+        enriched_row["row_key"] = row_key_for_row(enriched_row, index)
         enriched_rows.append(enriched_row)
     schema["rows"] = enriched_rows
     return schema
+
+
+def row_key_for_row(row, index):
+    return row.get("row_key") or row.get("key") or f"row_{str(index + 1).zfill(3)}"
 
 
 def validate_definition_schema(definition_schema):

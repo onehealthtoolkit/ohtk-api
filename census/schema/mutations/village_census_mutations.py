@@ -12,7 +12,6 @@ from accounts.models import (
 from census.animal_census_capability import is_animal_census_capability_enabled
 from census.models import (
     AnimalCensusFact,
-    AnimalSpecies,
     CensusDefinitionVersion,
     CurrentAnimalCensusFact,
     CurrentHumanCensusFact,
@@ -28,12 +27,6 @@ from accounts.village_capability import is_village_capability_enabled
 from common.types import AdminFieldValidationProblem
 
 ACTIVE_ANIMAL_SPECIES_CHANGED = "ACTIVE_ANIMAL_SPECIES_CHANGED"
-
-
-class AnimalCensusFactInput(graphene.InputObjectType):
-    species_id = graphene.Int(required=True)
-    animal_quantity = graphene.Int(required=True)
-    household_quantity = graphene.Int(required=True)
 
 
 def validate_census_capabilities(problems):
@@ -74,53 +67,6 @@ def validate_official_assignment(user, village_id, problems):
             )
         )
     return assignment
-
-
-def validate_fact_inputs(facts, problems):
-    active_species = list(AnimalSpecies.objects.filter(active=True))
-    if not active_species:
-        problems.append(
-            AdminFieldValidationProblem(
-                name="facts", message="at least one active species is required"
-            )
-        )
-        return
-
-    active_species_ids = {species.id for species in active_species}
-    supplied_species_ids = [fact.species_id for fact in facts]
-    supplied_species_id_set = set(supplied_species_ids)
-
-    if len(supplied_species_ids) != len(supplied_species_id_set):
-        problems.append(
-            AdminFieldValidationProblem(
-                name="facts", message="species can be submitted only once"
-            )
-        )
-
-    missing_species_ids = active_species_ids - supplied_species_id_set
-    if missing_species_ids:
-        problems.append(
-            AdminFieldValidationProblem(
-                name="facts", message=ACTIVE_ANIMAL_SPECIES_CHANGED
-            )
-        )
-
-    invalid_species_ids = supplied_species_id_set - active_species_ids
-    if invalid_species_ids:
-        problems.append(
-            AdminFieldValidationProblem(
-                name="facts", message="facts contain unknown or inactive species"
-            )
-        )
-
-    for fact in facts:
-        if fact.animal_quantity < 0 or fact.household_quantity < 0:
-            problems.append(
-                AdminFieldValidationProblem(
-                    name="facts", message="quantities must be zero or greater"
-                )
-            )
-            break
 
 
 def validate_census_definition_version(definition_version_id, problems):
@@ -225,12 +171,6 @@ def validate_animal_form_data(form_data, definition_version, problems):
     runtime_schema = runtime_schema_for_version(definition_version)
     configured_measures = runtime_schema.get("measures") or []
     configured_rows = runtime_schema.get("rows") or []
-    species_by_id = {species.id: species for species in AnimalSpecies.objects.all()}
-    rows_by_species_id = {
-        row.get("species_id"): row
-        for row in configured_rows
-        if isinstance(row, dict) and row.get("species_id") is not None
-    }
     rows_by_key = {
         row.get("row_key") or row.get("key"): row
         for row in configured_rows
@@ -253,29 +193,14 @@ def validate_animal_form_data(form_data, definition_version, problems):
             )
             continue
 
-        species_id = row.get("species_id")
         submitted_row_key = row.get("row_key")
-        configured_row = (
-            rows_by_species_id.get(species_id)
-            if species_id is not None
-            else rows_by_key.get(submitted_row_key)
-        )
+        configured_row = rows_by_key.get(submitted_row_key)
         supplied_row_ids.append(row_identifier(configured_row or row))
         if not configured_row:
             problems.append(
                 AdminFieldValidationProblem(
                     name="form_data.rows",
-                    message="rows contain unknown or inactive species",
-                )
-            )
-            continue
-
-        species = species_by_id.get(configured_row.get("species_id"))
-        if not species:
-            problems.append(
-                AdminFieldValidationProblem(
-                    name="form_data.rows",
-                    message="rows contain unknown or inactive species",
+                    message="rows contain unknown row key",
                 )
             )
             continue
@@ -303,10 +228,13 @@ def validate_animal_form_data(form_data, definition_version, problems):
 
         derived_rows.append(
             {
-                "species": species,
                 "row_key": configured_row.get("row_key")
                 or configured_row.get("key")
-                or f"species:{species.code}",
+                or submitted_row_key,
+                "row_label": configured_row.get("label")
+                or configured_row.get("row_label")
+                or configured_row.get("row_key")
+                or configured_row.get("key"),
                 "extra_dimensions": {
                     **submitted_extra_dimensions,
                     **configured_dimensions,
@@ -321,7 +249,7 @@ def validate_animal_form_data(form_data, definition_version, problems):
     if len(supplied_row_ids) != len(supplied_row_id_set):
         problems.append(
             AdminFieldValidationProblem(
-                name="form_data.rows", message="species can be submitted only once"
+                name="form_data.rows", message="rows can be submitted only once"
             )
         )
     if supplied_row_id_set != required_row_ids:
@@ -337,8 +265,6 @@ def validate_animal_form_data(form_data, definition_version, problems):
 def row_identifier(row):
     if not isinstance(row, dict):
         return None
-    if row.get("species_id") is not None:
-        return f"species_id:{row.get('species_id')}"
     return row.get("row_key") or row.get("key")
 
 
@@ -412,77 +338,6 @@ def validate_human_form_data(form_data, definition_version, problems):
     return derived_rows
 
 
-class SubmitVillageCensusSnapshotMutation(graphene.Mutation):
-    class Arguments:
-        village_id = graphene.Int(required=True)
-        census_date = graphene.Date(required=True)
-        facts = graphene.List(graphene.NonNull(AnimalCensusFactInput), required=True)
-
-    result = graphene.Field(VillageCensusSnapshotResult)
-
-    @staticmethod
-    @login_required
-    def mutate(root, info, village_id, census_date, facts):
-        problems = []
-        validate_census_capabilities(problems)
-
-        try:
-            Village.objects.get(pk=village_id)
-        except Village.DoesNotExist:
-            problems.append(
-                AdminFieldValidationProblem(
-                    name="village_id", message="village does not exist"
-                )
-            )
-
-        user = info.context.user
-        if not user.is_authority_user:
-            raise GraphQLError("Permission denied.")
-
-        validate_official_assignment(user, village_id, problems)
-        validate_fact_inputs(facts, problems)
-
-        if problems:
-            return SubmitVillageCensusSnapshotMutation(
-                result=VillageCensusSnapshotProblem(fields=problems)
-            )
-
-        with transaction.atomic():
-            snapshot = VillageCensusSnapshot.objects.create(
-                village_id=village_id,
-                reporter=user.authorityuser,
-                census_date=census_date,
-            )
-            species_by_id = {
-                species.id: species
-                for species in AnimalSpecies.objects.filter(
-                    id__in=[fact.species_id for fact in facts]
-                )
-            }
-            animal_facts = AnimalCensusFact.objects.bulk_create(
-                [
-                    AnimalCensusFact(
-                        snapshot=snapshot,
-                        animal_species_id=fact.species_id,
-                        row_key=f"species:{species_by_id[fact.species_id].code}",
-                        measures={
-                            "animal_quantity": fact.animal_quantity,
-                            "household_quantity": fact.household_quantity,
-                        },
-                    )
-                    for fact in facts
-                ]
-            )
-            CurrentAnimalCensusFact.objects.filter(
-                fact__snapshot__village_id=village_id
-            ).delete()
-            CurrentAnimalCensusFact.objects.bulk_create(
-                [CurrentAnimalCensusFact(fact=fact) for fact in animal_facts]
-            )
-
-        return SubmitVillageCensusSnapshotMutation(result=snapshot)
-
-
 class SubmitVillageCensusSnapshotV2Mutation(graphene.Mutation):
     class Arguments:
         village_id = graphene.Int(required=True)
@@ -551,8 +406,8 @@ class SubmitVillageCensusSnapshotV2Mutation(graphene.Mutation):
                     [
                         AnimalCensusFact(
                             snapshot=snapshot,
-                            animal_species=row["species"],
                             row_key=row["row_key"],
+                            row_label=row["row_label"],
                             extra_dimensions=row["extra_dimensions"],
                             measures=row["measures"],
                         )

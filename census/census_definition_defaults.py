@@ -3,7 +3,7 @@ from django.db.models import Max
 from django.utils import timezone
 
 from census.definition_schema import generate_runtime_schema
-from census.models import AnimalSpecies, CensusDefinition, CensusDefinitionVersion
+from census.models import CensusDefinition, CensusDefinitionVersion
 
 
 DEFAULT_ANIMAL_DEFINITION_SCHEMA = {
@@ -13,9 +13,9 @@ DEFAULT_ANIMAL_DEFINITION_SCHEMA = {
             "key": "species",
             "label": {"default": "Species", "la": "ຊະນິດສັດ"},
             "values": [
-                {"key": "cattle", "label": {"default": "Cattle", "la": "ງົວ"}},
-                {"key": "buffalo", "label": {"default": "Buffalo", "la": "ຄວາຍ"}},
-                {"key": "poultry", "label": {"default": "Poultry", "la": "ສັດປີກ"}},
+                {"key": "CATTLE", "label": {"default": "Cattle", "la": "ງົວ"}},
+                {"key": "BUFFALO", "label": {"default": "Buffalo", "la": "ຄວາຍ"}},
+                {"key": "POULTRY", "label": {"default": "Poultry", "la": "ສັດປີກ"}},
             ],
         }
     ],
@@ -53,13 +53,6 @@ DEFAULT_HUMAN_DEFINITION_SCHEMA = {
 }
 
 
-DEFAULT_SPECIES = [
-    {"code": "CATTLE", "name": "Cattle", "sort_order": 1},
-    {"code": "BUFFALO", "name": "Buffalo", "sort_order": 2},
-    {"code": "POULTRY", "name": "Poultry", "sort_order": 3},
-]
-
-
 def default_schema_for_kind(kind):
     if kind == CensusDefinition.Kind.ANIMAL:
         return generate_runtime_schema(DEFAULT_ANIMAL_DEFINITION_SCHEMA)
@@ -74,21 +67,6 @@ def default_definition_schema_for_kind(kind):
     if kind == CensusDefinition.Kind.HUMAN:
         return DEFAULT_HUMAN_DEFINITION_SCHEMA
     raise ValueError("unsupported census definition kind")
-
-
-def ensure_default_species():
-    species = []
-    for item in DEFAULT_SPECIES:
-        species_item, _created = AnimalSpecies.objects.get_or_create(
-            code=item["code"],
-            defaults={
-                "name": item["name"],
-                "active": True,
-                "sort_order": item["sort_order"],
-            },
-        )
-        species.append(species_item)
-    return species
 
 
 def ensure_definition(kind, enabled=True, sort_order=0):
@@ -186,9 +164,6 @@ def ensure_published_schema(definition, schema, reset_schema=False):
 
 
 def ensure_default_census_setup(seed_species=True, reset_schema=False):
-    if seed_species:
-        ensure_default_species()
-
     animal = ensure_definition(CensusDefinition.Kind.ANIMAL, enabled=True, sort_order=1)
     human = ensure_definition(CensusDefinition.Kind.HUMAN, enabled=True, sort_order=2)
     animal_version = ensure_published_schema(
