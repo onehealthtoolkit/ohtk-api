@@ -35,6 +35,9 @@ class Query(graphene.ObjectType):
     active_census_definition_version = graphene.Field(
         CensusDefinitionVersionType, kind=graphene.String(required=True)
     )
+    draft_census_definition_version = graphene.Field(
+        CensusDefinitionVersionType, kind=graphene.String(required=True)
+    )
     active_village_census_definitions = graphene.List(
         CensusKindSummaryType, village_id=graphene.Int(required=True)
     )
@@ -101,6 +104,25 @@ class Query(graphene.ObjectType):
                 definition__kind=kind,
                 definition__enabled=True,
                 status=CensusDefinitionVersion.Status.PUBLISHED,
+            )
+            .order_by("-version")
+            .first()
+        )
+
+    @staticmethod
+    @login_required
+    def resolve_draft_census_definition_version(root, info, kind):
+        if not (
+            is_village_capability_enabled() and is_animal_census_capability_enabled()
+        ):
+            return None
+        if not info.context.user.is_superuser:
+            raise GraphQLError("Permission denied.")
+        return (
+            CensusDefinitionVersion.objects.select_related("definition")
+            .filter(
+                definition__kind=kind,
+                status=CensusDefinitionVersion.Status.DRAFT,
             )
             .order_by("-version")
             .first()

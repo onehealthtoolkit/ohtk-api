@@ -81,6 +81,7 @@ class CensusDefinitionVersion(BaseModel):
         choices=Status.choices, max_length=20, default=Status.DRAFT
     )
     schema = models.JSONField(default=dict, blank=True)
+    definition_schema = models.JSONField(null=True, blank=True)
     published_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):

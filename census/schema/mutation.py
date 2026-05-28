@@ -6,6 +6,7 @@ from census.schema.mutations import (
     AdminAnimalSpeciesUpdateMutation,
     AdminCensusDefinitionSetEnabledMutation,
     AdminCensusDefinitionsEnsureDefaultsMutation,
+    AdminCensusDefinitionVersionSaveDraftMutation,
     AdminCensusDefinitionVersionPublishMutation,
     SubmitVillageCensusSnapshotMutation,
     SubmitVillageCensusSnapshotV2Mutation,
@@ -23,6 +24,9 @@ class Mutation(graphene.ObjectType):
     )
     admin_census_definition_version_publish = (
         AdminCensusDefinitionVersionPublishMutation.Field()
+    )
+    admin_census_definition_version_save_draft = (
+        AdminCensusDefinitionVersionSaveDraftMutation.Field()
     )
     admin_census_definition_set_enabled = (
         AdminCensusDefinitionSetEnabledMutation.Field()

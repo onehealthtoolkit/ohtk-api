@@ -12,6 +12,7 @@ from accounts.models import (
     VillageReporterAssignment,
 )
 from accounts.village_capability import set_village_capability_enabled
+from census.definition_schema import generate_runtime_schema
 from census.models import (
     AnimalCensusFact,
     AnimalSpecies,
@@ -86,6 +87,49 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         )
         return definition, version
 
+    def create_authored_animal_definition(self):
+        definition = CensusDefinition.objects.create(
+            kind=CensusDefinition.Kind.ANIMAL,
+            enabled=True,
+            sort_order=1,
+        )
+        definition_schema = {
+            "schema_version": 1,
+            "dimensions": [
+                {
+                    "key": "species",
+                    "label": {"default": "Species"},
+                    "values": [
+                        {"key": "cattle", "label": {"default": "Cattle"}},
+                        {"key": "buffalo", "label": {"default": "Buffalo"}},
+                    ],
+                }
+            ],
+            "measures": [
+                {
+                    "key": "animal_quantity",
+                    "label": {"default": "Animal quantity"},
+                    "type": "integer",
+                    "required": True,
+                },
+                {
+                    "key": "household_quantity",
+                    "label": {"default": "Households"},
+                    "type": "integer",
+                    "required": True,
+                },
+            ],
+        }
+        version = CensusDefinitionVersion.objects.create(
+            definition=definition,
+            version=1,
+            status=CensusDefinitionVersion.Status.PUBLISHED,
+            schema=generate_runtime_schema(definition_schema),
+            definition_schema=definition_schema,
+            published_at=timezone.now(),
+        )
+        return definition, version
+
     def create_human_definition(self):
         definition = CensusDefinition.objects.create(
             kind=CensusDefinition.Kind.HUMAN,
@@ -129,6 +173,26 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
                 },
                 {
                     "species_id": buffalo.id,
+                    "measures": {
+                        "animal_quantity": 2,
+                        "household_quantity": 1,
+                    },
+                },
+            ]
+        }
+
+    def animal_row_key_form_data(self):
+        return {
+            "rows": [
+                {
+                    "row_key": "species:cattle",
+                    "measures": {
+                        "animal_quantity": 10,
+                        "household_quantity": 4,
+                    },
+                },
+                {
+                    "row_key": "species:buffalo",
                     "measures": {
                         "animal_quantity": 2,
                         "household_quantity": 1,
@@ -421,6 +485,7 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
                         kind
                     }
                     schema
+                    definitionSchema
                     runtimeSchema
                 }
                 fields {
@@ -445,7 +510,10 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
             if version["definition"]["kind"] == "ANIMAL"
         )
         self.assertEqual(
-            animal_version["schema"]["row_source"], "ACTIVE_ANIMAL_SPECIES"
+            animal_version["definitionSchema"]["dimensions"][0]["key"], "species"
+        )
+        self.assertEqual(
+            animal_version["schema"]["rows"][0]["dimensions"]["species"], "cattle"
         )
         self.assertEqual(
             animal_version["runtimeSchema"]["rows"][0]["species_code"], "CATTLE"
@@ -505,6 +573,66 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         self.assertEqual(payload["version"]["version"], 1)
         self.assertEqual(payload["version"]["schema"]["rows"][0]["key"], "adult")
 
+    def test_admin_can_publish_authored_human_schema_version(self):
+        super_user = AuthorityUser.objects.create(
+            username="authored-schema-admin",
+            authority=self.authority,
+            role=AuthorityUser.Role.ADMIN,
+            is_superuser=True,
+        )
+        self.client.authenticate(super_user)
+        mutation = """
+        mutation publishHumanSchema($definitionSchema: GenericScalar!) {
+            adminCensusDefinitionVersionPublish(
+                kind: "HUMAN",
+                definitionSchema: $definitionSchema
+            ) {
+                version {
+                    version
+                    definitionSchema
+                    schema
+                    runtimeSchema
+                }
+                fields {
+                    name
+                    message
+                }
+            }
+        }
+        """
+        definition_schema = {
+            "schema_version": 1,
+            "dimensions": [
+                {
+                    "key": "gender",
+                    "label": {"default": "Gender", "la": "ເພດ"},
+                    "values": [
+                        {"key": "male", "label": {"default": "Male", "la": "ຊາຍ"}},
+                        {"key": "female", "label": {"default": "Female", "la": "ຍິງ"}},
+                    ],
+                }
+            ],
+            "measures": [
+                {
+                    "key": "population",
+                    "label": {"default": "Population", "la": "ປະຊາກອນ"},
+                    "type": "integer",
+                    "required": True,
+                }
+            ],
+        }
+
+        result = self.client.execute(mutation, {"definitionSchema": definition_schema})
+
+        self.assertIsNone(result.errors, result.errors)
+        payload = result.data["adminCensusDefinitionVersionPublish"]
+        self.assertEqual(payload["fields"], [])
+        version = payload["version"]
+        self.assertEqual(version["definitionSchema"]["dimensions"][0]["key"], "gender")
+        self.assertEqual(version["schema"]["rows"][0]["key"], "gender:male")
+        self.assertEqual(version["schema"]["rows"][0]["dimensions"], {"gender": "male"})
+        self.assertEqual(version["runtimeSchema"]["rows"][1]["label"], "Female")
+
     def test_admin_can_disable_human_definition_without_publishing_new_version(self):
         self.enable_census()
         _animal_definition, _animal_version = self.create_animal_definition()
@@ -537,13 +665,6 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
                     message
                 }
             }
-            censusDefinitions {
-                kind
-                enabled
-            }
-            activeCensusDefinitionVersion(kind: "HUMAN") {
-                id
-            }
         }
         """
 
@@ -564,11 +685,26 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         human_version.refresh_from_db()
         self.assertFalse(human_definition.enabled)
         self.assertEqual(human_version.status, CensusDefinitionVersion.Status.PUBLISHED)
-        self.assertIsNone(result.data["activeCensusDefinitionVersion"])
+
+        query = """
+        query humanDefinitionDisabled {
+            censusDefinitions {
+                kind
+                enabled
+            }
+            activeCensusDefinitionVersion(kind: "HUMAN") {
+                id
+            }
+        }
+        """
+        query_result = self.client.execute(query)
+
+        self.assertIsNone(query_result.errors, query_result.errors)
+        self.assertIsNone(query_result.data["activeCensusDefinitionVersion"])
         self.assertEqual(
             {
                 definition["kind"]: definition["enabled"]
-                for definition in result.data["censusDefinitions"]
+                for definition in query_result.data["censusDefinitions"]
             },
             {"ANIMAL": True, "HUMAN": False},
         )
@@ -612,6 +748,82 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
                 row_key="species:CATTLE",
                 extra_dimensions={},
                 measures={"animal_quantity": 10, "household_quantity": 4},
+            ).exists()
+        )
+        self.assertEqual(CurrentAnimalCensusFact.objects.count(), 2)
+
+    def test_official_reporter_can_submit_authored_animal_snapshot_by_row_key(
+        self,
+    ):
+        self.enable_census()
+        cattle, _buffalo = self.create_species()
+        _definition, version = self.create_authored_animal_definition()
+        self.client.authenticate(self.reporter)
+
+        result = self.execute_submit_v2(
+            {
+                "villageId": self.village.id,
+                "definitionVersionId": version.id,
+                "censusDate": "2026-05-19",
+                "formData": self.animal_row_key_form_data(),
+            }
+        )
+
+        self.assertIsNone(result.errors, result.errors)
+        snapshot = result.data["submitVillageCensusSnapshotV2"]["result"]
+        self.assertEqual(snapshot["__typename"], "VillageCensusSnapshotType")
+        self.assertEqual(snapshot["definitionVersion"]["definition"]["kind"], "ANIMAL")
+        cattle_fact = next(
+            fact for fact in snapshot["facts"] if fact["rowKey"] == "species:cattle"
+        )
+        self.assertEqual(cattle_fact["animalSpecies"]["code"], "CATTLE")
+        self.assertEqual(cattle_fact["extraDimensions"], {"species": "cattle"})
+        self.assertTrue(
+            AnimalCensusFact.objects.filter(
+                animal_species=cattle,
+                row_key="species:cattle",
+                extra_dimensions={"species": "cattle"},
+                measures={"animal_quantity": 10, "household_quantity": 4},
+            ).exists()
+        )
+        self.assertEqual(CurrentAnimalCensusFact.objects.count(), 2)
+
+    def test_authored_animal_definition_is_stable_when_species_are_added(self):
+        self.enable_census()
+        cattle, buffalo = self.create_species()
+        _definition, version = self.create_authored_animal_definition()
+        AnimalSpecies.objects.create(code="FISH", name="Fish", sort_order=3)
+        self.client.authenticate(self.reporter)
+
+        result = self.execute_submit_v2(
+            {
+                "villageId": self.village.id,
+                "definitionVersionId": version.id,
+                "censusDate": "2026-05-19",
+                "formData": self.animal_form_data(cattle, buffalo),
+            }
+        )
+
+        self.assertIsNone(result.errors, result.errors)
+        snapshot = result.data["submitVillageCensusSnapshotV2"]["result"]
+        self.assertEqual(snapshot["__typename"], "VillageCensusSnapshotType")
+        self.assertEqual(len(snapshot["facts"]), 2)
+        self.assertEqual(
+            {fact["rowKey"] for fact in snapshot["facts"]},
+            {"species:cattle", "species:buffalo"},
+        )
+        self.assertTrue(
+            AnimalCensusFact.objects.filter(
+                animal_species=cattle,
+                row_key="species:cattle",
+                extra_dimensions={"species": "cattle"},
+            ).exists()
+        )
+        self.assertTrue(
+            AnimalCensusFact.objects.filter(
+                animal_species=buffalo,
+                row_key="species:buffalo",
+                extra_dimensions={"species": "buffalo"},
             ).exists()
         )
         self.assertEqual(CurrentAnimalCensusFact.objects.count(), 2)

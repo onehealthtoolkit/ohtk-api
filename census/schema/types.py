@@ -4,6 +4,7 @@ from django.db.models import Q
 from graphene.types.generic import GenericScalar
 from graphene_django import DjangoObjectType
 
+from census.definition_schema import runtime_schema_for_version
 from census.models import (
     AnimalCensusFact,
     AnimalSpecies,
@@ -107,6 +108,7 @@ class CensusDefinitionType(DjangoObjectType):
 
 class CensusDefinitionVersionType(DjangoObjectType):
     schema = GenericScalar()
+    definition_schema = GenericScalar()
     runtime_schema = GenericScalar()
 
     class Meta:
@@ -117,24 +119,12 @@ class CensusDefinitionVersionType(DjangoObjectType):
             "version",
             "status",
             "schema",
+            "definition_schema",
             "published_at",
         )
 
     def resolve_runtime_schema(self, info):
-        schema = dict(self.schema or {})
-        if self.definition.kind == CensusDefinition.Kind.ANIMAL:
-            schema["rows"] = [
-                {
-                    "species_id": species.id,
-                    "species_code": species.code,
-                    "label": species.name,
-                    "row_key": f"species:{species.code}",
-                }
-                for species in AnimalSpecies.objects.filter(active=True).order_by(
-                    "sort_order", "code"
-                )
-            ]
-        return schema
+        return runtime_schema_for_version(self)
 
 
 class HumanCensusFactType(DjangoObjectType):

@@ -19,6 +19,7 @@ from census.models import (
     HumanCensusFact,
     VillageCensusSnapshot,
 )
+from census.definition_schema import runtime_schema_for_version
 from census.schema.types import (
     VillageCensusSnapshotProblem,
     VillageCensusSnapshotResult,
@@ -221,12 +222,27 @@ def validate_animal_form_data(form_data, definition_version, problems):
     if not submitted_rows:
         return []
 
-    configured_measures = (definition_version.schema or {}).get("measures") or []
-    active_species = list(AnimalSpecies.objects.filter(active=True))
-    species_by_id = {species.id: species for species in active_species}
-    required_species_ids = set(species_by_id.keys())
+    runtime_schema = runtime_schema_for_version(definition_version)
+    configured_measures = runtime_schema.get("measures") or []
+    configured_rows = runtime_schema.get("rows") or []
+    species_by_id = {species.id: species for species in AnimalSpecies.objects.all()}
+    rows_by_species_id = {
+        row.get("species_id"): row
+        for row in configured_rows
+        if isinstance(row, dict) and row.get("species_id") is not None
+    }
+    rows_by_key = {
+        row.get("row_key") or row.get("key"): row
+        for row in configured_rows
+        if isinstance(row, dict) and (row.get("row_key") or row.get("key"))
+    }
+    required_row_ids = {
+        row_identifier(row)
+        for row in configured_rows
+        if isinstance(row, dict) and row_identifier(row)
+    }
 
-    supplied_species_ids = []
+    supplied_row_ids = []
     derived_rows = []
     for row in submitted_rows:
         if not isinstance(row, dict):
@@ -238,8 +254,23 @@ def validate_animal_form_data(form_data, definition_version, problems):
             continue
 
         species_id = row.get("species_id")
-        supplied_species_ids.append(species_id)
-        species = species_by_id.get(species_id)
+        submitted_row_key = row.get("row_key")
+        configured_row = (
+            rows_by_species_id.get(species_id)
+            if species_id is not None
+            else rows_by_key.get(submitted_row_key)
+        )
+        supplied_row_ids.append(row_identifier(configured_row or row))
+        if not configured_row:
+            problems.append(
+                AdminFieldValidationProblem(
+                    name="form_data.rows",
+                    message="rows contain unknown or inactive species",
+                )
+            )
+            continue
+
+        species = species_by_id.get(configured_row.get("species_id"))
         if not species:
             problems.append(
                 AdminFieldValidationProblem(
@@ -258,34 +289,42 @@ def validate_animal_form_data(form_data, definition_version, problems):
             )
             continue
 
-        extra_dimensions = row.get("extra_dimensions") or {}
-        if not isinstance(extra_dimensions, dict):
+        submitted_extra_dimensions = row.get("extra_dimensions") or {}
+        if not isinstance(submitted_extra_dimensions, dict):
             problems.append(
                 AdminFieldValidationProblem(
                     name="form_data.rows", message="extra dimensions must be an object"
                 )
             )
             continue
+        configured_dimensions = configured_row.get("dimensions") or {}
+        if not isinstance(configured_dimensions, dict):
+            configured_dimensions = {}
 
         derived_rows.append(
             {
                 "species": species,
-                "row_key": f"species:{species.code}",
-                "extra_dimensions": extra_dimensions,
+                "row_key": configured_row.get("row_key")
+                or configured_row.get("key")
+                or f"species:{species.code}",
+                "extra_dimensions": {
+                    **submitted_extra_dimensions,
+                    **configured_dimensions,
+                },
                 "measures": validate_measure_values(
                     submitted_measures, configured_measures, problems
                 ),
             }
         )
 
-    supplied_species_id_set = set(supplied_species_ids)
-    if len(supplied_species_ids) != len(supplied_species_id_set):
+    supplied_row_id_set = set(supplied_row_ids)
+    if len(supplied_row_ids) != len(supplied_row_id_set):
         problems.append(
             AdminFieldValidationProblem(
                 name="form_data.rows", message="species can be submitted only once"
             )
         )
-    if supplied_species_id_set != required_species_ids:
+    if supplied_row_id_set != required_row_ids:
         problems.append(
             AdminFieldValidationProblem(
                 name="form_data.rows", message=ACTIVE_ANIMAL_SPECIES_CHANGED
@@ -293,6 +332,14 @@ def validate_animal_form_data(form_data, definition_version, problems):
         )
 
     return derived_rows
+
+
+def row_identifier(row):
+    if not isinstance(row, dict):
+        return None
+    if row.get("species_id") is not None:
+        return f"species_id:{row.get('species_id')}"
+    return row.get("row_key") or row.get("key")
 
 
 def validate_human_form_data(form_data, definition_version, problems):
