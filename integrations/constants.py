@@ -1,0 +1,70 @@
+class IntegrationScope:
+    INCIDENT_READ = "incident:read"
+    CENSUS_READ = "census:read"
+    CLUSTER_READ_INPUTS = "cluster:read_inputs"
+    CLUSTER_WRITE_RESULT = "cluster:write_result"
+    AI_READ_REPORT = "ai:read_report"
+    AI_CREATE_COMMENT = "ai:create_comment"
+    CASE_PROMOTE = "case:promote"
+    RISK_UPDATE = "risk:update"
+
+    CHOICES = (
+        (INCIDENT_READ, "Read incidents"),
+        (CENSUS_READ, "Read census"),
+        (CLUSTER_READ_INPUTS, "Read cluster inputs"),
+        (CLUSTER_WRITE_RESULT, "Write cluster results"),
+        (AI_READ_REPORT, "AI read reports"),
+        (AI_CREATE_COMMENT, "AI create comments"),
+        (CASE_PROMOTE, "Promote cases"),
+        (RISK_UPDATE, "Update risk"),
+    )
+
+    CODES = {code for code, _label in CHOICES}
+
+
+class IntegrationEventType:
+    REPORT_SUBMITTED = "report.submitted"
+    FOLLOWUP_SUBMITTED = "followup.submitted"
+    CASE_PROMOTED = "case.promoted"
+    CASE_STATE_CHANGED = "case.state_changed"
+    CLUSTER_EVALUATION_REQUESTED = "cluster.evaluation_requested"
+    RISK_EVALUATION_REQUESTED = "risk.evaluation_requested"
+
+    CHOICES = (
+        (REPORT_SUBMITTED, "Report submitted"),
+        (FOLLOWUP_SUBMITTED, "Followup submitted"),
+        (CASE_PROMOTED, "Case promoted"),
+        (CASE_STATE_CHANGED, "Case state changed"),
+        (CLUSTER_EVALUATION_REQUESTED, "Cluster evaluation requested"),
+        (RISK_EVALUATION_REQUESTED, "Risk evaluation requested"),
+    )
+
+    CODES = {code for code, _label in CHOICES}
+
+
+SECRET_KEY_PARTS = (
+    "apikey",
+    "authorization",
+    "bearer",
+    "clientkey",
+    "clientsecret",
+    "credential",
+    "privatekey",
+    "password",
+    "secret",
+    "signature",
+    "signingkey",
+    "token",
+)
+
+
+def normalize_secret_key_name(key):
+    return "".join(char for char in str(key).lower() if char.isalnum())
+
+
+def is_secret_key_name(key):
+    normalized = normalize_secret_key_name(key)
+    return any(part in normalized for part in SECRET_KEY_PARTS)
+
+
+IDEMPOTENCY_UNIQUENESS = "(integration_client, action_type, key)"

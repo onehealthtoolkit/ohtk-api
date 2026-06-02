@@ -33,6 +33,7 @@ urlpatterns = [
     path("o/", include("oauth2_provider.urls", namespace="oauth2_provider")),
     path("api/userinfo/", accounts.views.userinfo),
     path("api/servers/", tenants.views.tenants),
+    path("api/integrations/v1/", include("integrations.urls")),
     path("accounts/login/", auth_views.LoginView.as_view(), name="login"),
     path(
         "graphql/",

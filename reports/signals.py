@@ -54,3 +54,14 @@ def on_report_image_update(sender, fieldfile, **kwargs):
 )
 def send_notification_to_reporter(sender, report, **kwargs):
     tasks.evaluate_reporter_notification.delay(report.id)
+
+
+@receiver(
+    incident_report_submitted,
+    sender=IncidentReport,
+    dispatch_uid="integration_report_submitted_webhook_event",
+)
+def enqueue_report_submitted_integration_event(sender, report, **kwargs):
+    from integrations.tasks import record_report_submitted_event
+
+    record_report_submitted_event.delay(report.id)

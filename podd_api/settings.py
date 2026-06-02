@@ -99,6 +99,7 @@ TENANT_APPS = (
     "outbreaks",
     "observations",
     "oauth2_provider",
+    "integrations",
 )
 
 INSTALLED_APPS = list(SHARED_APPS) + [
@@ -109,6 +110,7 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "accounts.middleware.HealthCheckMiddleware",
     "django_tenants.middleware.main.TenantMainMiddleware",
+    "integrations.middleware.IntegrationTenantGuardMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -256,6 +258,7 @@ GRAPHQL_JWT = {
 
 
 AUTO_LOGIN_AFTER_REGISTER = True
+OAUTH2_PROVIDER_APPLICATION_MODEL = "oauth2_provider.Application"
 
 TENANT_MODEL = "tenants.Client"  # app.Model
 TENANT_DOMAIN_MODEL = "tenants.Domain"  # app.Model
