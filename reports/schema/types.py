@@ -7,6 +7,7 @@ from accounts.models import Authority
 
 from accounts.schema.types import UserType, AuthorityType, resolve_thumbnail_url
 from common.types import AdminValidationProblem
+from common.filters import EmptyListInsensitiveFilterSet
 
 from reports.models import ReportType, Category, IncidentReport, ReporterNotification
 from reports.models.report import Image, FollowUpReport, UploadFile
@@ -81,7 +82,7 @@ class FollowupType(DjangoObjectType):
 
 
 ## Report type
-class IncidentReportTypeFilter(django_filters.FilterSet):
+class IncidentReportTypeFilter(EmptyListInsensitiveFilterSet):
     include_child_authorities = django_filters.BooleanFilter(
         method="child_authorities_filter"
     )
@@ -98,14 +99,11 @@ class IncidentReportTypeFilter(django_filters.FilterSet):
         }
 
     def child_authorities_filter(self, queryset, name, value):
-        relevant_authorities = self.data["relevant_authorities__id__in"]
-        if relevant_authorities and len(relevant_authorities) == 1:
-            include_child_authorities = self.data["include_child_authorities"]
-            if include_child_authorities:
-                authority = Authority.objects.get(pk=relevant_authorities[0])
-                child_authorities = authority.all_inherits_down()
-                queryset = queryset.filter(relevant_authorities__in=child_authorities)
-        print(queryset.query)
+        relevant_authorities = self.data.get("relevant_authorities__id__in")
+        if value and relevant_authorities and len(relevant_authorities) == 1:
+            authority = Authority.objects.get(pk=relevant_authorities[0])
+            child_authorities = authority.all_inherits_down()
+            queryset = queryset.filter(relevant_authorities__in=child_authorities)
 
         return queryset
 
