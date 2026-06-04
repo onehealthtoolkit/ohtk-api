@@ -19,6 +19,8 @@ from outbreaks.schema import Query as OutbreaksQuery
 from outbreaks.schema import Mutation as OutbreaksMutation
 from observations.schema import Query as ObservationsQuery
 from observations.schema import Mutation as ObservationsMutation
+from integrations.schema import Query as IntegrationsQuery
+from integrations.schema import Mutation as IntegrationsMutation
 
 
 class Query(
@@ -32,6 +34,7 @@ class Query(
     ThreadQuery,
     OutbreaksQuery,
     ObservationsQuery,
+    IntegrationsQuery,
     graphene.ObjectType,
 ):
     health_check = graphene.String(default_value="ok")
@@ -47,6 +50,7 @@ class Mutation(
     ThreadMutation,
     OutbreaksMutation,
     ObservationsMutation,
+    IntegrationsMutation,
     graphene.ObjectType,
 ):
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()
