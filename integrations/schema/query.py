@@ -1,13 +1,19 @@
 import graphene
+from django.db.models import Q
 from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
 from pagination import DjangoPaginationConnectionField
 
-from integrations.models import IntegrationClient, WebhookEndpoint
+from integrations.models import (
+    IntegrationClient,
+    IntegrationClusterResult,
+    WebhookEndpoint,
+)
 from integrations.policy import get_integration_policy
 from integrations.schema.types import (
     AdminIntegrationClientQueryType,
     AdminWebhookEndpointQueryType,
+    IntegrationClusterResultDashboardType,
     IntegrationOptionType,
     IntegrationPolicyType,
     integration_client_status_options,
@@ -25,6 +31,13 @@ def require_superuser(info):
 
 
 class Query(graphene.ObjectType):
+    cluster_results = DjangoPaginationConnectionField(
+        IntegrationClusterResultDashboardType
+    )
+    cluster_result = graphene.Field(
+        IntegrationClusterResultDashboardType,
+        id=graphene.UUID(required=True),
+    )
     admin_integration_client_query = DjangoPaginationConnectionField(
         AdminIntegrationClientQueryType
     )
@@ -60,6 +73,16 @@ class Query(graphene.ObjectType):
         graphene.NonNull(IntegrationOptionType),
         required=True,
     )
+
+    @staticmethod
+    @login_required
+    def resolve_cluster_results(root, info, **kwargs):
+        return visible_cluster_results_queryset(info)
+
+    @staticmethod
+    @login_required
+    def resolve_cluster_result(root, info, id):
+        return visible_cluster_results_queryset(info).get(cluster_id=id)
 
     @staticmethod
     @login_required
@@ -120,3 +143,24 @@ class Query(graphene.ObjectType):
     def resolve_integration_type_options(root, info):
         require_superuser(info)
         return integration_type_options()
+
+
+def visible_cluster_results_queryset(info):
+    queryset = (
+        IntegrationClusterResult.objects.all()
+        .select_related("integration_client")
+        .order_by("-window_start", "-window_end", "-created_at")
+    )
+    user = info.context.user
+    if user.is_authority_user:
+        child_authority_ids = [
+            authority.id
+            for authority in user.authorityuser.authority.all_inherits_down()
+        ]
+        authority_query = Q()
+        for authority_id in child_authority_ids:
+            authority_query |= Q(authority_ids__contains=[authority_id])
+        if not authority_query:
+            return queryset.none()
+        queryset = queryset.filter(authority_query).distinct()
+    return queryset

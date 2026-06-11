@@ -7,7 +7,14 @@ from graphene_django import DjangoObjectType
 from accounts.models import AuthorityUser
 from common.types import AdminValidationProblem
 from integrations.constants import IntegrationEventType, IntegrationScope
-from integrations.models import IntegrationClient, WebhookEndpoint
+from integrations.models import (
+    IntegrationClient,
+    IntegrationClusterResult,
+    RiskAssessment,
+    WebhookEndpoint,
+)
+from reports.models import IncidentReport
+from reports.schema.types import IncidentReportType
 
 
 class IntegrationOptionType(graphene.ObjectType):
@@ -164,6 +171,158 @@ class AdminWebhookEndpointQueryType(DjangoObjectType):
     @classmethod
     def get_queryset(cls, queryset, info):
         return queryset.select_related("integration_client__oauth_application")
+
+
+class IntegrationClusterResultDashboardFilter(django_filters.FilterSet):
+    q = django_filters.CharFilter(method="filter_q")
+    risk_levels = django_filters.CharFilter(method="filter_risk_levels")
+    from_date = django_filters.DateFilter(method="filter_from_date")
+    through_date = django_filters.DateFilter(method="filter_through_date")
+
+    class Meta:
+        model = IntegrationClusterResult
+        fields = []
+
+    def filter_q(self, queryset, name, value):
+        return queryset.filter(
+            Q(external_cluster_id__icontains=value)
+            | Q(explanation__icontains=value)
+            | Q(integration_client__code__icontains=value)
+            | Q(integration_client__name__icontains=value)
+        )
+
+    def filter_risk_levels(self, queryset, name, value):
+        levels = [
+            level.strip()
+            for level in (value or "").split(",")
+            if level and level.strip()
+        ]
+        if not levels:
+            return queryset
+
+        valid_levels = {choice[0] for choice in RiskAssessment.Level.choices}
+        requested_levels = [level for level in levels if level in valid_levels]
+        include_unassessed = "NO_ASSESSMENT" in levels
+
+        filter_query = Q()
+        if requested_levels:
+            filter_query |= Q(risk_level__in=requested_levels)
+        if include_unassessed:
+            filter_query |= Q(risk_level="")
+
+        if not filter_query:
+            return queryset.none()
+        return queryset.filter(filter_query)
+
+    def filter_from_date(self, queryset, name, value):
+        return queryset.filter(window_end__gte=value)
+
+    def filter_through_date(self, queryset, name, value):
+        return queryset.filter(window_start__lte=value)
+
+
+class IntegrationClusterClientType(graphene.ObjectType):
+    code = graphene.String(required=True)
+    name = graphene.String(required=True)
+
+
+class IntegrationClusterResultDashboardType(DjangoObjectType):
+    id = graphene.UUID(required=True)
+    integration_client = graphene.Field(IntegrationClusterClientType, required=True)
+    incident_ids = graphene.List(graphene.NonNull(graphene.String), required=True)
+    authority_ids = graphene.List(graphene.NonNull(graphene.Int), required=True)
+    village_ids = graphene.List(graphene.NonNull(graphene.Int), required=True)
+    geometry = GenericScalar()
+    metadata = GenericScalar(required=True)
+    radius_meters = graphene.Float()
+    score = graphene.Float()
+    risk_level = graphene.String()
+    report_count = graphene.Int(required=True)
+    linked_reports = graphene.List(graphene.NonNull(IncidentReportType), required=True)
+
+    class Meta:
+        model = IntegrationClusterResult
+        fields = (
+            "external_cluster_id",
+            "algorithm_version",
+            "window_start",
+            "window_end",
+            "explanation",
+            "created_at",
+            "updated_at",
+        )
+        filterset_class = IntegrationClusterResultDashboardFilter
+
+    @staticmethod
+    def resolve_id(root, info):
+        return root.cluster_id
+
+    @staticmethod
+    def resolve_integration_client(root, info):
+        return root.integration_client
+
+    @staticmethod
+    def resolve_incident_ids(root, info):
+        return [str(report_id) for report_id in (root.incident_ids or [])]
+
+    @staticmethod
+    def resolve_authority_ids(root, info):
+        return root.authority_ids or []
+
+    @staticmethod
+    def resolve_village_ids(root, info):
+        return root.village_ids or []
+
+    @staticmethod
+    def resolve_metadata(root, info):
+        return root.metadata or {}
+
+    @staticmethod
+    def resolve_radius_meters(root, info):
+        if root.radius_meters is None:
+            return None
+        return float(root.radius_meters)
+
+    @staticmethod
+    def resolve_score(root, info):
+        if root.score is None:
+            return None
+        return float(root.score)
+
+    @staticmethod
+    def resolve_risk_level(root, info):
+        return root.risk_level or None
+
+    @staticmethod
+    def resolve_report_count(root, info):
+        return len(root.incident_ids or [])
+
+    @staticmethod
+    def resolve_linked_reports(root, info):
+        incident_ids = [str(report_id) for report_id in (root.incident_ids or [])]
+        if not incident_ids:
+            return []
+
+        queryset = IncidentReport.objects.filter(id__in=incident_ids).select_related(
+            "report_type", "report_type__category", "reported_by"
+        )
+        user = info.context.user
+        if user.is_authority_user:
+            child_authorities = user.authorityuser.authority.all_inherits_down()
+            queryset = queryset.filter(
+                relevant_authorities__in=child_authorities
+            ).distinct()
+
+        report_by_id = {str(report.id): report for report in queryset}
+        return [
+            report_by_id[incident_id]
+            for incident_id in incident_ids
+            if incident_id in report_by_id
+        ]
+
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        return queryset.select_related("integration_client")
 
 
 class AdminIntegrationClientCreateSuccess(graphene.ObjectType):
