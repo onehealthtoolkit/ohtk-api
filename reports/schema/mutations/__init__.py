@@ -15,3 +15,4 @@ from .submit_zero_report_mutation import *
 from .submit_followup_report_mutation import *
 from .convert_to_test_report_mutation import *
 from .publish_report_type_mutation import *
+from .set_report_risk_mutation import *

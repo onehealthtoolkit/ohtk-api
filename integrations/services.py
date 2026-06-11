@@ -219,6 +219,7 @@ def create_risk_assessment(
     factors=None,
     evaluator_version="",
     integration_client=None,
+    created_by=None,
     external_assessment_id="",
     is_current=True,
 ):
@@ -233,6 +234,7 @@ def create_risk_assessment(
         source=source,
         evaluator_version=evaluator_version,
         integration_client=integration_client,
+        created_by=created_by,
         external_assessment_id=external_assessment_id,
         is_current=is_current,
     )
@@ -264,6 +266,19 @@ def create_risk_assessment(
         assessment=assessment,
         replaced_current_count=replaced_current_count,
     )
+
+
+def clear_current_risk_assessment(*, target_type, target_id):
+    target_id_value = "" if target_id is None else str(target_id)
+
+    with transaction.atomic():
+        _lock_risk_assessment_target(target_type, target_id_value)
+        current_rows = RiskAssessment.objects.select_for_update().filter(
+            target_type=target_type,
+            target_id=target_id_value,
+            is_current=True,
+        )
+        return current_rows.update(is_current=False, updated_at=timezone.now())
 
 
 def get_current_risk_assessment(*, target_type, target_id):

@@ -1,6 +1,7 @@
 import uuid
 from decimal import Decimal
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
@@ -394,6 +395,13 @@ class RiskAssessment(BaseModel):
     evaluator_version = models.CharField(max_length=120, blank=True)
     integration_client = models.ForeignKey(
         IntegrationClient,
+        on_delete=models.PROTECT,
+        related_name="risk_assessments",
+        null=True,
+        blank=True,
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="risk_assessments",
         null=True,

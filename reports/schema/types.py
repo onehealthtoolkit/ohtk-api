@@ -2,12 +2,16 @@ import graphene
 import django_filters
 from graphene.types.generic import GenericScalar
 from graphene_django import DjangoObjectType
-from django.db.models import Q
+from django.contrib.auth import get_user_model
+from django.db.models import CharField, Q
+from django.db.models.functions import Cast
 from accounts.models import Authority
 
 from accounts.schema.types import UserType, AuthorityType, resolve_thumbnail_url
 from common.types import AdminValidationProblem
 from common.filters import EmptyListInsensitiveFilterSet
+from integrations.models import RiskAssessment
+from integrations.services import get_current_risk_assessment
 
 from reports.models import ReportType, Category, IncidentReport, ReporterNotification
 from reports.models.report import Image, FollowUpReport, UploadFile
@@ -81,11 +85,47 @@ class FollowupType(DjangoObjectType):
         ]
 
 
+class CharInFilter(django_filters.BaseInFilter, django_filters.CharFilter):
+    pass
+
+
+class RiskAssessmentProjectionType(DjangoObjectType):
+    factors = GenericScalar()
+    score = graphene.Float()
+    created_by = graphene.Field(UserType)
+
+    class Meta:
+        model = RiskAssessment
+        fields = (
+            "id",
+            "level",
+            "source",
+            "score",
+            "factors",
+            "evaluator_version",
+            "external_assessment_id",
+            "is_current",
+            "created_at",
+            "created_by",
+        )
+
+    def resolve_score(self, info):
+        if self.score is None:
+            return None
+        return float(self.score)
+
+    def resolve_created_by(self, info):
+        if not self.created_by_id:
+            return None
+        return get_user_model().objects.get(pk=self.created_by_id)
+
+
 ## Report type
 class IncidentReportTypeFilter(EmptyListInsensitiveFilterSet):
     include_child_authorities = django_filters.BooleanFilter(
         method="child_authorities_filter"
     )
+    current_risk_levels = CharInFilter(method="current_risk_levels_filter")
 
     class Meta:
         model = IncidentReport
@@ -107,6 +147,38 @@ class IncidentReportTypeFilter(EmptyListInsensitiveFilterSet):
 
         return queryset
 
+    def current_risk_levels_filter(self, queryset, name, value):
+        raw_values = value.split(",") if isinstance(value, str) else value or []
+        requested_values = [item.strip().upper() for item in raw_values if item]
+        if not requested_values:
+            return queryset
+
+        include_no_assessment = "NO_ASSESSMENT" in requested_values
+        level_values = [
+            item for item in requested_values if item in RiskAssessment.Level.values
+        ]
+
+        if not include_no_assessment and not level_values:
+            return queryset.none()
+
+        current_risk_ids = RiskAssessment.objects.filter(
+            target_type=RiskAssessment.TargetType.REPORT,
+            is_current=True,
+        ).values("target_id")
+        matching_risk_ids = RiskAssessment.objects.filter(
+            target_type=RiskAssessment.TargetType.REPORT,
+            is_current=True,
+            level__in=level_values,
+        ).values("target_id")
+
+        queryset = queryset.annotate(_risk_target_id=Cast("id", CharField()))
+        filter_query = Q()
+        if level_values:
+            filter_query |= Q(_risk_target_id__in=matching_risk_ids)
+        if include_no_assessment:
+            filter_query |= ~Q(_risk_target_id__in=current_risk_ids)
+        return queryset.filter(filter_query)
+
 
 class IncidentReportType(DjangoObjectType):
     data = GenericScalar()
@@ -121,6 +193,11 @@ class IncidentReportType(DjangoObjectType):
     authorities = graphene.List(AuthorityType)
     definition = GenericScalar()
     is_followable = graphene.Boolean()
+    current_risk_assessment = graphene.Field(RiskAssessmentProjectionType)
+    risk_assessment_history = graphene.List(
+        RiskAssessmentProjectionType,
+        limit=graphene.Int(default_value=3),
+    )
 
     class Meta:
         model = IncidentReport
@@ -165,6 +242,18 @@ class IncidentReportType(DjangoObjectType):
 
     def resolve_is_followable(self, info):
         return self.report_type.followup_definition is not None
+
+    def resolve_current_risk_assessment(self, info):
+        return get_current_risk_assessment(
+            target_type=RiskAssessment.TargetType.REPORT,
+            target_id=self.id,
+        )
+
+    def resolve_risk_assessment_history(self, info, limit=3):
+        return RiskAssessment.objects.filter(
+            target_type=RiskAssessment.TargetType.REPORT,
+            target_id=str(self.id),
+        ).order_by("-created_at")[:limit]
 
 
 class FollowupReportType(DjangoObjectType):

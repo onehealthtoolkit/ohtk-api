@@ -19,6 +19,7 @@ from .mutations import (
     AdminReporterNotificationCreateMutation,
     AdminReporterNotificationUpdateMutation,
     AdminReporterNotificationDeleteMutation,
+    SetReportRiskMutation,
 )
 
 
@@ -41,3 +42,4 @@ class Mutation(graphene.ObjectType):
     admin_reporter_notification_create = AdminReporterNotificationCreateMutation.Field()
     admin_reporter_notification_update = AdminReporterNotificationUpdateMutation.Field()
     admin_reporter_notification_delete = AdminReporterNotificationDeleteMutation.Field()
+    set_report_risk = SetReportRiskMutation.Field()
