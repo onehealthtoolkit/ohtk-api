@@ -32,18 +32,14 @@ class SetReportRiskMutation(graphene.Mutation):
 
         normalized_level = level.upper() if level else None
         if normalized_level in (None, "", NO_ASSESSMENT_VALUE):
-            clear_current_risk_assessment(
-                target_type=RiskAssessment.TargetType.REPORT,
-                target_id=report.id,
-            )
+            clear_current_risk_assessment(report=report)
             return SetReportRiskMutation(report=report, risk_assessment=None)
 
         if normalized_level not in RiskAssessment.Level.values:
             raise GraphQLError("Invalid risk level")
 
         result = create_risk_assessment(
-            target_type=RiskAssessment.TargetType.REPORT,
-            target_id=report.id,
+            report=report,
             level=normalized_level,
             source=RiskAssessment.Source.HUMAN,
             created_by=user,

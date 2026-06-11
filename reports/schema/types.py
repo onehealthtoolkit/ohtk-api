@@ -3,8 +3,7 @@ import django_filters
 from graphene.types.generic import GenericScalar
 from graphene_django import DjangoObjectType
 from django.contrib.auth import get_user_model
-from django.db.models import CharField, Q
-from django.db.models.functions import Cast
+from django.db.models import Q
 from accounts.models import Authority
 
 from accounts.schema.types import UserType, AuthorityType, resolve_thumbnail_url
@@ -162,21 +161,18 @@ class IncidentReportTypeFilter(EmptyListInsensitiveFilterSet):
             return queryset.none()
 
         current_risk_ids = RiskAssessment.objects.filter(
-            target_type=RiskAssessment.TargetType.REPORT,
             is_current=True,
-        ).values("target_id")
+        ).values("report_id")
         matching_risk_ids = RiskAssessment.objects.filter(
-            target_type=RiskAssessment.TargetType.REPORT,
             is_current=True,
             level__in=level_values,
-        ).values("target_id")
+        ).values("report_id")
 
-        queryset = queryset.annotate(_risk_target_id=Cast("id", CharField()))
         filter_query = Q()
         if level_values:
-            filter_query |= Q(_risk_target_id__in=matching_risk_ids)
+            filter_query |= Q(id__in=matching_risk_ids)
         if include_no_assessment:
-            filter_query |= ~Q(_risk_target_id__in=current_risk_ids)
+            filter_query |= ~Q(id__in=current_risk_ids)
         return queryset.filter(filter_query)
 
 
@@ -244,15 +240,11 @@ class IncidentReportType(DjangoObjectType):
         return self.report_type.followup_definition is not None
 
     def resolve_current_risk_assessment(self, info):
-        return get_current_risk_assessment(
-            target_type=RiskAssessment.TargetType.REPORT,
-            target_id=self.id,
-        )
+        return get_current_risk_assessment(report=self)
 
     def resolve_risk_assessment_history(self, info, limit=3):
         return RiskAssessment.objects.filter(
-            target_type=RiskAssessment.TargetType.REPORT,
-            target_id=str(self.id),
+            report=self,
         ).order_by("-created_at")[:limit]
 
 

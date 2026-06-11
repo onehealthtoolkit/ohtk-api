@@ -1,3 +1,4 @@
+from datetime import date
 from unittest import mock
 
 from django.conf import settings
@@ -9,6 +10,7 @@ from django_tenants.test.cases import TenantTestCase
 from django_tenants.utils import schema_context
 from oauth2_provider.models import get_application_model
 
+from accounts.models import Authority, AuthorityUser
 from integrations.constants import IntegrationScope
 from integrations.exceptions import (
     IntegrationClientDenied,
@@ -24,9 +26,10 @@ from integrations.services import (
     payload_hash,
     register_idempotent_result,
     secret_safe_summary,
-    _lock_risk_assessment_target,
+    _lock_risk_assessment_report,
     _risk_assessment_lock_id,
 )
+from reports.models import Category, IncidentReport, ReportType
 
 
 class IntegrationsSettingsTests(SimpleTestCase):
@@ -341,6 +344,22 @@ class RiskAssessmentStorageTests(TenantTestCase):
         tenant.name = "Tenant Alpha"
 
     def setUp(self):
+        self.authority = Authority.objects.create(code="BKK", name="Bangkok")
+        self.reporter = AuthorityUser.objects.create(
+            username="risk-reporter",
+            authority=self.authority,
+        )
+        self.category = Category.objects.create(name="animal")
+        self.report_type = ReportType.objects.create(
+            name="Animal Sick/Death",
+            category=self.category,
+            definition={},
+            published=True,
+        )
+        self.report_type.authorities.add(self.authority)
+        self.report = self._create_report("report-1")
+        self.other_report = self._create_report("report-2")
+
         application_model = get_application_model()
         self.risk_application = application_model.objects.create(
             name="risk-client",
@@ -369,10 +388,19 @@ class RiskAssessmentStorageTests(TenantTestCase):
             scope_codes=[IntegrationScope.AI_READ_REPORT],
         )
 
+    def _create_report(self, symptom):
+        report = IncidentReport.objects.create(
+            data={"symptom": symptom},
+            reported_by=self.reporter,
+            incident_date=date(2026, 6, 2),
+            report_type=self.report_type,
+        )
+        report.relevant_authorities.add(self.authority)
+        return report
+
     def test_current_assessment_replacement_preserves_history(self):
         first = create_risk_assessment(
-            target_type=RiskAssessment.TargetType.REPORT,
-            target_id="report-1",
+            report=self.report,
             level=RiskAssessment.Level.HIGH,
             score="0.8400",
             factors=[{"key": "mortality_count", "weight": 0.5}],
@@ -382,8 +410,7 @@ class RiskAssessmentStorageTests(TenantTestCase):
             external_assessment_id="risk-001",
         )
         second = create_risk_assessment(
-            target_type=RiskAssessment.TargetType.REPORT,
-            target_id="report-1",
+            report=self.report,
             level=RiskAssessment.Level.LOW,
             score="0.1000",
             factors=[{"key": "officer_override"}],
@@ -396,64 +423,45 @@ class RiskAssessmentStorageTests(TenantTestCase):
         self.assertEqual(1, second.replaced_current_count)
         self.assertEqual(
             second.assessment,
-            get_current_risk_assessment(
-                target_type=RiskAssessment.TargetType.REPORT,
-                target_id="report-1",
-            ),
+            get_current_risk_assessment(report=self.report),
         )
         self.assertEqual(
             [second.assessment.id, first.assessment.id],
             list(
                 RiskAssessment.objects.filter(
-                    target_type=RiskAssessment.TargetType.REPORT,
-                    target_id="report-1",
+                    report=self.report,
                 ).values_list("id", flat=True)
             ),
         )
 
-    def test_current_assessment_takes_per_target_advisory_lock(self):
-        with mock.patch(
-            "integrations.services._lock_risk_assessment_target"
-        ) as lock_target:
+    def test_current_assessment_takes_per_report_advisory_lock(self):
+        with mock.patch("integrations.services._lock_risk_assessment_report") as lock:
             create_risk_assessment(
-                target_type=RiskAssessment.TargetType.REPORT,
-                target_id="report-lock",
+                report=self.report,
                 level=RiskAssessment.Level.HIGH,
                 source=RiskAssessment.Source.RULE_ENGINE,
             )
 
-        lock_target.assert_called_once_with(
-            RiskAssessment.TargetType.REPORT,
-            "report-lock",
-        )
+        lock.assert_called_once_with(self.report.id)
 
     def test_non_current_assessment_does_not_take_current_projection_lock(self):
-        with mock.patch(
-            "integrations.services._lock_risk_assessment_target"
-        ) as lock_target:
+        with mock.patch("integrations.services._lock_risk_assessment_report") as lock:
             create_risk_assessment(
-                target_type=RiskAssessment.TargetType.REPORT,
-                target_id="report-historical",
+                report=self.report,
                 level=RiskAssessment.Level.HIGH,
                 source=RiskAssessment.Source.RULE_ENGINE,
                 is_current=False,
             )
 
-        lock_target.assert_not_called()
+        lock.assert_not_called()
 
-    def test_risk_assessment_target_lock_uses_stable_postgres_advisory_lock(self):
-        expected_lock_id = _risk_assessment_lock_id(
-            RiskAssessment.TargetType.REPORT,
-            "report-lock",
-        )
+    def test_risk_assessment_report_lock_uses_stable_postgres_advisory_lock(self):
+        expected_lock_id = _risk_assessment_lock_id(self.report.id)
 
         with mock.patch("integrations.services.connection.cursor") as cursor_factory:
             cursor = cursor_factory.return_value.__enter__.return_value
 
-            _lock_risk_assessment_target(
-                RiskAssessment.TargetType.REPORT,
-                "report-lock",
-            )
+            _lock_risk_assessment_report(self.report.id)
 
         cursor.execute.assert_called_once_with(
             "SELECT pg_advisory_xact_lock(%s)",
@@ -461,22 +469,17 @@ class RiskAssessmentStorageTests(TenantTestCase):
         )
         self.assertNotEqual(
             expected_lock_id,
-            _risk_assessment_lock_id(
-                RiskAssessment.TargetType.CASE,
-                "report-lock",
-            ),
+            _risk_assessment_lock_id(self.other_report.id),
         )
 
     def test_non_current_assessment_does_not_replace_current_projection(self):
         current = create_risk_assessment(
-            target_type=RiskAssessment.TargetType.CASE,
-            target_id="case-1",
+            report=self.report,
             level=RiskAssessment.Level.MEDIUM,
             source=RiskAssessment.Source.RULE_ENGINE,
         )
         historical = create_risk_assessment(
-            target_type=RiskAssessment.TargetType.CASE,
-            target_id="case-1",
+            report=self.report,
             level=RiskAssessment.Level.HIGH,
             source=RiskAssessment.Source.RULE_ENGINE,
             is_current=False,
@@ -488,47 +491,33 @@ class RiskAssessmentStorageTests(TenantTestCase):
         self.assertEqual(0, historical.replaced_current_count)
         self.assertEqual(
             current.assessment,
-            get_current_risk_assessment(
-                target_type=RiskAssessment.TargetType.CASE,
-                target_id="case-1",
-            ),
+            get_current_risk_assessment(report=self.report),
         )
 
-    def test_current_projection_is_separated_by_target_type_and_id(self):
+    def test_current_projection_is_separated_by_report(self):
         report_assessment = create_risk_assessment(
-            target_type=RiskAssessment.TargetType.REPORT,
-            target_id="shared-id",
+            report=self.report,
             level=RiskAssessment.Level.LOW,
             source=RiskAssessment.Source.RULE_ENGINE,
         )
-        case_assessment = create_risk_assessment(
-            target_type=RiskAssessment.TargetType.CASE,
-            target_id="shared-id",
-            level=RiskAssessment.Level.HIGH,
-            source=RiskAssessment.Source.RULE_ENGINE,
-        )
-        cluster_assessment = create_risk_assessment(
-            target_type=RiskAssessment.TargetType.CLUSTER,
-            target_id="cluster-1",
+        other_report_assessment = create_risk_assessment(
+            report=self.other_report,
             level=RiskAssessment.Level.CRITICAL,
             source=RiskAssessment.Source.RULE_ENGINE,
         )
 
         self.assertTrue(report_assessment.assessment.is_current)
-        self.assertTrue(case_assessment.assessment.is_current)
-        self.assertTrue(cluster_assessment.assessment.is_current)
-        self.assertEqual(3, RiskAssessment.objects.filter(is_current=True).count())
+        self.assertTrue(other_report_assessment.assessment.is_current)
+        self.assertEqual(2, RiskAssessment.objects.filter(is_current=True).count())
 
     def test_optional_integration_client_for_human_and_rule_engine_sources(self):
         human = create_risk_assessment(
-            target_type=RiskAssessment.TargetType.REPORT,
-            target_id="human-report",
+            report=self.report,
             level=RiskAssessment.Level.MEDIUM,
             source=RiskAssessment.Source.HUMAN,
         )
         rule_engine = create_risk_assessment(
-            target_type=RiskAssessment.TargetType.REPORT,
-            target_id="rule-report",
+            report=self.other_report,
             level=RiskAssessment.Level.HIGH,
             source=RiskAssessment.Source.RULE_ENGINE,
         )
@@ -539,16 +528,14 @@ class RiskAssessmentStorageTests(TenantTestCase):
     def test_external_source_requires_active_risk_update_integration_client(self):
         with self.assertRaises(ValidationError):
             create_risk_assessment(
-                target_type=RiskAssessment.TargetType.REPORT,
-                target_id="report-2",
+                report=self.report,
                 level=RiskAssessment.Level.HIGH,
                 source=RiskAssessment.Source.EXTERNAL_RISK_EVALUATOR,
             )
 
         with self.assertRaises(ValidationError):
             create_risk_assessment(
-                target_type=RiskAssessment.TargetType.REPORT,
-                target_id="report-2",
+                report=self.report,
                 level=RiskAssessment.Level.HIGH,
                 source=RiskAssessment.Source.HUMAN,
                 integration_client=self.risk_client,
@@ -556,36 +543,31 @@ class RiskAssessmentStorageTests(TenantTestCase):
 
         with self.assertRaises(ValidationError):
             create_risk_assessment(
-                target_type=RiskAssessment.TargetType.REPORT,
-                target_id="report-2",
+                report=self.report,
                 level=RiskAssessment.Level.HIGH,
                 source=RiskAssessment.Source.AI,
                 integration_client=self.ai_client,
             )
 
-    def test_invalid_target_level_source_and_score_are_rejected(self):
+    def test_invalid_report_level_source_and_score_are_rejected(self):
         invalid_payloads = [
             {
-                "target_type": "incident",
-                "target_id": "report-3",
+                "report": None,
                 "level": RiskAssessment.Level.HIGH,
                 "source": RiskAssessment.Source.RULE_ENGINE,
             },
             {
-                "target_type": RiskAssessment.TargetType.REPORT,
-                "target_id": "report-3",
+                "report": self.report,
                 "level": "SEVERE",
                 "source": RiskAssessment.Source.RULE_ENGINE,
             },
             {
-                "target_type": RiskAssessment.TargetType.REPORT,
-                "target_id": "report-3",
+                "report": self.report,
                 "level": RiskAssessment.Level.HIGH,
                 "source": "bot",
             },
             {
-                "target_type": RiskAssessment.TargetType.REPORT,
-                "target_id": "report-3",
+                "report": self.report,
                 "level": RiskAssessment.Level.HIGH,
                 "source": RiskAssessment.Source.RULE_ENGINE,
                 "score": "1.1000",
@@ -599,8 +581,7 @@ class RiskAssessmentStorageTests(TenantTestCase):
 
     def test_factors_are_stored_as_secret_safe_summary(self):
         result = create_risk_assessment(
-            target_type=RiskAssessment.TargetType.REPORT,
-            target_id="report-secret",
+            report=self.report,
             level=RiskAssessment.Level.HIGH,
             source=RiskAssessment.Source.EXTERNAL_RISK_EVALUATOR,
             integration_client=self.risk_client,

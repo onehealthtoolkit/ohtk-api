@@ -135,9 +135,7 @@ class ClusterResultApiTests(TenantTestCase):
         )
         self.assertEqual(
             0,
-            RiskAssessment.objects.filter(
-                target_type=RiskAssessment.TargetType.CLUSTER
-            ).count(),
+            RiskAssessment.objects.count(),
         )
 
         action_log = IntegrationActionLog.objects.get(

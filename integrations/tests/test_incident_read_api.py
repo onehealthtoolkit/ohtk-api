@@ -91,8 +91,7 @@ class IncidentReadApiTests(TenantTestCase):
             integration_type=IntegrationClient.IntegrationType.RISK_EVALUATOR,
         )
         create_risk_assessment(
-            target_type=RiskAssessment.TargetType.REPORT,
-            target_id=self.report.id,
+            report=self.report,
             level=RiskAssessment.Level.HIGH,
             score=Decimal("0.8400"),
             factors=[],

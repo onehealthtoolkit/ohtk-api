@@ -211,8 +211,7 @@ def create_integration_report_comment(
 
 def create_risk_assessment(
     *,
-    target_type,
-    target_id,
+    report,
     level,
     source,
     score=None,
@@ -223,11 +222,8 @@ def create_risk_assessment(
     external_assessment_id="",
     is_current=True,
 ):
-    target_id_value = "" if target_id is None else str(target_id)
-
     assessment = RiskAssessment(
-        target_type=target_type,
-        target_id=target_id_value,
+        report=report,
         level=level,
         score=score,
         factors=factors if factors is not None else [],
@@ -246,13 +242,9 @@ def create_risk_assessment(
     replaced_current_count = 0
     with transaction.atomic():
         if assessment.is_current:
-            _lock_risk_assessment_target(
-                assessment.target_type,
-                assessment.target_id,
-            )
+            _lock_risk_assessment_report(assessment.report_id)
             current_rows = RiskAssessment.objects.select_for_update().filter(
-                target_type=assessment.target_type,
-                target_id=assessment.target_id,
+                report=assessment.report,
                 is_current=True,
             )
             replaced_current_count = current_rows.update(
@@ -268,24 +260,20 @@ def create_risk_assessment(
     )
 
 
-def clear_current_risk_assessment(*, target_type, target_id):
-    target_id_value = "" if target_id is None else str(target_id)
-
+def clear_current_risk_assessment(*, report):
     with transaction.atomic():
-        _lock_risk_assessment_target(target_type, target_id_value)
+        _lock_risk_assessment_report(report.id)
         current_rows = RiskAssessment.objects.select_for_update().filter(
-            target_type=target_type,
-            target_id=target_id_value,
+            report=report,
             is_current=True,
         )
         return current_rows.update(is_current=False, updated_at=timezone.now())
 
 
-def get_current_risk_assessment(*, target_type, target_id):
+def get_current_risk_assessment(*, report):
     return (
         RiskAssessment.objects.filter(
-            target_type=target_type,
-            target_id=str(target_id),
+            report=report,
             is_current=True,
         )
         .order_by("-created_at")
@@ -293,15 +281,15 @@ def get_current_risk_assessment(*, target_type, target_id):
     )
 
 
-def _lock_risk_assessment_target(target_type, target_id):
+def _lock_risk_assessment_report(report_id):
     with connection.cursor() as cursor:
         cursor.execute(
             "SELECT pg_advisory_xact_lock(%s)",
-            [_risk_assessment_lock_id(target_type, target_id)],
+            [_risk_assessment_lock_id(report_id)],
         )
 
 
-def _risk_assessment_lock_id(target_type, target_id):
-    lock_key = f"integrations.risk_assessment:{target_type}:{target_id}"
+def _risk_assessment_lock_id(report_id):
+    lock_key = f"integrations.risk_assessment:report:{report_id}"
     digest = hashlib.sha256(lock_key.encode("utf-8")).digest()
     return int.from_bytes(digest[:8], byteorder="big", signed=True)

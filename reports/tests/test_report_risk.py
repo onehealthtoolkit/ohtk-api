@@ -85,10 +85,7 @@ class ReportRiskGraphqlTests(TenantTestCase):
             result.data["setReportRisk"]["report"]["riskAssessmentHistory"],
         )
 
-        current = get_current_risk_assessment(
-            target_type=RiskAssessment.TargetType.REPORT,
-            target_id=report.id,
-        )
+        current = get_current_risk_assessment(report=report)
         self.assertEqual(RiskAssessment.Level.HIGH, current.level)
         self.assertEqual(self.user.id, current.created_by_id)
 
@@ -97,15 +94,13 @@ class ReportRiskGraphqlTests(TenantTestCase):
         low_report = self._create_report()
         no_assessment_report = self._create_report()
         create_risk_assessment(
-            target_type=RiskAssessment.TargetType.REPORT,
-            target_id=high_report.id,
+            report=high_report,
             level=RiskAssessment.Level.HIGH,
             source=RiskAssessment.Source.HUMAN,
             created_by=self.user,
         )
         create_risk_assessment(
-            target_type=RiskAssessment.TargetType.REPORT,
-            target_id=low_report.id,
+            report=low_report,
             level=RiskAssessment.Level.LOW,
             source=RiskAssessment.Source.HUMAN,
             created_by=self.user,
@@ -140,8 +135,7 @@ class ReportRiskGraphqlTests(TenantTestCase):
     def test_set_report_risk_can_clear_to_no_assessment(self):
         report = self._create_report()
         create_risk_assessment(
-            target_type=RiskAssessment.TargetType.REPORT,
-            target_id=report.id,
+            report=report,
             level=RiskAssessment.Level.CRITICAL,
             source=RiskAssessment.Source.HUMAN,
             created_by=self.user,
@@ -172,10 +166,7 @@ class ReportRiskGraphqlTests(TenantTestCase):
             result.data["setReportRisk"]["report"]["currentRiskAssessment"]
         )
         self.assertIsNone(
-            get_current_risk_assessment(
-                target_type=RiskAssessment.TargetType.REPORT,
-                target_id=report.id,
-            )
+            get_current_risk_assessment(report=report)
         )
 
     def _create_report(self):

@@ -333,11 +333,6 @@ class IntegrationIdempotencyRecord(BaseModel):
 
 
 class RiskAssessment(BaseModel):
-    class TargetType(models.TextChoices):
-        REPORT = "report", "Report"
-        CASE = "case", "Case"
-        CLUSTER = "cluster", "Cluster"
-
     class Level(models.TextChoices):
         LOW = "LOW", "Low"
         MEDIUM = "MEDIUM", "Medium"
@@ -362,11 +357,11 @@ class RiskAssessment(BaseModel):
         ordering = ("-created_at",)
         indexes = [
             models.Index(
-                fields=["target_type", "target_id", "-created_at"],
-                name="risk_assessment_target_idx",
+                fields=["report", "-created_at"],
+                name="risk_assessment_report_idx",
             ),
             models.Index(
-                fields=["target_type", "target_id", "is_current"],
+                fields=["report", "is_current"],
                 name="risk_assessment_current_idx",
             ),
             models.Index(
@@ -376,16 +371,19 @@ class RiskAssessment(BaseModel):
         ]
         constraints = [
             models.UniqueConstraint(
-                fields=["target_type", "target_id"],
+                fields=["report"],
                 condition=Q(is_current=True, deleted_at__isnull=True),
-                name="unique_current_risk_assessment_target",
+                name="unique_current_risk_assessment_report",
             )
         ]
 
     objects = BaseModelManager()
 
-    target_type = models.CharField(choices=TargetType.choices, max_length=20)
-    target_id = models.CharField(max_length=120)
+    report = models.ForeignKey(
+        "reports.IncidentReport",
+        on_delete=models.CASCADE,
+        related_name="risk_assessments",
+    )
     level = models.CharField(choices=Level.choices, max_length=20)
     score = models.DecimalField(
         max_digits=5, decimal_places=4, null=True, blank=True
@@ -414,8 +412,8 @@ class RiskAssessment(BaseModel):
         super().clean()
         errors = {}
 
-        if not self.target_id:
-            errors["target_id"] = "Risk assessment target_id is required."
+        if not self.report_id:
+            errors["report"] = "Risk assessment report is required."
 
         if self.score is not None:
             score = Decimal(self.score)
@@ -453,7 +451,7 @@ class RiskAssessment(BaseModel):
         return super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.target_type}:{self.target_id} {self.level}"
+        return f"report:{self.report_id} {self.level}"
 
 
 class IntegrationClusterResult(BaseModel):

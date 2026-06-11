@@ -132,7 +132,7 @@ INTEGRATION_RISK_SOURCES = {
 }
 
 
-class _RiskTargetNotFound(Exception):
+class _RiskReportNotFound(Exception):
     pass
 
 
@@ -285,10 +285,7 @@ def incident_detail(request, report_id):
         )
 
     try:
-        current_risk_assessment = get_current_risk_assessment(
-            target_type=RiskAssessment.TargetType.REPORT,
-            target_id=report.id,
-        )
+        current_risk_assessment = get_current_risk_assessment(report=report)
         response_payload = {
             "schemaVersion": SCHEMA_VERSION,
             "incident": _incident_payload(
@@ -1466,13 +1463,12 @@ def report_risk_assessments(request, report_id):
                 return JsonResponse(response_payload, status=response_status)
 
             try:
-                IncidentReport.objects.get(pk=report_id)
+                report = IncidentReport.objects.get(pk=report_id)
             except IncidentReport.DoesNotExist as exc:
-                raise _RiskTargetNotFound from exc
+                raise _RiskReportNotFound from exc
 
             result = create_risk_assessment(
-                target_type=RiskAssessment.TargetType.REPORT,
-                target_id=target_id,
+                report=report,
                 level=normalized["level"],
                 score=normalized["score"],
                 factors=normalized["factors"],
@@ -1507,7 +1503,7 @@ def report_risk_assessments(request, report_id):
                     "updated_at",
                 )
             )
-    except _RiskTargetNotFound:
+    except _RiskReportNotFound:
         _create_risk_action_log(
             request=request,
             integration_client=integration_client,
@@ -2503,15 +2499,14 @@ def _census_fact_payloads(snapshot, kind):
 
 
 def _current_risk_assessments_by_report_id(report_ids):
-    target_ids = [str(report_id) for report_id in report_ids]
-    if not target_ids:
+    report_id_values = [str(report_id) for report_id in report_ids]
+    if not report_id_values:
         return {}
 
     return {
-        assessment.target_id: assessment
+        str(assessment.report_id): assessment
         for assessment in RiskAssessment.objects.filter(
-            target_type=RiskAssessment.TargetType.REPORT,
-            target_id__in=target_ids,
+            report_id__in=report_id_values,
             is_current=True,
         )
     }
@@ -3079,8 +3074,8 @@ def _risk_accepted_payload(result):
         "riskAssessment": {
             "id": str(assessment.id),
             "target": {
-                "type": assessment.target_type,
-                "id": str(assessment.target_id),
+                "type": "report",
+                "id": str(assessment.report_id),
             },
             "level": assessment.level,
             "score": _score_for_response(assessment.score),

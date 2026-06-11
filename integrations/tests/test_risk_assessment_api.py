@@ -101,8 +101,7 @@ class RiskAssessmentApiTests(TenantTestCase):
         self.assertEqual(0, risk_payload["replacedCurrentCount"])
 
         stored_assessment = RiskAssessment.objects.get()
-        self.assertEqual(RiskAssessment.TargetType.REPORT, stored_assessment.target_type)
-        self.assertEqual(str(self.report.id), stored_assessment.target_id)
+        self.assertEqual(self.report, stored_assessment.report)
         self.assertEqual(RiskAssessment.Level.HIGH, stored_assessment.level)
         self.assertEqual(0.84, float(stored_assessment.score))
         self.assertEqual(
@@ -170,8 +169,7 @@ class RiskAssessmentApiTests(TenantTestCase):
         )
         self.assertFalse(first_assessment.is_current)
         self.assertTrue(second_assessment.is_current)
-        self.assertEqual(RiskAssessment.TargetType.REPORT, second_assessment.target_type)
-        self.assertEqual(str(self.report.id), second_assessment.target_id)
+        self.assertEqual(self.report, second_assessment.report)
 
     def test_external_assessment_id_can_supply_idempotency_key(self):
         response = self._post_report_risk(
