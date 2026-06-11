@@ -13,7 +13,6 @@ from oauth2_provider.oauth2_validators import OAuth2Validator
 from oauthlib.oauth2 import Server
 
 from accounts.models import Authority, Village
-from cases.models import Case
 from census.models import (
     CensusDefinition,
     VillageCensusSnapshot,
@@ -49,7 +48,6 @@ ACTION_RISK_UPDATE = "risk.update"
 ACTION_CLUSTER_WRITE_RESULT = "cluster.write_result"
 ACTION_CLUSTER_READ = "cluster.read"
 TARGET_REPORT = "reports.IncidentReport"
-TARGET_CASE = "cases.Case"
 TARGET_CENSUS_SNAPSHOT = "census.VillageCensusSnapshot"
 TARGET_VILLAGE = "accounts.Village"
 TARGET_CLUSTER_RESULT = "integrations.IntegrationClusterResult"
@@ -1295,42 +1293,7 @@ def report_comments(request, report_id):
 @csrf_exempt
 @require_POST
 def report_risk_assessments(request, report_id):
-    return _risk_assessments(
-        request=request,
-        target_lookup_id=report_id,
-        target_type=RiskAssessment.TargetType.REPORT,
-        audit_target_type=TARGET_REPORT,
-        target_not_found_code="report_not_found",
-        target_not_found_message="Report was not found in the selected tenant.",
-        get_target=lambda: IncidentReport.objects.get(pk=report_id),
-    )
-
-
-@csrf_exempt
-@require_POST
-def case_risk_assessments(request, case_id):
-    return _risk_assessments(
-        request=request,
-        target_lookup_id=case_id,
-        target_type=RiskAssessment.TargetType.CASE,
-        audit_target_type=TARGET_CASE,
-        target_not_found_code="case_not_found",
-        target_not_found_message="Case was not found in the selected tenant.",
-        get_target=lambda: Case.objects.get(pk=case_id),
-    )
-
-
-def _risk_assessments(
-    *,
-    request,
-    target_lookup_id,
-    target_type,
-    audit_target_type,
-    target_not_found_code,
-    target_not_found_message,
-    get_target,
-):
-    target_id = str(target_lookup_id)
+    target_id = str(report_id)
 
     try:
         assert_integration_tenant_schema()
@@ -1366,7 +1329,7 @@ def _risk_assessments(
         _create_risk_action_log(
             request=request,
             integration_client=integration_client,
-            target_type=audit_target_type,
+            target_type=TARGET_REPORT,
             target_id=target_id,
             result_status=IntegrationActionLog.ResultStatus.REJECTED,
             result_summary={
@@ -1392,7 +1355,7 @@ def _risk_assessments(
         _create_risk_action_log(
             request=request,
             integration_client=integration_client,
-            target_type=audit_target_type,
+            target_type=TARGET_REPORT,
             target_id=target_id,
             result_status=IntegrationActionLog.ResultStatus.REJECTED,
             result_summary={
@@ -1419,7 +1382,7 @@ def _risk_assessments(
         _create_risk_action_log(
             request=request,
             integration_client=integration_client,
-            target_type=audit_target_type,
+            target_type=TARGET_REPORT,
             target_id=target_id,
             raw_payload=request.body,
             result_status=IntegrationActionLog.ResultStatus.REJECTED,
@@ -1450,7 +1413,7 @@ def _risk_assessments(
         _create_risk_action_log(
             request=request,
             integration_client=integration_client,
-            target_type=audit_target_type,
+            target_type=TARGET_REPORT,
             target_id=target_id,
             payload=payload,
             idempotency_key=idempotency_key,
@@ -1477,7 +1440,7 @@ def _risk_assessments(
                 action_type=ACTION_RISK_UPDATE,
                 key=idempotency_key,
                 request_payload=payload,
-                target_type=audit_target_type,
+                target_type=TARGET_REPORT,
                 target_id=target_id,
             )
             if idempotency.replayed:
@@ -1486,7 +1449,7 @@ def _risk_assessments(
                 _create_risk_action_log(
                     request=request,
                     integration_client=integration_client,
-                    target_type=audit_target_type,
+                    target_type=TARGET_REPORT,
                     target_id=target_id,
                     payload=payload,
                     idempotency_key=idempotency_key,
@@ -1503,12 +1466,12 @@ def _risk_assessments(
                 return JsonResponse(response_payload, status=response_status)
 
             try:
-                get_target()
-            except (IncidentReport.DoesNotExist, Case.DoesNotExist) as exc:
+                IncidentReport.objects.get(pk=report_id)
+            except IncidentReport.DoesNotExist as exc:
                 raise _RiskTargetNotFound from exc
 
             result = create_risk_assessment(
-                target_type=target_type,
+                target_type=RiskAssessment.TargetType.REPORT,
                 target_id=target_id,
                 level=normalized["level"],
                 score=normalized["score"],
@@ -1522,7 +1485,7 @@ def _risk_assessments(
             action_log = _create_risk_action_log(
                 request=request,
                 integration_client=integration_client,
-                target_type=audit_target_type,
+                target_type=TARGET_REPORT,
                 target_id=target_id,
                 payload=payload,
                 idempotency_key=idempotency_key,
@@ -1548,7 +1511,7 @@ def _risk_assessments(
         _create_risk_action_log(
             request=request,
             integration_client=integration_client,
-            target_type=audit_target_type,
+            target_type=TARGET_REPORT,
             target_id=target_id,
             payload=payload,
             idempotency_key=idempotency_key,
@@ -1556,22 +1519,22 @@ def _risk_assessments(
             result_status=IntegrationActionLog.ResultStatus.REJECTED,
             result_summary={
                 "error": {
-                    "code": target_not_found_code,
-                    "message": target_not_found_message,
+                    "code": "report_not_found",
+                    "message": "Report was not found in the selected tenant.",
                 },
                 "payloadSummary": secret_safe_summary(payload),
             },
         )
         return _error_response(
             status=404,
-            code=target_not_found_code,
-            message=target_not_found_message,
+            code="report_not_found",
+            message="Report was not found in the selected tenant.",
         )
     except IntegrationIdempotencyConflict as exc:
         _create_risk_action_log(
             request=request,
             integration_client=integration_client,
-            target_type=audit_target_type,
+            target_type=TARGET_REPORT,
             target_id=target_id,
             payload=payload,
             idempotency_key=idempotency_key,
@@ -1594,7 +1557,7 @@ def _risk_assessments(
         _create_risk_action_log(
             request=request,
             integration_client=integration_client,
-            target_type=audit_target_type,
+            target_type=TARGET_REPORT,
             target_id=target_id,
             payload=payload,
             idempotency_key=idempotency_key,
@@ -1617,7 +1580,7 @@ def _risk_assessments(
         _create_risk_action_log(
             request=request,
             integration_client=integration_client,
-            target_type=audit_target_type,
+            target_type=TARGET_REPORT,
             target_id=target_id,
             payload=payload,
             idempotency_key=idempotency_key,

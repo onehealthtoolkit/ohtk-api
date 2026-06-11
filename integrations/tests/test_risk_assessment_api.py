@@ -3,14 +3,13 @@ from datetime import timedelta
 
 from django.db import connection
 from django.test import Client
-from django.urls import resolve
+from django.urls import Resolver404, resolve
 from django.utils import timezone
 from django_tenants.test.cases import TenantTestCase
 from django_tenants.test.client import TenantClient
 from oauth2_provider.models import get_access_token_model, get_application_model
 
 from accounts.models import Authority, AuthorityUser
-from cases.models import Case
 from integrations.constants import IntegrationScope
 from integrations.models import (
     IntegrationActionLog,
@@ -49,11 +48,6 @@ class RiskAssessmentApiTests(TenantTestCase):
             report_type=self.report_type,
         )
         self.report.relevant_authorities.add(self.authority)
-        self.case = Case.objects.create(
-            report=self.report,
-            description="Case for risk assessment endpoint tests.",
-        )
-        self.case.authorities.add(self.authority)
         self.application, self.integration_client, self.access_token = (
             self._create_oauth_client(
                 "risk-client",
@@ -64,16 +58,14 @@ class RiskAssessmentApiTests(TenantTestCase):
 
     def test_endpoints_are_exposed_at_versioned_risk_assessment_paths(self):
         report_match = resolve(self._report_url())
-        case_match = resolve(self._case_url())
 
         self.assertEqual(
             "integration-report-risk-assessments",
             report_match.url_name,
         )
-        self.assertEqual(
-            "integration-case-risk-assessments",
-            case_match.url_name,
-        )
+
+        with self.assertRaises(Resolver404):
+            resolve(self._case_url())
 
     def test_create_report_risk_assessment_stores_current_projection_and_audit(self):
         payload = {
@@ -145,43 +137,6 @@ class RiskAssessmentApiTests(TenantTestCase):
         self.assertEqual(action_log, idempotency.action_log)
         self.assertEqual(202, idempotency.response_status_code)
         self.assertEqual(response_payload, idempotency.response_summary)
-
-    def test_create_case_risk_assessment_replaces_current_projection(self):
-        first = self._post_case_risk(
-            {
-                "externalAssessmentId": "risk-case-001",
-                "level": "LOW",
-                "score": 0.2,
-            },
-            idempotency_key="idem-case-risk-001",
-        )
-        second = self._post_case_risk(
-            {
-                "externalAssessmentId": "risk-case-002",
-                "level": "CRITICAL",
-                "score": 0.95,
-                "source": "ai",
-            },
-            idempotency_key="idem-case-risk-002",
-        )
-
-        self.assertEqual(202, first.status_code)
-        self.assertEqual(202, second.status_code)
-        self.assertEqual(
-            1,
-            second.json()["riskAssessment"]["replacedCurrentCount"],
-        )
-        first_assessment = RiskAssessment.objects.get(
-            external_assessment_id="risk-case-001"
-        )
-        second_assessment = RiskAssessment.objects.get(
-            external_assessment_id="risk-case-002"
-        )
-        self.assertFalse(first_assessment.is_current)
-        self.assertTrue(second_assessment.is_current)
-        self.assertEqual(RiskAssessment.TargetType.CASE, second_assessment.target_type)
-        self.assertEqual(str(self.case.id), second_assessment.target_id)
-        self.assertEqual(RiskAssessment.Source.AI, second_assessment.source)
 
     def test_create_report_risk_assessment_replaces_current_projection(self):
         first = self._post_report_risk(
@@ -510,7 +465,6 @@ class RiskAssessmentApiTests(TenantTestCase):
 
     def test_missing_targets_are_rejected_and_audited(self):
         missing_report_id = "11111111-1111-1111-1111-111111111111"
-        missing_case_id = "22222222-2222-2222-2222-222222222222"
 
         report_response = self._post_report_risk(
             {
@@ -520,22 +474,12 @@ class RiskAssessmentApiTests(TenantTestCase):
             idempotency_key="idem-risk-missing-report",
             url=f"/api/integrations/v1/reports/{missing_report_id}/risk-assessments",
         )
-        case_response = self._post_case_risk(
-            {
-                "externalAssessmentId": "risk-missing-case",
-                "level": "HIGH",
-            },
-            idempotency_key="idem-risk-missing-case",
-            url=f"/api/integrations/v1/cases/{missing_case_id}/risk-assessments",
-        )
 
         self.assertEqual(404, report_response.status_code)
         self.assertEqual("report_not_found", report_response.json()["error"]["code"])
-        self.assertEqual(404, case_response.status_code)
-        self.assertEqual("case_not_found", case_response.json()["error"]["code"])
         self.assertEqual(0, RiskAssessment.objects.count())
         self.assertEqual(
-            {missing_report_id, missing_case_id},
+            {missing_report_id},
             set(IntegrationActionLog.objects.values_list("target_id", flat=True)),
         )
         self.assertEqual(0, IntegrationIdempotencyRecord.objects.count())
@@ -579,20 +523,6 @@ class RiskAssessmentApiTests(TenantTestCase):
             token=token,
         )
 
-    def _post_case_risk(
-        self,
-        payload,
-        idempotency_key=None,
-        token=None,
-        url=None,
-    ):
-        return self._post_risk(
-            url=url or self._case_url(),
-            payload=payload,
-            idempotency_key=idempotency_key,
-            token=token,
-        )
-
     def _post_risk(
         self,
         *,
@@ -618,4 +548,7 @@ class RiskAssessmentApiTests(TenantTestCase):
         return f"/api/integrations/v1/reports/{self.report.id}/risk-assessments"
 
     def _case_url(self):
-        return f"/api/integrations/v1/cases/{self.case.id}/risk-assessments"
+        return (
+            "/api/integrations/v1/cases/"
+            "22222222-2222-2222-2222-222222222222/risk-assessments"
+        )

@@ -44,9 +44,4 @@ urlpatterns = [
         views.report_risk_assessments,
         name="integration-report-risk-assessments",
     ),
-    path(
-        "cases/<uuid:case_id>/risk-assessments",
-        views.case_risk_assessments,
-        name="integration-case-risk-assessments",
-    ),
 ]
