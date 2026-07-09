@@ -1,7 +1,8 @@
 from django.contrib.gis.db import models
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 
-from accounts.models import AuthorityUser, Village
+from accounts.models import Authority, AuthorityUser, Village
 from common.models import BaseModel, BaseModelManager
 
 
@@ -65,9 +66,125 @@ class CensusDefinitionVersion(BaseModel):
         return f"{self.definition.kind} v{self.version}"
 
 
+class CensusRoundDefinition(BaseModel):
+    class Mode(models.TextChoices):
+        PRODUCTION = "PRODUCTION", "Production"
+        TRAINING = "TRAINING", "Training"
+
+    class Repeat(models.TextChoices):
+        ANNUAL = "ANNUAL", "Annual"
+
+    class Meta:
+        db_table = "accounts_censusrounddefinition"
+        ordering = ("kind", "mode", "code")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["code"],
+                condition=Q(deleted_at__isnull=True),
+                name="unique_active_census_round_definition_code",
+            )
+        ]
+
+    objects = BaseModelManager()
+
+    code = models.CharField(max_length=50)
+    name = models.CharField(max_length=200)
+    kind = models.CharField(choices=CensusDefinition.Kind.choices, max_length=20)
+    mode = models.CharField(
+        choices=Mode.choices, max_length=20, default=Mode.PRODUCTION
+    )
+    repeat = models.CharField(
+        choices=Repeat.choices, max_length=20, default=Repeat.ANNUAL
+    )
+    census_period_start = models.CharField(max_length=5)
+    census_period_end = models.CharField(max_length=5)
+    start_date = models.CharField(max_length=5)
+    soft_finish_date = models.CharField(max_length=5)
+    hard_finish_date = models.CharField(max_length=5)
+    target_authority = models.ForeignKey(
+        Authority,
+        on_delete=models.PROTECT,
+        related_name="census_round_definitions",
+        null=True,
+        blank=True,
+    )
+    enabled = models.BooleanField(default=True)
+
+    def clean(self):
+        from census.rounds import validate_round_definition
+
+        errors = validate_round_definition(self)
+        if errors:
+            raise ValidationError({name: message for name, message in errors})
+
+    def __str__(self):
+        return self.name
+
+
+class CensusRoundOccurrence(BaseModel):
+    class Meta:
+        db_table = "accounts_censusroundoccurrence"
+        ordering = ("start_date", "definition__code")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["definition", "year"],
+                condition=Q(deleted_at__isnull=True),
+                name="unique_active_census_round_occurrence_year",
+            ),
+            models.UniqueConstraint(
+                fields=["occurrence_key"],
+                condition=Q(deleted_at__isnull=True),
+                name="unique_active_census_round_occurrence_key",
+            ),
+        ]
+
+    objects = BaseModelManager()
+
+    definition = models.ForeignKey(
+        CensusRoundDefinition, on_delete=models.CASCADE, related_name="occurrences"
+    )
+    year = models.PositiveIntegerField()
+    occurrence_key = models.CharField(max_length=80)
+    kind = models.CharField(choices=CensusDefinition.Kind.choices, max_length=20)
+    mode = models.CharField(choices=CensusRoundDefinition.Mode.choices, max_length=20)
+    census_period_start = models.DateField()
+    census_period_end = models.DateField()
+    start_date = models.DateField()
+    soft_finish_date = models.DateField()
+    hard_finish_date = models.DateField()
+    target_authority = models.ForeignKey(
+        Authority,
+        on_delete=models.PROTECT,
+        related_name="census_round_occurrences",
+        null=True,
+        blank=True,
+    )
+
+    @property
+    def status(self):
+        from django.utils import timezone
+
+        today = timezone.localdate()
+        if today < self.start_date:
+            return "SCHEDULED"
+        if today <= self.soft_finish_date:
+            return "OPEN"
+        if today <= self.hard_finish_date:
+            return "LATE_WINDOW"
+        return "CLOSED"
+
+    def __str__(self):
+        return self.occurrence_key
+
+
 class VillageCensusSnapshot(BaseModel):
     class Status(models.TextChoices):
         SUBMITTED = "SUBMITTED", "Submitted"
+
+    class RoundResolution(models.TextChoices):
+        EXPLICIT = "EXPLICIT", "Explicit"
+        INFERRED = "INFERRED", "Inferred"
+        ADMIN_OVERRIDE = "ADMIN_OVERRIDE", "Admin override"
 
     class Meta:
         db_table = "accounts_villagecensussnapshot"
@@ -87,6 +204,16 @@ class VillageCensusSnapshot(BaseModel):
         related_name="snapshots",
         null=True,
         blank=True,
+    )
+    round_occurrence = models.ForeignKey(
+        CensusRoundOccurrence,
+        on_delete=models.PROTECT,
+        related_name="snapshots",
+        null=True,
+        blank=True,
+    )
+    round_resolution = models.CharField(
+        choices=RoundResolution.choices, max_length=20, null=True, blank=True
     )
     census_date = models.DateField()
     form_data = models.JSONField(default=dict, blank=True)

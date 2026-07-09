@@ -18,11 +18,13 @@ from census.models import (
     AnimalCensusFact,
     CensusDefinition,
     CensusDefinitionVersion,
+    CensusRoundDefinition,
     CurrentAnimalCensusFact,
     CurrentHumanCensusFact,
     HumanCensusFact,
     VillageCensusSnapshot,
 )
+from census.rounds import materialize_occurrence
 
 
 class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
@@ -53,7 +55,22 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
         )
         return cattle, buffalo
 
-    def create_animal_definition(self):
+    def create_round_definition(self, kind, code):
+        definition = CensusRoundDefinition.objects.create(
+            code=code,
+            name=f"{code} round",
+            kind=kind,
+            mode=CensusRoundDefinition.Mode.PRODUCTION,
+            census_period_start="01-01",
+            census_period_end="06-30",
+            start_date="05-01",
+            soft_finish_date="05-20",
+            hard_finish_date="05-31",
+            enabled=True,
+        )
+        return materialize_occurrence(definition, 2026)
+
+    def create_animal_definition(self, with_round=True):
         definition = CensusDefinition.objects.create(
             kind=CensusDefinition.Kind.ANIMAL,
             enabled=True,
@@ -96,9 +113,11 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
             },
             published_at=timezone.now(),
         )
+        if with_round:
+            self.create_round_definition(CensusDefinition.Kind.ANIMAL, "ANIMAL_H1")
         return definition, version
 
-    def create_authored_animal_definition(self):
+    def create_authored_animal_definition(self, with_round=True):
         definition = CensusDefinition.objects.create(
             kind=CensusDefinition.Kind.ANIMAL,
             enabled=True,
@@ -139,9 +158,11 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
             definition_schema=definition_schema,
             published_at=timezone.now(),
         )
+        if with_round:
+            self.create_round_definition(CensusDefinition.Kind.ANIMAL, "ANIMAL_H1")
         return definition, version
 
-    def create_human_definition(self):
+    def create_human_definition(self, with_round=True):
         definition = CensusDefinition.objects.create(
             kind=CensusDefinition.Kind.HUMAN,
             enabled=True,
@@ -170,10 +191,16 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
             },
             published_at=timezone.now(),
         )
+        if with_round:
+            self.create_round_definition(CensusDefinition.Kind.HUMAN, "HUMAN_H1")
         return definition, version
 
     def animal_form_data(self, cattle, buffalo):
         return {
+            "summary": {
+                "village_household_quantity": 120,
+                "animal_household_quantity": 72,
+            },
             "rows": [
                 {
                     "row_key": cattle.row_key,
@@ -189,11 +216,15 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
                         "household_quantity": 1,
                     },
                 },
-            ]
+            ],
         }
 
     def animal_row_key_form_data(self):
         return {
+            "summary": {
+                "village_household_quantity": 120,
+                "animal_household_quantity": 72,
+            },
             "rows": [
                 {
                     "row_key": "species:CATTLE",
@@ -209,7 +240,7 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
                         "household_quantity": 1,
                     },
                 },
-            ]
+            ],
         }
 
     def human_form_data(self):
@@ -240,12 +271,19 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
                         censusDate
                         status
                         formData
+                        villageHouseholdQuantity
+                        animalHouseholdQuantity
                         definitionVersion {
                             version
                             definition {
                                 kind
                             }
                         }
+                        roundOccurrence {
+                            occurrenceKey
+                            mode
+                        }
+                        roundResolution
                         facts {
                             rowKey
                             rowLabel
@@ -333,6 +371,58 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
             version["runtimeSchema"]["rows"][0]["row_key"], "species:CATTLE"
         )
         self.assertEqual(result.data["censusDefinitions"][0]["kind"], "ANIMAL")
+
+    def test_reporter_submit_animal_census_requires_household_summary(self):
+        self.enable_census()
+        _definition, version = self.create_animal_definition()
+        self.client.authenticate(self.reporter)
+        form_data = self.animal_row_key_form_data()
+        form_data.pop("summary")
+
+        result = self.execute_submit_v2(
+            {
+                "villageId": self.village.id,
+                "definitionVersionId": version.id,
+                "censusDate": "2026-05-21",
+                "formData": form_data,
+            }
+        )
+
+        self.assertIsNone(result.errors, result.errors)
+        payload = result.data["submitVillageCensusSnapshotV2"]["result"]
+        self.assertEqual(payload["__typename"], "VillageCensusSnapshotProblem")
+        self.assertEqual(
+            payload["fields"][0]["message"],
+            "animal census household summary is required",
+        )
+
+    def test_reporter_submit_animal_census_returns_household_summary(self):
+        self.enable_census()
+        _definition, version = self.create_animal_definition()
+        self.client.authenticate(self.reporter)
+
+        result = self.execute_submit_v2(
+            {
+                "villageId": self.village.id,
+                "definitionVersionId": version.id,
+                "censusDate": "2026-05-21",
+                "formData": self.animal_row_key_form_data(),
+            }
+        )
+
+        self.assertIsNone(result.errors, result.errors)
+        payload = result.data["submitVillageCensusSnapshotV2"]["result"]
+        self.assertEqual(payload["__typename"], "VillageCensusSnapshotType")
+        self.assertEqual(payload["villageHouseholdQuantity"], 120)
+        self.assertEqual(payload["animalHouseholdQuantity"], 72)
+        snapshot = VillageCensusSnapshot.objects.get(pk=payload["id"])
+        self.assertEqual(
+            snapshot.form_data["summary"],
+            {
+                "village_household_quantity": 120,
+                "animal_household_quantity": 72,
+            },
+        )
 
     def test_reporter_can_query_active_animal_kind_summary(self):
         self.enable_census()

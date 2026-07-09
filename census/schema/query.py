@@ -1,4 +1,6 @@
 import graphene
+from django.db.models import Q
+from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
 
 from accounts.models import AuthorityUser, Village, VillageReporterAssignment
@@ -7,11 +9,17 @@ from census.animal_census_capability import is_animal_census_capability_enabled
 from census.models import (
     CensusDefinition,
     CensusDefinitionVersion,
+    CensusRoundDefinition,
+    CensusRoundOccurrence,
     CurrentAnimalCensusFact,
     CurrentHumanCensusFact,
     VillageCensusSnapshot,
 )
+from census.rounds import available_occurrences_for_village, build_coverage
 from census.schema.types import (
+    CensusRoundCoverageType,
+    CensusRoundDefinitionType,
+    CensusRoundOccurrenceType,
     CensusDefinitionType,
     CensusDefinitionVersionType,
     CensusKindSummaryType,
@@ -23,6 +31,32 @@ from census.schema.types import (
 
 class Query(graphene.ObjectType):
     census_definitions = graphene.List(CensusDefinitionType)
+    census_round_definitions = graphene.List(
+        CensusRoundDefinitionType,
+        kind=graphene.String(required=False),
+        mode=graphene.String(required=False),
+    )
+    census_round_occurrences = graphene.List(
+        CensusRoundOccurrenceType,
+        kind=graphene.String(required=False),
+        mode=graphene.String(required=False),
+        year=graphene.Int(required=False),
+    )
+    open_village_census_round_occurrences = graphene.List(
+        CensusRoundOccurrenceType,
+        village_id=graphene.Int(required=True),
+        kind=graphene.String(required=True),
+        mode=graphene.String(required=False),
+    )
+    census_round_coverage = graphene.Field(
+        CensusRoundCoverageType,
+        occurrence_id=graphene.Int(required=True),
+        authority_id=graphene.Int(required=False),
+        status=graphene.String(required=False),
+        q=graphene.String(required=False),
+        offset=graphene.Int(required=False, default_value=0),
+        limit=graphene.Int(required=False, default_value=50),
+    )
     active_census_definition_version = graphene.Field(
         CensusDefinitionVersionType, kind=graphene.String(required=True)
     )
@@ -61,6 +95,110 @@ class Query(graphene.ObjectType):
         if info.context.user.is_superuser:
             return queryset
         return queryset.filter(enabled=True)
+
+    @staticmethod
+    @login_required
+    def resolve_census_round_definitions(root, info, kind=None, mode=None):
+        if not (
+            is_village_capability_enabled() and is_animal_census_capability_enabled()
+        ):
+            return CensusRoundDefinition.objects.none()
+        if not info.context.user.is_superuser:
+            raise GraphQLError("Permission denied.")
+        queryset = CensusRoundDefinition.objects.select_related("target_authority")
+        if kind:
+            queryset = queryset.filter(kind=kind)
+        if mode:
+            queryset = queryset.filter(mode=mode)
+        return queryset.order_by("kind", "mode", "code")
+
+    @staticmethod
+    @login_required
+    def resolve_census_round_occurrences(root, info, kind=None, mode=None, year=None):
+        if not (
+            is_village_capability_enabled() and is_animal_census_capability_enabled()
+        ):
+            return CensusRoundOccurrence.objects.none()
+        user = info.context.user
+        if not (user.is_superuser or user.is_authority_role_in([AuthorityUser.Role.ADMIN, AuthorityUser.Role.OFFICER])):
+            raise GraphQLError("Permission denied.")
+        queryset = CensusRoundOccurrence.objects.select_related(
+            "definition", "target_authority"
+        )
+        if kind:
+            queryset = queryset.filter(kind=kind)
+        if mode:
+            queryset = queryset.filter(mode=mode)
+        if year:
+            queryset = queryset.filter(year=year)
+        return queryset.order_by("start_date", "occurrence_key")
+
+    @staticmethod
+    @login_required
+    def resolve_open_village_census_round_occurrences(
+        root, info, village_id, kind, mode=None
+    ):
+        if not (
+            is_village_capability_enabled() and is_animal_census_capability_enabled()
+        ):
+            return []
+        village = _get_permitted_census_village(info, village_id)
+        if village is None:
+            return []
+        return available_occurrences_for_village(village, kind, mode=mode)
+
+    @staticmethod
+    @login_required
+    def resolve_census_round_coverage(
+        root,
+        info,
+        occurrence_id,
+        authority_id=None,
+        status=None,
+        q=None,
+        offset=0,
+        limit=50,
+    ):
+        if not (
+            is_village_capability_enabled() and is_animal_census_capability_enabled()
+        ):
+            return CensusRoundCoverageType(
+                total_count=0,
+                submitted_count=0,
+                missing_count=0,
+                late_count=0,
+                rows=[],
+            )
+        user = info.context.user
+        if not (
+            user.is_superuser
+            or user.is_authority_role_in([AuthorityUser.Role.ADMIN, AuthorityUser.Role.OFFICER])
+        ):
+            raise GraphQLError("Permission denied.")
+        if offset < 0 or limit < 1:
+            raise GraphQLError("offset and limit are invalid.")
+        limit = min(limit, 100)
+
+        try:
+            occurrence = CensusRoundOccurrence.objects.select_related(
+                "definition", "target_authority"
+            ).get(pk=occurrence_id)
+        except CensusRoundOccurrence.DoesNotExist:
+            raise GraphQLError("Census round occurrence does not exist.")
+
+        coverage = build_coverage(
+            occurrence, user, authority_id=authority_id, status=status, q=q
+        )
+        if coverage is None:
+            raise GraphQLError("Permission denied.")
+        rows = coverage["rows"][offset : offset + limit]
+        return CensusRoundCoverageType(
+            total_count=coverage["total_count"],
+            submitted_count=coverage["submitted_count"],
+            missing_count=coverage["missing_count"],
+            late_count=coverage["late_count"],
+            rows=rows,
+        )
 
     @staticmethod
     @login_required
@@ -128,7 +266,14 @@ class Query(graphene.ObjectType):
 
             latest_snapshot = (
                 VillageCensusSnapshot.objects.filter(
-                    village=village, definition_version__definition=definition
+                    village=village,
+                    definition_version__definition=definition,
+                )
+                .filter(
+                    Q(round_occurrence__isnull=True)
+                    | Q(
+                        round_occurrence__mode=CensusRoundDefinition.Mode.PRODUCTION
+                    )
                 )
                 .order_by("-census_date", "-created_at")
                 .first()
@@ -159,6 +304,10 @@ class Query(graphene.ObjectType):
         return (
             VillageCensusSnapshot.objects.filter(
                 village=village, definition_version__definition__kind=kind
+            )
+            .filter(
+                Q(round_occurrence__isnull=True)
+                | Q(round_occurrence__mode=CensusRoundDefinition.Mode.PRODUCTION)
             )
             .order_by("-census_date", "-created_at")
             .first()

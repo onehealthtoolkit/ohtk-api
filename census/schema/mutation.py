@@ -7,6 +7,7 @@ from census.schema.mutations import (
     AdminCensusDefinitionVersionSaveDraftMutation,
     AdminCensusDefinitionVersionPublishMutation,
     SubmitVillageCensusSnapshotV2Mutation,
+    AdminCensusRoundDefinitionSaveMutation,
 )
 
 
@@ -26,4 +27,5 @@ class Mutation(graphene.ObjectType):
     admin_census_definition_set_enabled = (
         AdminCensusDefinitionSetEnabledMutation.Field()
     )
+    admin_census_round_definition_save = AdminCensusRoundDefinitionSaveMutation.Field()
     submit_village_census_snapshot_v2 = SubmitVillageCensusSnapshotV2Mutation.Field()

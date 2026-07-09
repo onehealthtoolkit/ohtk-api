@@ -13,11 +13,13 @@ from census.animal_census_capability import is_animal_census_capability_enabled
 from census.models import (
     AnimalCensusFact,
     CensusDefinitionVersion,
+    CensusRoundDefinition,
     CurrentAnimalCensusFact,
     CurrentHumanCensusFact,
     HumanCensusFact,
     VillageCensusSnapshot,
 )
+from census.rounds import resolve_submission_occurrence
 from census.definition_schema import runtime_schema_for_version
 from census.schema.types import (
     VillageCensusSnapshotProblem,
@@ -27,6 +29,9 @@ from accounts.village_capability import is_village_capability_enabled
 from common.types import AdminFieldValidationProblem
 
 ACTIVE_ANIMAL_SPECIES_CHANGED = "ACTIVE_ANIMAL_SPECIES_CHANGED"
+ANIMAL_SUMMARY_KEY = "summary"
+VILLAGE_HOUSEHOLD_QUANTITY_KEY = "village_household_quantity"
+ANIMAL_HOUSEHOLD_QUANTITY_KEY = "animal_household_quantity"
 
 
 def validate_census_capabilities(problems):
@@ -163,8 +168,51 @@ def validate_common_form_data(form_data, problems):
     return submitted_rows
 
 
+def validate_animal_summary(form_data, problems):
+    if not isinstance(form_data, dict):
+        return
+
+    summary = form_data.get(ANIMAL_SUMMARY_KEY)
+    if not isinstance(summary, dict):
+        problems.append(
+            AdminFieldValidationProblem(
+                name=f"form_data.{ANIMAL_SUMMARY_KEY}",
+                message="animal census household summary is required",
+            )
+        )
+        return
+
+    normalized = {}
+    for key in (VILLAGE_HOUSEHOLD_QUANTITY_KEY, ANIMAL_HOUSEHOLD_QUANTITY_KEY):
+        value = summary.get(key)
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            problems.append(
+                AdminFieldValidationProblem(
+                    name=f"form_data.{ANIMAL_SUMMARY_KEY}.{key}",
+                    message="household summary values must be zero or greater",
+                )
+            )
+            continue
+        normalized[key] = value
+
+    village_households = normalized.get(VILLAGE_HOUSEHOLD_QUANTITY_KEY)
+    animal_households = normalized.get(ANIMAL_HOUSEHOLD_QUANTITY_KEY)
+    if (
+        village_households is not None
+        and animal_households is not None
+        and animal_households > village_households
+    ):
+        problems.append(
+            AdminFieldValidationProblem(
+                name=f"form_data.{ANIMAL_SUMMARY_KEY}.{ANIMAL_HOUSEHOLD_QUANTITY_KEY}",
+                message="animal households cannot exceed village households",
+            )
+        )
+
+
 def validate_animal_form_data(form_data, definition_version, problems):
     submitted_rows = validate_common_form_data(form_data, problems)
+    validate_animal_summary(form_data, problems)
     if not submitted_rows:
         return []
 
@@ -342,6 +390,7 @@ class SubmitVillageCensusSnapshotV2Mutation(graphene.Mutation):
     class Arguments:
         village_id = graphene.Int(required=True)
         definition_version_id = graphene.Int(required=True)
+        occurrence_id = graphene.Int(required=False)
         census_date = graphene.Date(required=True)
         form_data = GenericScalar(required=True)
 
@@ -349,12 +398,21 @@ class SubmitVillageCensusSnapshotV2Mutation(graphene.Mutation):
 
     @staticmethod
     @login_required
-    def mutate(root, info, village_id, definition_version_id, census_date, form_data):
+    def mutate(
+        root,
+        info,
+        village_id,
+        definition_version_id,
+        census_date,
+        form_data,
+        occurrence_id=None,
+    ):
         problems = []
         validate_census_capabilities(problems)
 
+        village = None
         try:
-            Village.objects.get(pk=village_id)
+            village = Village.objects.get(pk=village_id)
         except Village.DoesNotExist:
             problems.append(
                 AdminFieldValidationProblem(
@@ -369,6 +427,9 @@ class SubmitVillageCensusSnapshotV2Mutation(graphene.Mutation):
         validate_official_assignment(user, village_id, problems)
         definition_version = validate_census_definition_version(
             definition_version_id, problems
+        )
+        occurrence, round_resolution = resolve_submission_occurrence(
+            occurrence_id, census_date, definition_version, village, problems
         )
         derived_rows = []
         if definition_version:
@@ -398,6 +459,8 @@ class SubmitVillageCensusSnapshotV2Mutation(graphene.Mutation):
                 village_id=village_id,
                 reporter=user.authorityuser,
                 definition_version=definition_version,
+                round_occurrence=occurrence,
+                round_resolution=round_resolution,
                 census_date=census_date,
                 form_data=form_data,
             )
@@ -414,12 +477,13 @@ class SubmitVillageCensusSnapshotV2Mutation(graphene.Mutation):
                         for row in derived_rows
                     ]
                 )
-                CurrentAnimalCensusFact.objects.filter(
-                    fact__snapshot__village_id=village_id
-                ).delete()
-                CurrentAnimalCensusFact.objects.bulk_create(
-                    [CurrentAnimalCensusFact(fact=fact) for fact in animal_facts]
-                )
+                if occurrence.mode == CensusRoundDefinition.Mode.PRODUCTION:
+                    CurrentAnimalCensusFact.objects.filter(
+                        fact__snapshot__village_id=village_id
+                    ).delete()
+                    CurrentAnimalCensusFact.objects.bulk_create(
+                        [CurrentAnimalCensusFact(fact=fact) for fact in animal_facts]
+                    )
             elif definition_version.definition.kind == "HUMAN":
                 human_facts = HumanCensusFact.objects.bulk_create(
                     [
@@ -432,11 +496,12 @@ class SubmitVillageCensusSnapshotV2Mutation(graphene.Mutation):
                         for row in derived_rows
                     ]
                 )
-                CurrentHumanCensusFact.objects.filter(
-                    fact__snapshot__village_id=village_id
-                ).delete()
-                CurrentHumanCensusFact.objects.bulk_create(
-                    [CurrentHumanCensusFact(fact=fact) for fact in human_facts]
-                )
+                if occurrence.mode == CensusRoundDefinition.Mode.PRODUCTION:
+                    CurrentHumanCensusFact.objects.filter(
+                        fact__snapshot__village_id=village_id
+                    ).delete()
+                    CurrentHumanCensusFact.objects.bulk_create(
+                        [CurrentHumanCensusFact(fact=fact) for fact in human_facts]
+                    )
 
         return SubmitVillageCensusSnapshotV2Mutation(result=snapshot)
