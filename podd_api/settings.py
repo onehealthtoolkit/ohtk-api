@@ -283,7 +283,8 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 USE_S3 = env_bool("USE_S3")
 AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME") or "ohtk-media-bucket"
 if USE_S3:
-    MEDIA_BUCKET_NAME = os.getenv("S3_MEDIA_BUCKET_NAME", default="ohtk-media-bucket")
+    # S3-compatible backends (AWS S3, MinIO, etc.). django-storages reads AWS_* settings.
+    MEDIA_BUCKET_NAME = os.getenv("S3_MEDIA_BUCKET_NAME") or AWS_STORAGE_BUCKET_NAME
     default_storage_backend = "common.storage.S3MediaStorage"
     AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
@@ -291,6 +292,42 @@ if USE_S3:
     AWS_S3_OBJECT_PARAMETERS = {
         "CacheControl": "max-age=315360000",
     }
+    AWS_S3_SIGNATURE_VERSION = os.getenv("AWS_S3_SIGNATURE_VERSION", default="s3v4")
+
+    # Optional custom endpoint (MinIO / other S3-compatible). Unset for real AWS.
+    _s3_endpoint = (os.getenv("AWS_S3_ENDPOINT_URL") or "").strip()
+    if _s3_endpoint:
+        AWS_S3_ENDPOINT_URL = _s3_endpoint
+        # Path-style is the usual MinIO default; real AWS often leaves this unset.
+        AWS_S3_ADDRESSING_STYLE = os.getenv(
+            "AWS_S3_ADDRESSING_STYLE", default="path"
+        )
+        if os.getenv("AWS_S3_USE_SSL") is not None:
+            AWS_S3_USE_SSL = env_bool("AWS_S3_USE_SSL")
+        else:
+            AWS_S3_USE_SSL = _s3_endpoint.startswith("https://")
+    else:
+        _addressing = (os.getenv("AWS_S3_ADDRESSING_STYLE") or "").strip()
+        if _addressing:
+            AWS_S3_ADDRESSING_STYLE = _addressing
+        if os.getenv("AWS_S3_USE_SSL") is not None:
+            AWS_S3_USE_SSL = env_bool("AWS_S3_USE_SSL")
+
+    # Public media host (e.g. minio.lahis.ohtk.org via reverse proxy). Unset = signed/default URLs.
+    _s3_custom_domain = (os.getenv("AWS_S3_CUSTOM_DOMAIN") or "").strip()
+    if _s3_custom_domain:
+        AWS_S3_CUSTOM_DOMAIN = _s3_custom_domain
+
+    # MinIO and modern S3 often reject canned ACLs; default none unless explicitly set.
+    _acl = (os.getenv("AWS_DEFAULT_ACL") or "none").strip().lower()
+    if _acl in ("", "none", "null", "false"):
+        AWS_DEFAULT_ACL = None
+    else:
+        AWS_DEFAULT_ACL = os.getenv("AWS_DEFAULT_ACL")
+
+    # When using a public custom domain + public-read bucket, set AWS_QUERYSTRING_AUTH=False.
+    if os.getenv("AWS_QUERYSTRING_AUTH") is not None:
+        AWS_QUERYSTRING_AUTH = env_bool("AWS_QUERYSTRING_AUTH")
 else:
     MEDIA_URL = "/medias/"
     MEDIA_DOMAIN = "opensur.test"
