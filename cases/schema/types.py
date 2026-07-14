@@ -18,6 +18,7 @@ from cases.models import (
     CaseStateTransition,
 )
 from common.types import AdminValidationProblem
+from common.filters import EmptyListInsensitiveFilterSet
 from reports.models.report import IncidentReport
 from reports.schema.types import IncidentReportType
 
@@ -264,7 +265,7 @@ class CaseStateType(DjangoObjectType):
         fields = ["id", "state", "transition"]
 
 
-class CaseTypeFilter(django_filters.FilterSet):
+class CaseTypeFilter(EmptyListInsensitiveFilterSet):
     include_child_authorities = django_filters.BooleanFilter(
         method="child_authorities_filter"
     )
@@ -278,15 +279,13 @@ class CaseTypeFilter(django_filters.FilterSet):
         }
 
     def child_authorities_filter(self, queryset, name, value):
-        relevant_authorities = self.data["report__relevant_authorities__id__in"]
-        if relevant_authorities and len(relevant_authorities) == 1:
-            include_child_authorities = self.data["include_child_authorities"]
-            if include_child_authorities:
-                authority = Authority.objects.get(pk=relevant_authorities[0])
-                child_authorities = authority.all_inherits_down()
-                queryset = queryset.filter(
-                    report__relevant_authorities__in=child_authorities
-                )
+        relevant_authorities = self.data.get("report__relevant_authorities__id__in")
+        if value and relevant_authorities and len(relevant_authorities) == 1:
+            authority = Authority.objects.get(pk=relevant_authorities[0])
+            child_authorities = authority.all_inherits_down()
+            queryset = queryset.filter(
+                report__relevant_authorities__in=child_authorities
+            )
 
         return queryset
 

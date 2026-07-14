@@ -238,6 +238,10 @@ class Village(BaseModel):
 
 
 class VillageReporterAssignment(BaseModel):
+    class CensusRole(models.TextChoices):
+        OFFICIAL = "OFF", "Official"
+        VOLUNTEER = "VOL", "Volunteer"
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
@@ -254,6 +258,9 @@ class VillageReporterAssignment(BaseModel):
     )
     village = models.ForeignKey(
         Village, on_delete=models.CASCADE, related_name="reporter_assignments"
+    )
+    census_role = models.CharField(
+        choices=CensusRole.choices, max_length=3, default=CensusRole.OFFICIAL
     )
 
     def __str__(self):

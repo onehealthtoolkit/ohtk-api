@@ -26,6 +26,30 @@ class ObservationSubjectTests(JSONWebTokenTestCase):
         self.assertEqual("description treeoak", subject.description)
         self.assertEqual("oak", subject.origin_form_data["name"])
 
+    def test_query_observation_subjects_keeps_legacy_definition_id_in_string(self):
+        SubjectRecord.objects.create(
+            form_data={"name": "oak", "species": "treeoak"}, definition=self.definition1
+        )
+        query = """
+            query observationSubjects($definitionId: String) {
+                observationSubjects(definition_Id_In: [$definitionId]) {
+                    totalCount
+                    results {
+                        definitionId
+                        title
+                    }
+                }
+            }
+        """
+        result = self.client.execute(query, {"definitionId": str(self.definition1.id)})
+
+        self.assertIsNone(result.errors, msg=result.errors)
+        self.assertEqual(1, result.data["observationSubjects"]["totalCount"])
+        self.assertEqual(
+            self.definition1.id,
+            result.data["observationSubjects"]["results"][0]["definitionId"],
+        )
+
     def test_mutation_submit_observation_subject(self):
         mutation = """
             mutation submitObservationSubject($data: GenericScalar!, $definitionId: Int!) {

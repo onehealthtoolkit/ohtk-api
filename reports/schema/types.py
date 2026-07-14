@@ -1,13 +1,16 @@
 import graphene
 import django_filters
-from easy_thumbnails.files import get_thumbnailer
 from graphene.types.generic import GenericScalar
 from graphene_django import DjangoObjectType
+from django.contrib.auth import get_user_model
 from django.db.models import Q
 from accounts.models import Authority
 
-from accounts.schema.types import UserType, AuthorityType
+from accounts.schema.types import UserType, AuthorityType, resolve_thumbnail_url
 from common.types import AdminValidationProblem
+from common.filters import EmptyListInsensitiveFilterSet
+from integrations.models import RiskAssessment
+from integrations.services import get_current_risk_assessment
 
 from reports.models import ReportType, Category, IncidentReport, ReporterNotification
 from reports.models.report import Image, FollowUpReport, UploadFile
@@ -48,7 +51,7 @@ class ImageType(DjangoObjectType):
         fields = "__all__"
 
     def resolve_thumbnail(self, info):
-        return get_thumbnailer(self.file)["thumbnail"].url
+        return resolve_thumbnail_url(self.file)
 
     def resolve_image_url(self, info):
         return self.file.url
@@ -81,11 +84,47 @@ class FollowupType(DjangoObjectType):
         ]
 
 
+class CharInFilter(django_filters.BaseInFilter, django_filters.CharFilter):
+    pass
+
+
+class RiskAssessmentProjectionType(DjangoObjectType):
+    factors = GenericScalar()
+    score = graphene.Float()
+    created_by = graphene.Field(UserType)
+
+    class Meta:
+        model = RiskAssessment
+        fields = (
+            "id",
+            "level",
+            "source",
+            "score",
+            "factors",
+            "evaluator_version",
+            "external_assessment_id",
+            "is_current",
+            "created_at",
+            "created_by",
+        )
+
+    def resolve_score(self, info):
+        if self.score is None:
+            return None
+        return float(self.score)
+
+    def resolve_created_by(self, info):
+        if not self.created_by_id:
+            return None
+        return get_user_model().objects.get(pk=self.created_by_id)
+
+
 ## Report type
-class IncidentReportTypeFilter(django_filters.FilterSet):
+class IncidentReportTypeFilter(EmptyListInsensitiveFilterSet):
     include_child_authorities = django_filters.BooleanFilter(
         method="child_authorities_filter"
     )
+    current_risk_levels = CharInFilter(method="current_risk_levels_filter")
 
     class Meta:
         model = IncidentReport
@@ -99,16 +138,42 @@ class IncidentReportTypeFilter(django_filters.FilterSet):
         }
 
     def child_authorities_filter(self, queryset, name, value):
-        relevant_authorities = self.data["relevant_authorities__id__in"]
-        if relevant_authorities and len(relevant_authorities) == 1:
-            include_child_authorities = self.data["include_child_authorities"]
-            if include_child_authorities:
-                authority = Authority.objects.get(pk=relevant_authorities[0])
-                child_authorities = authority.all_inherits_down()
-                queryset = queryset.filter(relevant_authorities__in=child_authorities)
-        print(queryset.query)
+        relevant_authorities = self.data.get("relevant_authorities__id__in")
+        if value and relevant_authorities and len(relevant_authorities) == 1:
+            authority = Authority.objects.get(pk=relevant_authorities[0])
+            child_authorities = authority.all_inherits_down()
+            queryset = queryset.filter(relevant_authorities__in=child_authorities)
 
         return queryset
+
+    def current_risk_levels_filter(self, queryset, name, value):
+        raw_values = value.split(",") if isinstance(value, str) else value or []
+        requested_values = [item.strip().upper() for item in raw_values if item]
+        if not requested_values:
+            return queryset
+
+        include_no_assessment = "NO_ASSESSMENT" in requested_values
+        level_values = [
+            item for item in requested_values if item in RiskAssessment.Level.values
+        ]
+
+        if not include_no_assessment and not level_values:
+            return queryset.none()
+
+        current_risk_ids = RiskAssessment.objects.filter(
+            is_current=True,
+        ).values("report_id")
+        matching_risk_ids = RiskAssessment.objects.filter(
+            is_current=True,
+            level__in=level_values,
+        ).values("report_id")
+
+        filter_query = Q()
+        if level_values:
+            filter_query |= Q(id__in=matching_risk_ids)
+        if include_no_assessment:
+            filter_query |= ~Q(id__in=current_risk_ids)
+        return queryset.filter(filter_query)
 
 
 class IncidentReportType(DjangoObjectType):
@@ -124,6 +189,11 @@ class IncidentReportType(DjangoObjectType):
     authorities = graphene.List(AuthorityType)
     definition = GenericScalar()
     is_followable = graphene.Boolean()
+    current_risk_assessment = graphene.Field(RiskAssessmentProjectionType)
+    risk_assessment_history = graphene.List(
+        RiskAssessmentProjectionType,
+        limit=graphene.Int(default_value=3),
+    )
 
     class Meta:
         model = IncidentReport
@@ -168,6 +238,14 @@ class IncidentReportType(DjangoObjectType):
 
     def resolve_is_followable(self, info):
         return self.report_type.followup_definition is not None
+
+    def resolve_current_risk_assessment(self, info):
+        return get_current_risk_assessment(report=self)
+
+    def resolve_risk_assessment_history(self, info, limit=3):
+        return RiskAssessment.objects.filter(
+            report=self,
+        ).order_by("-created_at")[:limit]
 
 
 class FollowupReportType(DjangoObjectType):

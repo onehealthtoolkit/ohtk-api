@@ -4,6 +4,8 @@ from tenants.schema import Query as TenantsQuery
 from tenants.schema import Mutation as TenantsMutation
 from accounts.schema import Query as AccountsQuery
 from accounts.schema import Mutation as AccountsMutation
+from census.schema import Query as CensusQuery
+from census.schema import Mutation as CensusMutation
 from threads.schema import Query as ThreadQuery
 from threads.schema import Mutation as ThreadMutation
 from reports.schema import Query as ReportsQuery
@@ -17,11 +19,14 @@ from outbreaks.schema import Query as OutbreaksQuery
 from outbreaks.schema import Mutation as OutbreaksMutation
 from observations.schema import Query as ObservationsQuery
 from observations.schema import Mutation as ObservationsMutation
+from integrations.schema import Query as IntegrationsQuery
+from integrations.schema import Mutation as IntegrationsMutation
 
 
 class Query(
     TenantsQuery,
     AccountsQuery,
+    CensusQuery,
     ReportsQuery,
     CasesQuery,
     NotificationsQuery,
@@ -29,6 +34,7 @@ class Query(
     ThreadQuery,
     OutbreaksQuery,
     ObservationsQuery,
+    IntegrationsQuery,
     graphene.ObjectType,
 ):
     health_check = graphene.String(default_value="ok")
@@ -37,12 +43,14 @@ class Query(
 class Mutation(
     TenantsMutation,
     AccountsMutation,
+    CensusMutation,
     ReportsMutation,
     CasesMutation,
     NotificationsMutation,
     ThreadMutation,
     OutbreaksMutation,
     ObservationsMutation,
+    IntegrationsMutation,
     graphene.ObjectType,
 ):
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()

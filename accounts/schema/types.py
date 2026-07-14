@@ -1,5 +1,5 @@
-import graphene
 import django_filters
+import graphene
 from django.db.models import Q
 from easy_thumbnails.files import get_thumbnailer
 from graphene_django import DjangoObjectType
@@ -17,9 +17,19 @@ from accounts.models import (
     Configuration,
     Place,
     Village,
+    VillageReporterAssignment,
 )
 from common.converter import GeoJSON
-from common.types import AdminValidationProblem
+from common.types import AdminFieldValidationProblem, AdminValidationProblem
+
+
+def resolve_thumbnail_url(image):
+    if not image:
+        return None
+    try:
+        return get_thumbnailer(image)["thumbnail"].url
+    except Exception:
+        return None
 
 
 @convert_django_field.register(models.PointField)
@@ -255,14 +265,12 @@ class UserType(DjangoObjectType):
             return ""
 
     def resolve_avatar_url(self, info):
-        if self.avatar:
-            return get_thumbnailer(self.avatar)["thumbnail"].url
-        else:
-            return None
+        return resolve_thumbnail_url(self.avatar)
 
 
 class AuthorityUserType(DjangoObjectType):
     assigned_villages = graphene.List(lambda: VillageType)
+    assigned_village_assignments = graphene.List(lambda: VillageReporterAssignmentType)
 
     class Meta:
         model = AuthorityUser
@@ -280,6 +288,13 @@ class AuthorityUserType(DjangoObjectType):
 
     def resolve_assigned_villages(self, info):
         return Village.objects.filter(reporter_assignments__reporter=self).distinct()
+
+    def resolve_assigned_village_assignments(self, info):
+        return (
+            VillageReporterAssignment.objects.filter(reporter=self)
+            .select_related("village", "village__authority")
+            .order_by("village__code")
+        )
 
 
 class VillageType(DjangoObjectType):
@@ -299,6 +314,12 @@ class VillageType(DjangoObjectType):
         if self.location:
             return self.location.x
         return None
+
+
+class VillageReporterAssignmentType(DjangoObjectType):
+    class Meta:
+        model = VillageReporterAssignment
+        fields = ("id", "village", "census_role")
 
 
 class UserProfileType(graphene.ObjectType):
@@ -336,10 +357,7 @@ class UserProfileType(graphene.ObjectType):
             return ""
 
     def resolve_avatar_url(self, info):
-        if self.avatar:
-            return get_thumbnailer(self.avatar)["thumbnail"].url
-        else:
-            return None
+        return resolve_thumbnail_url(self.avatar)
 
     def resolve_consent(self, info):
         if self.is_authority_user:
@@ -357,7 +375,9 @@ class UserProfileType(graphene.ObjectType):
 
     def resolve_assigned_villages(self, info):
         if self.is_authority_user:
-            return Village.objects.filter(reporter_assignments__reporter=self).distinct()
+            return Village.objects.filter(
+                reporter_assignments__reporter=self
+            ).distinct()
         return []
 
 
@@ -591,7 +611,7 @@ class AdminPlaceUpdateResult(graphene.Union):
 
 class AdminVillageQueryFilter(django_filters.FilterSet):
     q = django_filters.CharFilter(method="filter_q")
-    authority_id = django_filters.NumberFilter(field_name="authority__id")
+    authority_id = django_filters.NumberFilter(method="filter_authority_id")
     active = django_filters.BooleanFilter()
 
     class Meta:
@@ -600,6 +620,13 @@ class AdminVillageQueryFilter(django_filters.FilterSet):
 
     def filter_q(self, queryset, name, value):
         return queryset.filter(Q(name__icontains=value) | Q(code__icontains=value))
+
+    def filter_authority_id(self, queryset, name, value):
+        try:
+            authority = Authority.objects.get(pk=value)
+        except Authority.DoesNotExist:
+            return queryset.none()
+        return queryset.filter(authority__in=authority.all_inherits_down())
 
 
 class AdminVillageQueryType(DjangoObjectType):
