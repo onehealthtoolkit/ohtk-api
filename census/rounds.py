@@ -345,9 +345,10 @@ def species_summary(snapshot):
         return []
     summary = []
     for fact in snapshot.facts.all():
+        # Option A group rows only hold household_quantity — skip in species summary
         value = (fact.measures or {}).get("animal_quantity")
         if not isinstance(value, int) or isinstance(value, bool):
-            value = 0
+            continue
         summary.append(
             {
                 "row_key": fact.row_key,

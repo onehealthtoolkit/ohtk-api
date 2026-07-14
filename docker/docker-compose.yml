@@ -17,6 +17,8 @@ services:
       - FCM_DRY_RUN=True
       - USE_S3=False
       - DASHBOARD_URL=http://localhost:3000
+      # Disposable lab: migrate on start. Shared staging should leave this unset/false.
+      - RUN_MIGRATIONS=True
       - DJANGO_SUPERUSER_USERNAME=admin
       - DJANGO_SUPERUSER_PASSWORD=admin
       - DJANGO_SUPERUSER_EMAIL=pphetra@gmail.com
