@@ -6,31 +6,83 @@ from census.definition_schema import generate_runtime_schema
 from census.models import CensusDefinition, CensusDefinitionVersion
 
 
+# Option A: group rows hold shared HH; species rows hold heads only.
+# Pig HH is also a group row (group:PIG), not on species:PIG.
 DEFAULT_ANIMAL_DEFINITION_SCHEMA = {
-    "schema_version": 1,
-    "dimensions": [
+    "schema_version": 2,
+    "summary_fields": [
         {
-            "key": "species",
-            "label": {"default": "Species", "la": "ຊະນິດສັດ"},
-            "values": [
-                {"key": "CATTLE", "label": {"default": "Cattle", "la": "ງົວ"}},
-                {"key": "BUFFALO", "label": {"default": "Buffalo", "la": "ຄວາຍ"}},
-                {"key": "POULTRY", "label": {"default": "Poultry", "la": "ສັດປີກ"}},
-            ],
-        }
-    ],
-    "measures": [
-        {
-            "key": "animal_quantity",
-            "label": {"default": "Animal quantity", "la": "ຈຳນວນສັດ"},
+            "key": "village_household_quantity",
+            "label": {"default": "HH No.", "la": "ຈຳນວນຄົວເຮືອນ"},
             "type": "integer",
             "required": True,
         },
+        {
+            "key": "animal_household_quantity",
+            "label": {"default": "Animal HH No.", "la": "ຄົວເຮືອນລ້ຽງສັດ"},
+            "type": "integer",
+            "required": True,
+        },
+    ],
+    "group_measures": [
         {
             "key": "household_quantity",
             "label": {"default": "Households", "la": "ຄົວເຮືອນ"},
             "type": "integer",
             "required": True,
+        }
+    ],
+    "species_measures": [
+        {
+            "key": "animal_quantity",
+            "label": {"default": "Animal quantity", "la": "ຈຳນວນສັດ"},
+            "type": "integer",
+            "required": True,
+        }
+    ],
+    "groups": [
+        {
+            "key": "LARGE_RUMINANT",
+            "label": {
+                "default": "Cattle and buffalo",
+                "la": "ງົວ ແລະ ຄວາຍ",
+            },
+            "species": [
+                {"key": "CATTLE", "label": {"default": "Cattle", "la": "ງົວ"}},
+                {"key": "BUFFALO", "label": {"default": "Buffalo", "la": "ຄວາຍ"}},
+            ],
+        },
+        {
+            "key": "PIG",
+            "label": {"default": "Pig", "la": "ໝູ"},
+            "species": [
+                {"key": "PIG", "label": {"default": "Pig", "la": "ໝູ"}},
+            ],
+        },
+        {
+            "key": "SMALL_RUMINANT",
+            "label": {
+                "default": "Sheep and goat",
+                "la": "ແກະ ແລະ ແບ້",
+            },
+            "species": [
+                {"key": "SHEEP", "label": {"default": "Sheep", "la": "ແກະ"}},
+                {"key": "GOAT", "label": {"default": "Goat", "la": "ແບ້"}},
+            ],
+        },
+        {
+            "key": "POULTRY",
+            "label": {"default": "Poultry", "la": "ສັດປີກ"},
+            "species": [
+                {"key": "CHICKEN", "label": {"default": "Chicken", "la": "ໄກ່"}},
+                {
+                    "key": "OTHER_POULTRY",
+                    "label": {
+                        "default": "Duck, Goose, Bird",
+                        "la": "ເປັດ, ຫ່ານ, ນົກ",
+                    },
+                },
+            ],
         },
     ],
 }

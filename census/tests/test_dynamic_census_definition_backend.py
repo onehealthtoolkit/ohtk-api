@@ -606,14 +606,21 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
             for version in payload["versions"]
             if version["definition"]["kind"] == "ANIMAL"
         )
+        # Default animal schema is Option A (group HH + species heads)
+        authored = animal_version["definitionSchema"]
+        self.assertEqual(authored.get("schema_version"), 2)
+        self.assertEqual(authored["groups"][0]["key"], "LARGE_RUMINANT")
+        runtime_rows = {
+            row.get("row_key") or row.get("key"): row
+            for row in animal_version["runtimeSchema"]["rows"]
+        }
+        self.assertIn("group:LARGE_RUMINANT", runtime_rows)
+        self.assertIn("species:CATTLE", runtime_rows)
         self.assertEqual(
-            animal_version["definitionSchema"]["dimensions"][0]["key"], "species"
+            runtime_rows["species:CATTLE"]["dimensions"]["species"], "CATTLE"
         )
         self.assertEqual(
-            animal_version["schema"]["rows"][0]["dimensions"]["species"], "CATTLE"
-        )
-        self.assertEqual(
-            animal_version["runtimeSchema"]["rows"][0]["row_key"], "species:CATTLE"
+            animal_version["schema"]["layout"], "grouped_species"
         )
 
     def test_admin_can_publish_new_human_schema_version(self):

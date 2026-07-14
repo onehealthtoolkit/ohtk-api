@@ -108,7 +108,7 @@ def validate_measure_values(submitted_measures, configured_measures, problems):
     measures_by_key = {
         measure.get("key"): measure
         for measure in configured_measures
-        if isinstance(measure, dict)
+        if isinstance(measure, dict) and measure.get("key")
     }
     required_measure_keys = {
         key for key, measure in measures_by_key.items() if measure.get("required")
@@ -146,6 +146,14 @@ def validate_measure_values(submitted_measures, configured_measures, problems):
                 continue
         normalized_measures[measure_key] = value
     return normalized_measures
+
+
+def measures_for_configured_row(configured_row, global_measures):
+    """Per-row measures (group vs species) when present; else global list (v1 flat)."""
+    row_measures = configured_row.get("measures")
+    if isinstance(row_measures, list) and row_measures:
+        return row_measures
+    return global_measures
 
 
 def validate_common_form_data(form_data, problems):
@@ -217,7 +225,7 @@ def validate_animal_form_data(form_data, definition_version, problems):
         return []
 
     runtime_schema = runtime_schema_for_version(definition_version)
-    configured_measures = runtime_schema.get("measures") or []
+    global_measures = runtime_schema.get("measures") or []
     configured_rows = runtime_schema.get("rows") or []
     rows_by_key = {
         row.get("row_key") or row.get("key"): row
@@ -274,6 +282,7 @@ def validate_animal_form_data(form_data, definition_version, problems):
         if not isinstance(configured_dimensions, dict):
             configured_dimensions = {}
 
+        row_measures = measures_for_configured_row(configured_row, global_measures)
         derived_rows.append(
             {
                 "row_key": configured_row.get("row_key")
@@ -283,12 +292,14 @@ def validate_animal_form_data(form_data, definition_version, problems):
                 or configured_row.get("row_label")
                 or configured_row.get("row_key")
                 or configured_row.get("key"),
+                "row_kind": configured_row.get("row_kind"),
+                "group": configured_row.get("group"),
                 "extra_dimensions": {
                     **submitted_extra_dimensions,
                     **configured_dimensions,
                 },
                 "measures": validate_measure_values(
-                    submitted_measures, configured_measures, problems
+                    submitted_measures, row_measures, problems
                 ),
             }
         )
@@ -307,7 +318,77 @@ def validate_animal_form_data(form_data, definition_version, problems):
             )
         )
 
+    if runtime_schema.get("layout") == "grouped_species":
+        validate_grouped_animal_quantities(
+            form_data, derived_rows, runtime_schema, problems
+        )
+
     return derived_rows
+
+
+def validate_grouped_animal_quantities(
+    form_data, derived_rows, runtime_schema, problems
+):
+    """
+    Option A rules:
+    - group rows: household_quantity only
+    - species rows: animal_quantity only
+    - if any heads in group > 0 => group HH >= 1
+    - if group HH == 0 => all species heads in group == 0
+    - each group HH <= animal_household_quantity <= village_household_quantity
+    """
+    summary = form_data.get(ANIMAL_SUMMARY_KEY) if isinstance(form_data, dict) else None
+    animal_households = None
+    if isinstance(summary, dict):
+        value = summary.get(ANIMAL_HOUSEHOLD_QUANTITY_KEY)
+        if isinstance(value, int) and not isinstance(value, bool):
+            animal_households = value
+
+    rows_by_key = {row["row_key"]: row for row in derived_rows if row.get("row_key")}
+    for group in runtime_schema.get("groups") or []:
+        if not isinstance(group, dict):
+            continue
+        group_key = group.get("key")
+        household_row_key = group.get("household_row_key") or f"group:{group_key}"
+        species_row_keys = group.get("species_row_keys") or []
+        group_row = rows_by_key.get(household_row_key)
+        if not group_row:
+            continue
+        group_hh = (group_row.get("measures") or {}).get("household_quantity")
+        if not isinstance(group_hh, int) or isinstance(group_hh, bool):
+            continue
+
+        if animal_households is not None and group_hh > animal_households:
+            problems.append(
+                AdminFieldValidationProblem(
+                    name=f"form_data.rows.{household_row_key}",
+                    message="group households cannot exceed animal households",
+                )
+            )
+
+        total_heads = 0
+        for species_row_key in species_row_keys:
+            species_row = rows_by_key.get(species_row_key)
+            if not species_row:
+                continue
+            heads = (species_row.get("measures") or {}).get("animal_quantity")
+            if isinstance(heads, int) and not isinstance(heads, bool):
+                total_heads += heads
+
+        if total_heads > 0 and group_hh < 1:
+            problems.append(
+                AdminFieldValidationProblem(
+                    name=f"form_data.rows.{household_row_key}",
+                    message="group households must be at least 1 when animal quantity is greater than zero",
+                )
+            )
+        if group_hh == 0 and total_heads > 0:
+            problems.append(
+                AdminFieldValidationProblem(
+                    name=f"form_data.rows.{household_row_key}",
+                    message="group animal quantities must be zero when households is zero",
+                )
+            )
 
 
 def row_identifier(row):
