@@ -10,7 +10,11 @@ from census.models import (
     CurrentAnimalCensusFact,
     VillageCensusSnapshot,
 )
-from census.rounds import materialize_occurrence
+from census.rounds import (
+    materialize_occurrence,
+    parse_month_day,
+    validate_round_definition,
+)
 
 
 class CensusRoundsBackendTests(JSONWebTokenTestCase):
@@ -357,3 +361,28 @@ class CensusRoundsBackendTests(JSONWebTokenTestCase):
         self.assertEqual(rows_by_code["V001"]["villageHouseholdQuantity"], 120)
         self.assertEqual(rows_by_code["V001"]["totalAnimalQuantity"], 10)
         self.assertEqual(rows_by_code["V002"]["status"], "MISSING")
+
+    def test_parse_month_day_rejects_leap_day(self):
+        with self.assertRaises(ValueError) as raised:
+            parse_month_day("02-29")
+        self.assertIn("leap day", str(raised.exception))
+
+    def test_validate_round_definition_rejects_leap_day_without_crash(self):
+        definition = CensusRoundDefinition(
+            code="LEAP",
+            name="Leap",
+            kind=CensusDefinition.Kind.ANIMAL,
+            mode=CensusRoundDefinition.Mode.PRODUCTION,
+            census_period_start="02-29",
+            census_period_end="03-01",
+            start_date="02-29",
+            soft_finish_date="03-01",
+            hard_finish_date="03-15",
+            enabled=True,
+        )
+
+        errors = validate_round_definition(definition)
+
+        self.assertTrue(errors)
+        self.assertEqual(errors[0][0], "census_period_start")
+        self.assertIn("MM-DD", errors[0][1])

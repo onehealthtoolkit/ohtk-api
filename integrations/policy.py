@@ -21,7 +21,9 @@ def _get_value(key, default=""):
 
 
 def _is_enabled(key):
-    return _get_value(key, FEATURE_DISABLED_VALUE) == FEATURE_ENABLED_VALUE
+    # Default on when unset so already-deployed integration clients keep working
+    # until a tenant admin explicitly disables the policy keys.
+    return _get_value(key, FEATURE_ENABLED_VALUE) == FEATURE_ENABLED_VALUE
 
 
 def _set_value(key, value):
@@ -81,3 +83,52 @@ def set_integration_policy(
     )
     _set_value(DASHBOARD_RISK_WINDOW_DAYS_KEY, dashboard_risk_window_days)
     return get_integration_policy()
+
+
+# Feature keys accepted by assert_integration_feature_enabled.
+FEATURE_AI = "ai"
+FEATURE_RISK_EVALUATOR = "risk_evaluator"
+FEATURE_CLUSTER_DETECTOR = "cluster_detector"
+
+_FEATURE_POLICY_KEYS = {
+    FEATURE_AI: ("ai_enabled", "AI integration is disabled for this tenant."),
+    FEATURE_RISK_EVALUATOR: (
+        "risk_evaluator_enabled",
+        "Risk evaluator integration is disabled for this tenant.",
+    ),
+    FEATURE_CLUSTER_DETECTOR: (
+        "cluster_detector_enabled",
+        "Cluster detector integration is disabled for this tenant.",
+    ),
+}
+
+
+class IntegrationPolicyDenied(Exception):
+    def __init__(self, code, message):
+        super().__init__(message)
+        self.code = code
+        self.message = message
+
+
+def assert_integration_feature_enabled(feature=None):
+    """
+    Enforce tenant integration policy for REST/webhook entry points.
+
+    Always requires integrations.enabled. Optional feature-specific toggles:
+    ai, risk_evaluator, cluster_detector.
+    """
+    policy = get_integration_policy()
+    if not policy["integration_enabled"]:
+        raise IntegrationPolicyDenied(
+            "integration_disabled",
+            "Integrations are disabled for this tenant.",
+        )
+    if feature is None:
+        return policy
+    try:
+        policy_key, message = _FEATURE_POLICY_KEYS[feature]
+    except KeyError as exc:
+        raise ValueError(f"Unknown integration feature: {feature}") from exc
+    if not policy[policy_key]:
+        raise IntegrationPolicyDenied(f"{feature}_disabled", message)
+    return policy

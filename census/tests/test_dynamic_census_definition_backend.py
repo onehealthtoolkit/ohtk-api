@@ -1108,3 +1108,37 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
             fact for fact in current_facts if fact["fact"]["rowKey"] == "species:CATTLE"
         )
         self.assertEqual(cattle_fact["fact"]["measures"]["animal_quantity"], 99)
+
+    def test_current_animal_census_facts_require_village_permission(self):
+        self.enable_census()
+        cattle, buffalo = self.create_species()
+        _definition, version = self.create_animal_definition()
+        self.client.authenticate(self.reporter)
+        self.execute_submit_v2(
+            {
+                "villageId": self.village.id,
+                "definitionVersionId": version.id,
+                "censusDate": "2026-05-18",
+                "formData": self.animal_form_data(cattle, buffalo),
+            }
+        )
+        other_authority = Authority.objects.create(
+            name="other authority", code="OA"
+        )
+        other_village = Village.objects.create(
+            code="V999", name="Other Village", authority=other_authority
+        )
+        query = """
+        query currentAnimalCensusFacts($villageId: Int!) {
+            currentAnimalCensusFacts(villageId: $villageId) {
+                fact {
+                    rowKey
+                }
+            }
+        }
+        """
+
+        denied = self.client.execute(query, {"villageId": other_village.id})
+
+        self.assertIsNotNone(denied.errors)
+        self.assertIn("Permission denied", str(denied.errors[0]))

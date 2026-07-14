@@ -316,15 +316,33 @@ class Query(graphene.ObjectType):
     @staticmethod
     @login_required
     def resolve_current_animal_census_facts(root, info, village_id):
+        if not (
+            is_village_capability_enabled() and is_animal_census_capability_enabled()
+        ):
+            return []
+
+        village = _get_permitted_census_village(info, village_id)
+        if village is None:
+            return []
+
         return CurrentAnimalCensusFact.objects.filter(
-            fact__snapshot__village_id=village_id
+            fact__snapshot__village=village
         ).select_related("fact")
 
     @staticmethod
     @login_required
     def resolve_current_human_census_facts(root, info, village_id):
+        if not (
+            is_village_capability_enabled() and is_animal_census_capability_enabled()
+        ):
+            return []
+
+        village = _get_permitted_census_village(info, village_id)
+        if village is None:
+            return []
+
         return CurrentHumanCensusFact.objects.filter(
-            fact__snapshot__village_id=village_id
+            fact__snapshot__village=village
         ).select_related("fact")
 
 

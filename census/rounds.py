@@ -21,15 +21,27 @@ COVERAGE_SUBMITTED_LATE = "SUBMITTED_LATE"
 def parse_month_day(value):
     if not isinstance(value, str) or len(value) != 5 or value[2] != "-":
         raise ValueError("date rule must use MM-DD")
-    month = int(value[:2])
-    day = int(value[3:])
-    date(2000, month, day)
+    try:
+        month = int(value[:2])
+        day = int(value[3:])
+    except ValueError as exc:
+        raise ValueError("date rule must use MM-DD") from exc
+    # Annual MM-DD rules must resolve in every year; leap day is not portable.
+    if month == 2 and day == 29:
+        raise ValueError("date rule cannot use leap day 02-29")
+    try:
+        date(2001, month, day)  # non-leap year so Feb 29 is already rejected above
+    except ValueError as exc:
+        raise ValueError("date rule must use valid MM-DD") from exc
     return month, day
 
 
 def resolve_month_day(year, value):
     month, day = parse_month_day(value)
-    return date(year, month, day)
+    try:
+        return date(year, month, day)
+    except ValueError as exc:
+        raise ValueError("date rule must use valid MM-DD for target year") from exc
 
 
 def resolve_end_date(year, start, value):

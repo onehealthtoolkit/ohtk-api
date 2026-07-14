@@ -21,6 +21,7 @@ from integrations.models import (
     WebhookDelivery,
     WebhookEndpoint,
 )
+from integrations.policy import IntegrationPolicyDenied, assert_integration_feature_enabled
 from integrations.secret_resolvers import SettingsWebhookSigningSecretResolver
 from integrations.services import assert_integration_tenant_schema
 from integrations.utils import payload_hash, secret_safe_summary
@@ -59,6 +60,10 @@ class UrlLibWebhookHttpClient:
 
 def record_report_submitted_event(*, report_id, enqueue_delivery_tasks=True):
     assert_integration_tenant_schema()
+    try:
+        assert_integration_feature_enabled()
+    except IntegrationPolicyDenied:
+        return WebhookEventResult(event=None, deliveries=())
 
     report = (
         IncidentReport.objects.select_related("report_type", "report_type__category")

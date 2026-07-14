@@ -29,6 +29,13 @@ from integrations.models import (
     IntegrationReportComment,
 )
 from integrations.models import RiskAssessment
+from integrations.policy import (
+    FEATURE_AI,
+    FEATURE_CLUSTER_DETECTOR,
+    FEATURE_RISK_EVALUATOR,
+    IntegrationPolicyDenied,
+    assert_integration_feature_enabled,
+)
 from integrations.services import (
     assert_integration_tenant_schema,
     claim_idempotency_key,
@@ -1095,6 +1102,23 @@ def report_comments(request, report_id):
             ),
         )
 
+    try:
+        assert_integration_feature_enabled(FEATURE_AI)
+    except IntegrationPolicyDenied as exc:
+        _create_action_log(
+            request=request,
+            integration_client=integration_client,
+            target_id=target_id,
+            result_status=IntegrationActionLog.ResultStatus.REJECTED,
+            result_summary={
+                "error": {
+                    "code": exc.code,
+                    "message": exc.message,
+                }
+            },
+        )
+        return _error_response(status=403, code=exc.code, message=exc.message)
+
     payload, parse_error = _parse_json_body(request)
     if parse_error:
         _create_action_log(
@@ -1373,6 +1397,24 @@ def report_risk_assessments(request, report_id):
                 f"{IntegrationScope.RISK_UPDATE}"
             ),
         )
+
+    try:
+        assert_integration_feature_enabled(FEATURE_RISK_EVALUATOR)
+    except IntegrationPolicyDenied as exc:
+        _create_risk_action_log(
+            request=request,
+            integration_client=integration_client,
+            target_type=TARGET_REPORT,
+            target_id=target_id,
+            result_status=IntegrationActionLog.ResultStatus.REJECTED,
+            result_summary={
+                "error": {
+                    "code": exc.code,
+                    "message": exc.message,
+                }
+            },
+        )
+        return _error_response(status=403, code=exc.code, message=exc.message)
 
     payload, parse_error = _parse_json_body(request)
     if parse_error:
@@ -1695,6 +1737,26 @@ def _authorize_incident_read_request(request, target_id=""):
             None,
         )
 
+    try:
+        assert_integration_feature_enabled()
+    except IntegrationPolicyDenied as exc:
+        _create_incident_read_action_log(
+            request=request,
+            integration_client=integration_client,
+            target_id=target_id,
+            result_status=IntegrationActionLog.ResultStatus.REJECTED,
+            result_summary={
+                "error": {
+                    "code": exc.code,
+                    "message": exc.message,
+                }
+            },
+        )
+        return (
+            _error_response(status=403, code=exc.code, message=exc.message),
+            None,
+        )
+
     return None, integration_client
 
 
@@ -1793,6 +1855,27 @@ def _authorize_census_read_request(request, target_type="", target_id=""):
                     f"{IntegrationScope.CENSUS_READ}"
                 ),
             ),
+            None,
+        )
+
+    try:
+        assert_integration_feature_enabled()
+    except IntegrationPolicyDenied as exc:
+        _create_census_read_action_log(
+            request=request,
+            integration_client=integration_client,
+            target_type=target_type,
+            target_id=target_id,
+            result_status=IntegrationActionLog.ResultStatus.REJECTED,
+            result_summary={
+                "error": {
+                    "code": exc.code,
+                    "message": exc.message,
+                }
+            },
+        )
+        return (
+            _error_response(status=403, code=exc.code, message=exc.message),
             None,
         )
 
@@ -1902,6 +1985,28 @@ def _authorize_cluster_request(
                     f"{IntegrationScope.CLUSTER_WRITE_RESULT}"
                 ),
             ),
+            None,
+        )
+
+    try:
+        assert_integration_feature_enabled(FEATURE_CLUSTER_DETECTOR)
+    except IntegrationPolicyDenied as exc:
+        _create_cluster_action_log(
+            request=request,
+            integration_client=integration_client,
+            action_type=action_type,
+            target_type=target_type,
+            target_id=target_id,
+            result_status=IntegrationActionLog.ResultStatus.REJECTED,
+            result_summary={
+                "error": {
+                    "code": exc.code,
+                    "message": exc.message,
+                }
+            },
+        )
+        return (
+            _error_response(status=403, code=exc.code, message=exc.message),
             None,
         )
 

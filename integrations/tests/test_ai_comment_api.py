@@ -336,6 +336,63 @@ class AICommentApiTests(TenantTestCase):
         self.assertEqual(0, IntegrationReportComment.objects.count())
         self.assertEqual(0, IntegrationActionLog.objects.count())
 
+    def test_disabled_integration_policy_is_enforced(self):
+        from integrations.policy import set_integration_policy
+
+        set_integration_policy(
+            integration_enabled=False,
+            ai_enabled=True,
+            risk_evaluator_enabled=True,
+            cluster_detector_enabled=True,
+            ai_default_comment_owner_user_id="",
+            dashboard_risk_window_days=7,
+        )
+
+        response = self._post_comment(
+            {
+                "externalActionId": "ai-disabled-policy",
+                "body": "Should be blocked by tenant policy.",
+            },
+            idempotency_key="idem-disabled-policy",
+        )
+
+        self.assertEqual(403, response.status_code)
+        self.assertEqual("integration_disabled", response.json()["error"]["code"])
+        self.assertEqual(0, IntegrationReportComment.objects.count())
+        action_log = IntegrationActionLog.objects.get()
+        self.assertEqual(
+            IntegrationActionLog.ResultStatus.REJECTED,
+            action_log.result_status,
+        )
+        self.assertEqual(
+            "integration_disabled",
+            action_log.result_summary["error"]["code"],
+        )
+
+    def test_disabled_ai_feature_policy_is_enforced(self):
+        from integrations.policy import set_integration_policy
+
+        set_integration_policy(
+            integration_enabled=True,
+            ai_enabled=False,
+            risk_evaluator_enabled=True,
+            cluster_detector_enabled=True,
+            ai_default_comment_owner_user_id="",
+            dashboard_risk_window_days=7,
+        )
+
+        response = self._post_comment(
+            {
+                "externalActionId": "ai-feature-disabled",
+                "body": "Should be blocked by AI feature policy.",
+            },
+            idempotency_key="idem-ai-feature-disabled",
+        )
+
+        self.assertEqual(403, response.status_code)
+        self.assertEqual("ai_disabled", response.json()["error"]["code"])
+        self.assertEqual(0, IntegrationReportComment.objects.count())
+
     def test_invalid_payload_is_rejected_and_audited(self):
         response = self._post_comment(
             {
