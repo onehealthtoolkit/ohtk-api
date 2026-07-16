@@ -24,6 +24,7 @@ from graphql_playground.views import GraphQLPlaygroundView
 import tenants.views
 import accounts.views
 import summaries.views
+import census.views
 from django.conf.urls.i18n import i18n_patterns
 from podd_api.jwt_cookie import jwt_cookie
 
@@ -56,4 +57,5 @@ urlpatterns += i18n_patterns(
     path("excels/incident_report", summaries.views.export_incident_report_xls),
     path("excels/zero_report", summaries.views.export_zero_report_xls),
     path("excels/observation", summaries.views.export_observation_xls),
+    path("excels/census_round", census.views.export_census_round_xls),
 )

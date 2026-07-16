@@ -355,12 +355,11 @@ def _get_permitted_census_village(info, village_id):
 
     if user.is_superuser:
         return village
-    if user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
+    # Admin and officer review scope follows authority inherits-down hierarchy.
+    if user.is_authority_role_in(
+        [AuthorityUser.Role.ADMIN, AuthorityUser.Role.OFFICER]
+    ):
         if user.authorityuser.authority.is_in_inherits_down([village.authority_id]):
-            return village
-        raise GraphQLError("Permission denied.")
-    if user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
-        if user.authorityuser.authority_id == village.authority_id:
             return village
         raise GraphQLError("Permission denied.")
     if user.is_authority_role_in([AuthorityUser.Role.REPORTER]):
