@@ -148,6 +148,34 @@ def replace_village_assignments(reporter, assignments):
             assignment.save(update_fields=("census_role",))
 
 
+def _validate_optional_gender(gender, problems):
+    if gender is None or gender == "":
+        return None
+    valid = {choice for choice, _ in AuthorityUser.Gender.choices}
+    if gender not in valid:
+        problems.append(
+            AdminFieldValidationProblem(
+                name="gender",
+                message=f"gender must be one of: {', '.join(sorted(valid))}",
+            )
+        )
+        return None
+    return gender
+
+
+def _validate_optional_age(age, problems):
+    if age is None:
+        return None
+    if age < 1 or age > 120:
+        problems.append(
+            AdminFieldValidationProblem(
+                name="age", message="age must be between 1 and 120"
+            )
+        )
+        return None
+    return age
+
+
 class AdminAuthorityUserCreateMutation(graphene.Mutation):
     class Arguments:
         authority_id = graphene.Int(required=None)
@@ -158,6 +186,8 @@ class AdminAuthorityUserCreateMutation(graphene.Mutation):
         email = graphene.String(required=True)
         telephone = graphene.String(required=False)
         address = graphene.String(required=False)
+        gender = graphene.String(required=False)
+        age = graphene.Int(required=False)
         role = graphene.String(required=False)
 
     result = graphene.Field(AdminAuthorityUserCreateResult)
@@ -176,6 +206,8 @@ class AdminAuthorityUserCreateMutation(graphene.Mutation):
         telephone,
         address,
         role,
+        gender=None,
+        age=None,
     ):
         user = info.context.user
         if not user.is_superuser:
@@ -207,6 +239,9 @@ class AdminAuthorityUserCreateMutation(graphene.Mutation):
                 )
             )
 
+        normalized_gender = _validate_optional_gender(gender, problems)
+        normalized_age = _validate_optional_age(age, problems)
+
         if len(problems) > 0:
             return AdminAuthorityUserCreateMutation(
                 result=AdminAuthorityUserCreateProblem(fields=problems)
@@ -222,6 +257,8 @@ class AdminAuthorityUserCreateMutation(graphene.Mutation):
             email=email,
             telephone=telephone,
             address=address,
+            gender=normalized_gender,
+            age=normalized_age,
             role=role,
         )
         return AdminAuthorityUserCreateMutation(result=user)
@@ -237,6 +274,8 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
         email = graphene.String(required=True)
         telephone = graphene.String(required=False)
         address = graphene.String(required=False)
+        gender = graphene.String(required=False)
+        age = graphene.Int(required=False)
         role = graphene.String(required=False)
         village_assignments = graphene.List(
             VillageReporterAssignmentInput, required=False
@@ -258,6 +297,8 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
         telephone,
         address,
         role,
+        gender=None,
+        age=None,
         village_assignments=None,
     ):
         try:
@@ -294,6 +335,9 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
             "first_name", first_name, "First name must not be empty"
         ):
             problems.append(first_name_problem)
+
+        normalized_gender = _validate_optional_gender(gender, problems)
+        normalized_age = _validate_optional_age(age, problems)
 
         if len(problems) > 0:
             return AdminAuthorityUserUpdateMutation(
@@ -346,6 +390,8 @@ class AdminAuthorityUserUpdateMutation(graphene.Mutation):
         update_user.email = email
         update_user.telephone = telephone
         update_user.address = address
+        update_user.gender = normalized_gender
+        update_user.age = normalized_age
         update_user.role = target_role
         update_user.save()
         if update_user.role != AuthorityUser.Role.REPORTER:

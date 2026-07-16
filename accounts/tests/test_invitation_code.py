@@ -3,7 +3,7 @@ import json
 from django.conf import settings
 from django.test import TestCase
 
-from accounts.models import Authority, InvitationCode, User, Configuration
+from accounts.models import Authority, AuthorityUser, InvitationCode, User, Configuration
 from accounts.utils import domain
 
 
@@ -167,6 +167,101 @@ class InvitationCodeTestCase(TestCase):
             },
         )
         self.assertGraphQLNoErrors(response)
+
+    def test_user_registration_with_gender_age_consent(self):
+        settings.AUTO_LOGIN_AFTER_REGISTER = False
+        register_mutation = """
+            mutation authorityUserRegister(
+                $username: String!,
+                $invitationCode: String!,
+                $firstName: String!,
+                $lastName: String!,
+                $email: String!,
+                $gender: String,
+                $age: Int,
+                $consent: Boolean
+            ) {
+                authorityUserRegister(
+                    username: $username,
+                    invitationCode: $invitationCode,
+                    firstName: $firstName,
+                    lastName: $lastName,
+                    email: $email,
+                    gender: $gender,
+                    age: $age,
+                    consent: $consent
+                ) {
+                    me {
+                        id
+                        username
+                        gender
+                        age
+                        consent
+                    }
+                }
+            }
+        """
+        response = self.graphql_query(
+            register_mutation,
+            variables={
+                "username": "reporter_with_demo",
+                "invitationCode": "1234",
+                "firstName": "Jane",
+                "lastName": "Doe",
+                "email": "jane@example.com",
+                "gender": "female",
+                "age": 34,
+                "consent": True,
+            },
+        )
+        content = self.assertGraphQLNoErrors(response)
+        me = content["data"]["authorityUserRegister"]["me"]
+        self.assertEqual(me["gender"], "female")
+        self.assertEqual(me["age"], 34)
+        self.assertTrue(me["consent"])
+        user = AuthorityUser.objects.get(username="reporter_with_demo")
+        self.assertEqual(user.gender, AuthorityUser.Gender.FEMALE)
+        self.assertEqual(user.age, 34)
+        self.assertTrue(user.consent)
+
+    def test_user_registration_rejects_invalid_gender(self):
+        settings.AUTO_LOGIN_AFTER_REGISTER = False
+        register_mutation = """
+            mutation authorityUserRegister(
+                $username: String!,
+                $invitationCode: String!,
+                $firstName: String!,
+                $lastName: String!,
+                $email: String!,
+                $gender: String
+            ) {
+                authorityUserRegister(
+                    username: $username,
+                    invitationCode: $invitationCode,
+                    firstName: $firstName,
+                    lastName: $lastName,
+                    email: $email,
+                    gender: $gender
+                ) {
+                    me { id }
+                }
+            }
+        """
+        response = self.graphql_query(
+            register_mutation,
+            variables={
+                "username": "bad_gender_user",
+                "invitationCode": "1234",
+                "firstName": "Bad",
+                "lastName": "Gender",
+                "email": "bad@example.com",
+                "gender": "unknown",
+            },
+        )
+        self.assertGraphQLHasErrors(response)
+        self.assertFalse(
+            AuthorityUser.objects.filter(username="bad_gender_user").exists()
+        )
 
     def test_user_registration_via_code_and_auto_login(self):
         settings.AUTO_LOGIN_AFTER_REGISTER = True

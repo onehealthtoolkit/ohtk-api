@@ -181,6 +181,9 @@ class AdminAuthorityUserQueryType(DjangoObjectType):
             "role",
             "authority",
             "telephone",
+            "gender",
+            "age",
+            "consent",
         )
         filterset_class = AdminAuthorityUserQueryFilter
 
@@ -283,6 +286,9 @@ class AuthorityUserType(DjangoObjectType):
             "email",
             "telephone",
             "address",
+            "gender",
+            "age",
+            "consent",
             "role",
         )
 
@@ -330,6 +336,8 @@ class UserProfileType(graphene.ObjectType):
     telephone = graphene.String(required=False)
     email = graphene.String()
     address = graphene.String(required=False)
+    gender = graphene.String(required=False)
+    age = graphene.Int(required=False)
     authority_name = graphene.String(required=False)
     authority_id = graphene.Int(required=False)
     avatar_url = graphene.String(required=False)
@@ -358,6 +366,16 @@ class UserProfileType(graphene.ObjectType):
 
     def resolve_avatar_url(self, info):
         return resolve_thumbnail_url(self.avatar)
+
+    def resolve_gender(self, info):
+        if self.is_authority_user:
+            return self.gender
+        return None
+
+    def resolve_age(self, info):
+        if self.is_authority_user:
+            return self.age
+        return None
 
     def resolve_consent(self, info):
         if self.is_authority_user:

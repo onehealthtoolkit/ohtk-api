@@ -9,6 +9,25 @@ from accounts.schema.types import UserProfileType
 from accounts.village_capability import is_village_capability_enabled
 
 
+def _normalize_gender(gender):
+    if gender is None or gender == "":
+        return None
+    valid = {choice for choice, _ in AuthorityUser.Gender.choices}
+    if gender not in valid:
+        raise GraphQLError(
+            f"gender must be one of: {', '.join(sorted(valid))}"
+        )
+    return gender
+
+
+def _normalize_age(age):
+    if age is None:
+        return None
+    if age < 1 or age > 120:
+        raise GraphQLError("age must be between 1 and 120")
+    return age
+
+
 class AuthorityUserRegisterMutation(graphene.Mutation):
     class Arguments:
         invitation_code = graphene.String(required=True)
@@ -18,6 +37,9 @@ class AuthorityUserRegisterMutation(graphene.Mutation):
         telephone = graphene.String(required=False)
         email = graphene.String(required=True)
         address = graphene.String(required=False)
+        gender = graphene.String(required=False)
+        age = graphene.Int(required=False)
+        consent = graphene.Boolean(required=False)
 
     me = graphene.Field(UserProfileType)
     # return only when enable FEATURES.AUTO_LOGIN_AFTER_REGISTER
@@ -35,11 +57,16 @@ class AuthorityUserRegisterMutation(graphene.Mutation):
         email,
         telephone=None,
         address=None,
+        gender=None,
+        age=None,
+        consent=None,
     ):
         invitation = InvitationCode.objects.filter(code=invitation_code).first()
         if invitation:
             if AuthorityUser.objects.filter(username=username).exists():
                 raise GraphQLError(f"username {username} already exist")
+            normalized_gender = _normalize_gender(gender)
+            normalized_age = _normalize_age(age)
             authority_user = AuthorityUser.objects.create(
                 username=username,
                 first_name=first_name,
@@ -47,6 +74,9 @@ class AuthorityUserRegisterMutation(graphene.Mutation):
                 telephone=telephone,
                 email=email,
                 address=address,
+                gender=normalized_gender,
+                age=normalized_age,
+                consent=bool(consent),
                 authority=invitation.authority,
                 role=invitation.role,
             )

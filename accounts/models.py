@@ -112,6 +112,11 @@ class AuthorityUser(User):
         OFFICER = "OFC", "Officer"
         ADMIN = "ADM", "Admin"
 
+    class Gender(models.TextChoices):
+        MALE = "male", "Male"
+        FEMALE = "female", "Female"
+        OTHER = "other", "Other"
+
     class Meta:
         verbose_name = "Authority User"
 
@@ -119,6 +124,10 @@ class AuthorityUser(User):
     thumbnail_avatar_url = models.URLField(max_length=300, blank=True, null=True)
     telephone = models.CharField(max_length=20, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
+    gender = models.CharField(
+        choices=Gender.choices, max_length=16, blank=True, null=True
+    )
+    age = models.PositiveSmallIntegerField(blank=True, null=True)
     authority = models.ForeignKey(
         Authority, related_name="users", on_delete=models.CASCADE
     )
