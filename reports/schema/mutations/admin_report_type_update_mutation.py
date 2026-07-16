@@ -26,6 +26,7 @@ class AdminReportTypeUpdateMutation(graphene.Mutation):
         followup_definition = graphene.String(required=False)
         renderer_followup_data_template = graphene.String(required=False)
         is_followable = graphene.Boolean(required=False, default_value=False)
+        metric_accumulation = graphene.String(required=False)
 
     result = graphene.Field(AdminReportTypeUpdateResult)
 
@@ -45,6 +46,7 @@ class AdminReportTypeUpdateMutation(graphene.Mutation):
         followup_definition=None,
         renderer_followup_data_template=None,
         is_followable=False,
+        metric_accumulation=None,
     ):
         try:
             report_type = ReportType.objects.get(pk=id)
@@ -80,6 +82,11 @@ class AdminReportTypeUpdateMutation(graphene.Mutation):
             report_type.followup_definition = json.loads(followup_definition)
         else:
             report_type.followup_definition = None
+
+        if metric_accumulation:
+            report_type.metric_accumulation = json.loads(metric_accumulation)
+        else:
+            report_type.metric_accumulation = None
 
         report_type.renderer_followup_data_template = renderer_followup_data_template
         report_type.save()

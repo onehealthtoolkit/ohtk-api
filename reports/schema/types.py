@@ -35,6 +35,7 @@ class CategoryType(DjangoObjectType):
 class ReportTypeType(DjangoObjectType):
     definition = GenericScalar()
     followup_definition = GenericScalar()
+    metric_accumulation = GenericScalar()
     category = graphene.Field(CategoryType)
 
     class Meta:
@@ -189,6 +190,7 @@ class IncidentReportType(DjangoObjectType):
     authorities = graphene.List(AuthorityType)
     definition = GenericScalar()
     is_followable = graphene.Boolean()
+    accumulated_metrics = GenericScalar()
     current_risk_assessment = graphene.Field(RiskAssessmentProjectionType)
     risk_assessment_history = graphene.List(
         RiskAssessmentProjectionType,
@@ -238,6 +240,11 @@ class IncidentReportType(DjangoObjectType):
 
     def resolve_is_followable(self, info):
         return self.report_type.followup_definition is not None
+
+    def resolve_accumulated_metrics(self, info):
+        from reports.metric_accumulation import accumulate_incident_metrics
+
+        return accumulate_incident_metrics(self)
 
     def resolve_current_risk_assessment(self, info):
         return get_current_risk_assessment(report=self)
@@ -367,6 +374,8 @@ class AdminReportTypeQueryFilter(django_filters.FilterSet):
 
 
 class AdminReportTypeQueryType(DjangoObjectType):
+    metric_accumulation = GenericScalar()
+
     class Meta:
         model = ReportType
         fields = (
@@ -379,6 +388,7 @@ class AdminReportTypeQueryType(DjangoObjectType):
             "published",
             "is_followable",
             "ordering",
+            "metric_accumulation",
         )
         filterset_class = AdminReportTypeQueryFilter
 

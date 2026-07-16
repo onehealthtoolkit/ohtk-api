@@ -26,6 +26,7 @@ class ReportType(BaseModel):
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     definition = models.JSONField()
     followup_definition = models.JSONField(null=True, blank=True)
+    metric_accumulation = models.JSONField(null=True, blank=True)
     authorities = models.ManyToManyField(
         Authority,
         related_name="reportTypes",
