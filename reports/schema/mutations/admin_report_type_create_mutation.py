@@ -25,6 +25,7 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
         followup_definition = graphene.String(required=False)
         renderer_followup_data_template = graphene.String(required=False)
         is_followable = graphene.Boolean(required=False, default_value=False)
+        metric_accumulation = graphene.String(required=False)
 
     result = graphene.Field(AdminReportTypeCreateResult)
 
@@ -43,6 +44,7 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
         followup_definition=None,
         renderer_followup_data_template=None,
         is_followable=False,
+        metric_accumulation=None,
     ):
         problems = []
         if name_problem := is_not_empty("name", name, "Name must not be empty"):
@@ -66,6 +68,20 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
         followup_definition_json = None
         if followup_definition:
             followup_definition_json = json.loads(followup_definition)
+        metric_accumulation_json = None
+        if metric_accumulation:
+            try:
+                metric_accumulation_json = json.loads(metric_accumulation)
+            except json.JSONDecodeError:
+                problems.append(
+                    AdminFieldValidationProblem(
+                        name="metric_accumulation",
+                        message="metric_accumulation must be valid JSON",
+                    )
+                )
+                return AdminReportTypeCreateMutation(
+                    result=AdminReportTypeCreateProblem(fields=problems)
+                )
         report_type = ReportType.objects.create(
             name=name,
             category=Category.objects.get(pk=category_id),
@@ -76,5 +92,6 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
             followup_definition=followup_definition_json,
             renderer_followup_data_template=renderer_followup_data_template,
             is_followable=is_followable,
+            metric_accumulation=metric_accumulation_json,
         )
         return AdminReportTypeCreateMutation(result=report_type)

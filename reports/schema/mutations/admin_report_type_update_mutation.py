@@ -4,6 +4,7 @@ from graphql_jwt.decorators import login_required, user_passes_test
 
 from accounts.utils import is_superuser
 from common.utils import is_duplicate, is_not_empty
+from common.types import AdminFieldValidationProblem
 from reports.models.category import Category
 from reports.models.report_type import ReportType
 
@@ -26,6 +27,7 @@ class AdminReportTypeUpdateMutation(graphene.Mutation):
         followup_definition = graphene.String(required=False)
         renderer_followup_data_template = graphene.String(required=False)
         is_followable = graphene.Boolean(required=False, default_value=False)
+        metric_accumulation = graphene.String(required=False)
 
     result = graphene.Field(AdminReportTypeUpdateResult)
 
@@ -45,6 +47,7 @@ class AdminReportTypeUpdateMutation(graphene.Mutation):
         followup_definition=None,
         renderer_followup_data_template=None,
         is_followable=False,
+        metric_accumulation=None,
     ):
         try:
             report_type = ReportType.objects.get(pk=id)
@@ -80,6 +83,23 @@ class AdminReportTypeUpdateMutation(graphene.Mutation):
             report_type.followup_definition = json.loads(followup_definition)
         else:
             report_type.followup_definition = None
+
+        if metric_accumulation:
+            try:
+                report_type.metric_accumulation = json.loads(metric_accumulation)
+            except json.JSONDecodeError:
+                return AdminReportTypeUpdateMutation(
+                    result=AdminReportTypeUpdateProblem(
+                        fields=[
+                            AdminFieldValidationProblem(
+                                name="metric_accumulation",
+                                message="metric_accumulation must be valid JSON",
+                            )
+                        ]
+                    )
+                )
+        else:
+            report_type.metric_accumulation = None
 
         report_type.renderer_followup_data_template = renderer_followup_data_template
         report_type.save()
