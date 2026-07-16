@@ -249,26 +249,52 @@ def available_occurrences_for_village(village, kind, mode=None, as_of=None):
     ]
 
 
+def _authority_ids_down(authority):
+    """Concrete id list from inherits-down tree (includes self)."""
+    return [item.id for item in authority.all_inherits_down()]
+
+
+def permitted_authority_ids_for_coverage(user):
+    """
+    Authorities the user may review on the animal census coverage screen.
+
+    Matches operational report/case scoping: staff see their authority hierarchy
+    (self + inherits-down children), not the whole tenant.
+    """
+    if user.is_superuser:
+        return None  # unrestricted
+    if user.is_authority_role_in(
+        [AuthorityUser.Role.ADMIN, AuthorityUser.Role.OFFICER]
+    ):
+        return _authority_ids_down(user.authorityuser.authority)
+    return []
+
+
 def permitted_villages_for_coverage(user, authority_id=None):
     queryset = Village.objects.filter(active=True).select_related("authority")
+
+    allowed_authority_ids = permitted_authority_ids_for_coverage(user)
+    if allowed_authority_ids is not None:
+        if not allowed_authority_ids:
+            return None
+        queryset = queryset.filter(authority_id__in=allowed_authority_ids)
+
     if authority_id is not None:
         try:
             target_authority = Authority.objects.get(pk=int(authority_id))
         except (Authority.DoesNotExist, TypeError, ValueError):
             return Village.objects.none()
+        # Optional authority filter must stay inside the viewer's hierarchy.
+        if (
+            allowed_authority_ids is not None
+            and target_authority.id not in allowed_authority_ids
+        ):
+            return Village.objects.none()
         queryset = queryset.filter(
-            authority__in=target_authority.all_inherits_down()
+            authority_id__in=_authority_ids_down(target_authority)
         )
 
-    if user.is_superuser:
-        return queryset
-    if user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
-        return queryset.filter(
-            authority__in=user.authorityuser.authority.all_inherits_down()
-        )
-    if user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
-        return queryset.filter(authority=user.authorityuser.authority)
-    return None
+    return queryset
 
 
 def build_coverage(occurrence, user, authority_id=None, status=None, q=None):
@@ -277,7 +303,7 @@ def build_coverage(occurrence, user, authority_id=None, status=None, q=None):
         return None
     if occurrence.target_authority_id is not None:
         villages = villages.filter(
-            authority__in=occurrence.target_authority.all_inherits_down()
+            authority_id__in=_authority_ids_down(occurrence.target_authority)
         )
     if q:
         villages = villages.filter(Q(name__icontains=q) | Q(code__icontains=q))
