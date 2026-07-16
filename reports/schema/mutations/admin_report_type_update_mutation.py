@@ -4,6 +4,7 @@ from graphql_jwt.decorators import login_required, user_passes_test
 
 from accounts.utils import is_superuser
 from common.utils import is_duplicate, is_not_empty
+from common.types import AdminFieldValidationProblem
 from reports.models.category import Category
 from reports.models.report_type import ReportType
 
@@ -84,7 +85,19 @@ class AdminReportTypeUpdateMutation(graphene.Mutation):
             report_type.followup_definition = None
 
         if metric_accumulation:
-            report_type.metric_accumulation = json.loads(metric_accumulation)
+            try:
+                report_type.metric_accumulation = json.loads(metric_accumulation)
+            except json.JSONDecodeError:
+                return AdminReportTypeUpdateMutation(
+                    result=AdminReportTypeUpdateProblem(
+                        fields=[
+                            AdminFieldValidationProblem(
+                                name="metric_accumulation",
+                                message="metric_accumulation must be valid JSON",
+                            )
+                        ]
+                    )
+                )
         else:
             report_type.metric_accumulation = None
 

@@ -53,7 +53,15 @@ def parse_metric_specs(config: Any) -> List[dict]:
         metric_id = item.get("id") or item.get("reportField")
         report_field = item.get("reportField")
         followup_field = item.get("followupField") or report_field
-        op = (item.get("op") or "sum").strip().lower()
+        raw_op = item.get("op") or "sum"
+        if not isinstance(raw_op, str):
+            logger.warning(
+                "metric_accumulation: non-string op %r for metric %r; skipped",
+                raw_op,
+                metric_id,
+            )
+            continue
+        op = raw_op.strip().lower()
         if not metric_id or not report_field:
             continue
         if op not in SUPPORTED_OPS:
@@ -129,9 +137,18 @@ def accumulate_incident_metrics(incident) -> Dict[str, Any]:
     Compute accumulation for an IncidentReport instance.
     Uses report_type.metric_accumulation and ordered followups.
     """
-    report_type = getattr(incident, "report_type", None)
-    config = getattr(report_type, "metric_accumulation", None) if report_type else None
-    followups = list(
-        incident.followups.order_by("created_at").values_list("data", flat=True)
-    )
-    return accumulate_metrics(incident.data, followups, config)
+    try:
+        report_type = getattr(incident, "report_type", None)
+        config = (
+            getattr(report_type, "metric_accumulation", None) if report_type else None
+        )
+        followups = list(
+            incident.followups.order_by("created_at").values_list("data", flat=True)
+        )
+        return accumulate_metrics(incident.data, followups, config)
+    except Exception:
+        logger.exception(
+            "metric_accumulation: failed for incident %s",
+            getattr(incident, "id", None),
+        )
+        return {"version": 1, "metrics": []}

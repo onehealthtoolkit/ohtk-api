@@ -70,7 +70,18 @@ class AdminReportTypeCreateMutation(graphene.Mutation):
             followup_definition_json = json.loads(followup_definition)
         metric_accumulation_json = None
         if metric_accumulation:
-            metric_accumulation_json = json.loads(metric_accumulation)
+            try:
+                metric_accumulation_json = json.loads(metric_accumulation)
+            except json.JSONDecodeError:
+                problems.append(
+                    AdminFieldValidationProblem(
+                        name="metric_accumulation",
+                        message="metric_accumulation must be valid JSON",
+                    )
+                )
+                return AdminReportTypeCreateMutation(
+                    result=AdminReportTypeCreateProblem(fields=problems)
+                )
         report_type = ReportType.objects.create(
             name=name,
             category=Category.objects.get(pk=category_id),
