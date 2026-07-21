@@ -361,6 +361,86 @@ class CensusRoundsBackendTests(JSONWebTokenTestCase):
         self.assertEqual(rows_by_code["V001"]["villageHouseholdQuantity"], 120)
         self.assertEqual(rows_by_code["V001"]["totalAnimalQuantity"], 10)
         self.assertEqual(rows_by_code["V002"]["status"], "MISSING")
+        self.assertNotIn("V999", rows_by_code)
+
+    def test_coverage_query_scopes_villages_to_user_authority_hierarchy(self):
+        child_authority = Authority.objects.create(name="child", code="CA")
+        child_authority.inherits.add(self.authority)
+        child_village = Village.objects.create(
+            code="V003", name="Child Village", authority=child_authority
+        )
+        occurrence = self.create_round()
+        coverage_query = """
+        query coverage($occurrenceId: Int!, $authorityId: Int) {
+            censusRoundCoverage(
+                occurrenceId: $occurrenceId
+                authorityId: $authorityId
+                status: "ALL"
+                limit: 50
+            ) {
+                totalCount
+                rows {
+                    village {
+                        code
+                    }
+                }
+            }
+        }
+        """
+
+        # Officer at parent authority sees own + descendant villages, not outsiders.
+        self.client.authenticate(self.officer)
+        result = self.client.execute(
+            coverage_query, {"occurrenceId": occurrence.id}
+        )
+        self.assertIsNone(result.errors, result.errors)
+        codes = {
+            row["village"]["code"]
+            for row in result.data["censusRoundCoverage"]["rows"]
+        }
+        self.assertEqual(codes, {"V001", "V002", "V003"})
+        self.assertNotIn("V999", codes)
+
+        # Optional authority filter drills into a descendant branch.
+        result = self.client.execute(
+            coverage_query,
+            {
+                "occurrenceId": occurrence.id,
+                "authorityId": child_authority.id,
+            },
+        )
+        self.assertIsNone(result.errors, result.errors)
+        codes = {
+            row["village"]["code"]
+            for row in result.data["censusRoundCoverage"]["rows"]
+        }
+        self.assertEqual(codes, {"V003"})
+        self.assertEqual(child_village.code, "V003")
+
+        # Authority filter outside the viewer's hierarchy returns no villages.
+        result = self.client.execute(
+            coverage_query,
+            {
+                "occurrenceId": occurrence.id,
+                "authorityId": self.other_authority.id,
+            },
+        )
+        self.assertIsNone(result.errors, result.errors)
+        self.assertEqual(result.data["censusRoundCoverage"]["totalCount"], 0)
+        self.assertEqual(result.data["censusRoundCoverage"]["rows"], [])
+
+        # Admin uses the same inherits-down scope.
+        self.client.authenticate(self.admin)
+        result = self.client.execute(
+            coverage_query, {"occurrenceId": occurrence.id}
+        )
+        self.assertIsNone(result.errors, result.errors)
+        codes = {
+            row["village"]["code"]
+            for row in result.data["censusRoundCoverage"]["rows"]
+        }
+        self.assertEqual(codes, {"V001", "V002", "V003"})
+        self.assertNotIn("V999", codes)
 
     def test_parse_month_day_rejects_leap_day(self):
         with self.assertRaises(ValueError) as raised:
