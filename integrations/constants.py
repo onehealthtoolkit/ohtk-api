@@ -4,6 +4,7 @@ class IntegrationScope:
     CLUSTER_READ_INPUTS = "cluster:read_inputs"
     CLUSTER_WRITE_RESULT = "cluster:write_result"
     AI_READ_REPORT = "ai:read_report"
+    AI_READ_IMAGES = "ai:read_images"
     AI_CREATE_COMMENT = "ai:create_comment"
     CASE_PROMOTE = "case:promote"
     RISK_UPDATE = "risk:update"
@@ -14,6 +15,7 @@ class IntegrationScope:
         (CLUSTER_READ_INPUTS, "Read cluster inputs"),
         (CLUSTER_WRITE_RESULT, "Write cluster results"),
         (AI_READ_REPORT, "AI read reports"),
+        (AI_READ_IMAGES, "AI read report images"),
         (AI_CREATE_COMMENT, "AI create comments"),
         (CASE_PROMOTE, "Promote cases"),
         (RISK_UPDATE, "Update risk"),

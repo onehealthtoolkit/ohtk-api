@@ -40,6 +40,16 @@ urlpatterns = [
         name="integration-report-comments",
     ),
     path(
+        "reports/<uuid:report_id>/images",
+        views.report_images,
+        name="integration-report-images",
+    ),
+    path(
+        "reports/<uuid:report_id>/images/<uuid:image_id>/content",
+        views.report_image_content,
+        name="integration-report-image-content",
+    ),
+    path(
         "reports/<uuid:report_id>/risk-assessments",
         views.report_risk_assessments,
         name="integration-report-risk-assessments",

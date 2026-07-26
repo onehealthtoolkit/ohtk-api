@@ -1,11 +1,12 @@
 import json
+import mimetypes
 import uuid
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
-from django.http import JsonResponse
+from django.http import FileResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from oauth2_provider.oauth2_backends import OAuthLibCore
@@ -45,16 +46,19 @@ from integrations.services import (
     get_current_risk_assessment,
 )
 from integrations.utils import payload_hash, secret_safe_summary
-from reports.models import IncidentReport
+from reports.models import Image, IncidentReport
 
 
 ACTION_INCIDENT_READ = "incident.read"
 ACTION_CENSUS_READ = "census.read"
 ACTION_AI_CREATE_COMMENT = "ai.create_comment"
+ACTION_AI_READ_IMAGES = "ai.read_images"
+ACTION_AI_READ_IMAGE_CONTENT = "ai.read_image_content"
 ACTION_RISK_UPDATE = "risk.update"
 ACTION_CLUSTER_WRITE_RESULT = "cluster.write_result"
 ACTION_CLUSTER_READ = "cluster.read"
 TARGET_REPORT = "reports.IncidentReport"
+TARGET_REPORT_IMAGE = "reports.Image"
 TARGET_CENSUS_SNAPSHOT = "census.VillageCensusSnapshot"
 TARGET_VILLAGE = "accounts.Village"
 TARGET_CLUSTER_RESULT = "integrations.IntegrationClusterResult"
@@ -1017,6 +1021,225 @@ def _cluster_create(request):
     return JsonResponse(response_payload, status=202)
 
 
+@require_GET
+def report_images(request, report_id):
+    target_id = str(report_id)
+    auth_response, integration_client = _authorize_ai_image_read_request(
+        request,
+        action_type=ACTION_AI_READ_IMAGES,
+        target_type=TARGET_REPORT,
+        target_id=target_id,
+    )
+    if auth_response is not None:
+        return auth_response
+
+    try:
+        report = IncidentReport.objects.get(pk=report_id)
+    except IncidentReport.DoesNotExist:
+        _create_ai_image_action_log(
+            request=request,
+            integration_client=integration_client,
+            action_type=ACTION_AI_READ_IMAGES,
+            target_type=TARGET_REPORT,
+            target_id=target_id,
+            result_status=IntegrationActionLog.ResultStatus.REJECTED,
+            result_summary={
+                "error": {
+                    "code": "incident_not_found",
+                    "message": "Incident was not found in the selected tenant.",
+                },
+            },
+        )
+        return _error_response(
+            status=404,
+            code="incident_not_found",
+            message="Incident was not found in the selected tenant.",
+        )
+
+    try:
+        images = _ordered_report_images(report)
+        response_payload = {
+            "schemaVersion": SCHEMA_VERSION,
+            "reportId": target_id,
+            "images": [
+                _image_metadata_payload(image, report=report) for image in images
+            ],
+            "links": {
+                "incident": f"/api/integrations/v1/incidents/{report.id}",
+                "comments": f"/api/integrations/v1/reports/{report.id}/comments",
+            },
+        }
+        _create_ai_image_action_log(
+            request=request,
+            integration_client=integration_client,
+            action_type=ACTION_AI_READ_IMAGES,
+            target_type=TARGET_REPORT,
+            target_id=target_id,
+            result_status=IntegrationActionLog.ResultStatus.ACCEPTED,
+            result_summary={
+                "response": {
+                    "reportId": target_id,
+                    "imageCount": len(response_payload["images"]),
+                },
+            },
+        )
+        return JsonResponse(response_payload, status=200)
+    except Exception:
+        _create_ai_image_action_log(
+            request=request,
+            integration_client=integration_client,
+            action_type=ACTION_AI_READ_IMAGES,
+            target_type=TARGET_REPORT,
+            target_id=target_id,
+            result_status=IntegrationActionLog.ResultStatus.FAILED,
+            result_summary={
+                "error": {
+                    "code": "image_list_failed",
+                    "message": "Report image list failed.",
+                },
+            },
+        )
+        return _error_response(
+            status=500,
+            code="image_list_failed",
+            message="Report image list failed.",
+        )
+
+
+@require_GET
+def report_image_content(request, report_id, image_id):
+    report_target_id = str(report_id)
+    image_target_id = str(image_id)
+    auth_response, integration_client = _authorize_ai_image_read_request(
+        request,
+        action_type=ACTION_AI_READ_IMAGE_CONTENT,
+        target_type=TARGET_REPORT_IMAGE,
+        target_id=image_target_id,
+    )
+    if auth_response is not None:
+        return auth_response
+
+    try:
+        report = IncidentReport.objects.get(pk=report_id)
+    except IncidentReport.DoesNotExist:
+        _create_ai_image_action_log(
+            request=request,
+            integration_client=integration_client,
+            action_type=ACTION_AI_READ_IMAGE_CONTENT,
+            target_type=TARGET_REPORT,
+            target_id=report_target_id,
+            result_status=IntegrationActionLog.ResultStatus.REJECTED,
+            result_summary={
+                "error": {
+                    "code": "incident_not_found",
+                    "message": "Incident was not found in the selected tenant.",
+                },
+            },
+        )
+        return _error_response(
+            status=404,
+            code="incident_not_found",
+            message="Incident was not found in the selected tenant.",
+        )
+
+    try:
+        image = report.images.get(pk=image_id)
+    except Image.DoesNotExist:
+        _create_ai_image_action_log(
+            request=request,
+            integration_client=integration_client,
+            action_type=ACTION_AI_READ_IMAGE_CONTENT,
+            target_type=TARGET_REPORT_IMAGE,
+            target_id=image_target_id,
+            result_status=IntegrationActionLog.ResultStatus.REJECTED,
+            result_summary={
+                "error": {
+                    "code": "image_not_found",
+                    "message": "Image was not found for the selected report.",
+                },
+            },
+        )
+        return _error_response(
+            status=404,
+            code="image_not_found",
+            message="Image was not found for the selected report.",
+        )
+
+    try:
+        if not image.file or not image.file.name:
+            raise FileNotFoundError("Image file is missing.")
+        file_handle = image.file.open("rb")
+        content_type = _image_content_type(image)
+        response = FileResponse(
+            file_handle,
+            content_type=content_type,
+            as_attachment=False,
+            filename=str(image.id),
+        )
+        response["Cache-Control"] = "private, no-store"
+        response["Content-Disposition"] = f'inline; filename="{image.id}"'
+        byte_size = _image_byte_size(image)
+        if byte_size is not None:
+            response["Content-Length"] = str(byte_size)
+        _create_ai_image_action_log(
+            request=request,
+            integration_client=integration_client,
+            action_type=ACTION_AI_READ_IMAGE_CONTENT,
+            target_type=TARGET_REPORT_IMAGE,
+            target_id=image_target_id,
+            result_status=IntegrationActionLog.ResultStatus.ACCEPTED,
+            result_summary={
+                "response": {
+                    "reportId": report_target_id,
+                    "imageId": image_target_id,
+                    "contentType": content_type,
+                    "byteSize": byte_size,
+                },
+            },
+        )
+        return response
+    except FileNotFoundError:
+        _create_ai_image_action_log(
+            request=request,
+            integration_client=integration_client,
+            action_type=ACTION_AI_READ_IMAGE_CONTENT,
+            target_type=TARGET_REPORT_IMAGE,
+            target_id=image_target_id,
+            result_status=IntegrationActionLog.ResultStatus.REJECTED,
+            result_summary={
+                "error": {
+                    "code": "image_not_found",
+                    "message": "Image file is missing for the selected report.",
+                },
+            },
+        )
+        return _error_response(
+            status=404,
+            code="image_not_found",
+            message="Image file is missing for the selected report.",
+        )
+    except Exception:
+        _create_ai_image_action_log(
+            request=request,
+            integration_client=integration_client,
+            action_type=ACTION_AI_READ_IMAGE_CONTENT,
+            target_type=TARGET_REPORT_IMAGE,
+            target_id=image_target_id,
+            result_status=IntegrationActionLog.ResultStatus.FAILED,
+            result_summary={
+                "error": {
+                    "code": "image_read_failed",
+                    "message": "Report image content read failed.",
+                },
+            },
+        )
+        return _error_response(
+            status=500,
+            code="image_read_failed",
+            message="Report image content read failed.",
+        )
+
+
 @csrf_exempt
 @require_POST
 def report_comments(request, report_id):
@@ -1639,6 +1862,137 @@ def report_risk_assessments(request, report_id):
         )
 
     return JsonResponse(response_payload, status=202)
+
+
+def _authorize_ai_image_read_request(
+    request,
+    *,
+    action_type,
+    target_type="",
+    target_id="",
+):
+    try:
+        assert_integration_tenant_schema()
+    except PublicSchemaDenied as exc:
+        return (
+            _error_response(
+                status=403,
+                code="tenant_denied",
+                message=str(exc),
+            ),
+            None,
+        )
+
+    oauth_context = _verify_oauth_context(request)
+    if oauth_context is None:
+        return (
+            _error_response(
+                status=401,
+                code="oauth_required",
+                message="A valid OAuth2 bearer token is required.",
+                headers={"WWW-Authenticate": "Bearer"},
+            ),
+            None,
+        )
+
+    oauth_application = oauth_context["application"]
+    oauth_user = oauth_context["user"]
+    try:
+        auth_context = get_active_integration_client(oauth_application)
+    except (PublicSchemaDenied, IntegrationClientDenied) as exc:
+        return (
+            _error_response(
+                status=403,
+                code="integration_client_denied",
+                message=str(exc),
+            ),
+            None,
+        )
+
+    integration_client = auth_context.integration_client
+    if oauth_user is not None:
+        _create_ai_image_action_log(
+            request=request,
+            integration_client=integration_client,
+            action_type=action_type,
+            target_type=target_type,
+            target_id=target_id,
+            result_status=IntegrationActionLog.ResultStatus.REJECTED,
+            result_summary={
+                "error": {
+                    "code": "service_identity_denied",
+                    "message": (
+                        "Integration endpoints require service OAuth tokens "
+                        "without a human user."
+                    ),
+                }
+            },
+        )
+        return (
+            _error_response(
+                status=403,
+                code="service_identity_denied",
+                message=(
+                    "Integration endpoints require service OAuth tokens without a "
+                    "human user."
+                ),
+            ),
+            None,
+        )
+
+    if not integration_client.has_scope(IntegrationScope.AI_READ_IMAGES):
+        _create_ai_image_action_log(
+            request=request,
+            integration_client=integration_client,
+            action_type=action_type,
+            target_type=target_type,
+            target_id=target_id,
+            result_status=IntegrationActionLog.ResultStatus.REJECTED,
+            result_summary={
+                "error": {
+                    "code": "scope_denied",
+                    "message": (
+                        "Integration client lacks required scope: "
+                        f"{IntegrationScope.AI_READ_IMAGES}"
+                    ),
+                }
+            },
+        )
+        return (
+            _error_response(
+                status=403,
+                code="scope_denied",
+                message=(
+                    "Integration client lacks required scope: "
+                    f"{IntegrationScope.AI_READ_IMAGES}"
+                ),
+            ),
+            None,
+        )
+
+    try:
+        assert_integration_feature_enabled(FEATURE_AI)
+    except IntegrationPolicyDenied as exc:
+        _create_ai_image_action_log(
+            request=request,
+            integration_client=integration_client,
+            action_type=action_type,
+            target_type=target_type,
+            target_id=target_id,
+            result_status=IntegrationActionLog.ResultStatus.REJECTED,
+            result_summary={
+                "error": {
+                    "code": exc.code,
+                    "message": exc.message,
+                }
+            },
+        )
+        return (
+            _error_response(status=403, code=exc.code, message=exc.message),
+            None,
+        )
+
+    return None, integration_client
 
 
 def _authorize_incident_read_request(request, target_id=""):
@@ -2645,7 +2999,55 @@ def _incident_links(report_id):
     return {
         "comments": f"/api/integrations/v1/reports/{report_id}/comments",
         "riskAssessments": f"/api/integrations/v1/reports/{report_id}/risk-assessments",
+        "images": f"/api/integrations/v1/reports/{report_id}/images",
     }
+
+
+def _ordered_report_images(report):
+    images = list(report.images.all())
+    cover_id = report.cover_image_id
+    images.sort(
+        key=lambda image: (
+            0 if cover_id and image.id == cover_id else 1,
+            image.created_at or image.id,
+            str(image.id),
+        )
+    )
+    return images
+
+
+def _image_metadata_payload(image, *, report):
+    return {
+        "id": str(image.id),
+        "isCover": bool(report.cover_image_id and image.id == report.cover_image_id),
+        "contentType": _image_content_type(image),
+        "byteSize": _image_byte_size(image),
+        "createdAt": _isoformat_or_none(image.created_at),
+        "links": {
+            "content": (
+                f"/api/integrations/v1/reports/{report.id}/images/{image.id}/content"
+            ),
+        },
+    }
+
+
+def _image_content_type(image):
+    file_field = image.file
+    content_type = getattr(getattr(file_field, "file", None), "content_type", None)
+    if content_type:
+        return content_type
+    guessed, _encoding = mimetypes.guess_type(getattr(file_field, "name", "") or "")
+    return guessed or "application/octet-stream"
+
+
+def _image_byte_size(image):
+    try:
+        size = image.file.size
+    except Exception:
+        return None
+    if size is None:
+        return None
+    return int(size)
 
 
 def _isoformat_or_none(value):
@@ -3323,6 +3725,29 @@ def _create_incident_read_action_log(
         target_type=TARGET_REPORT if target_id else "",
         target_id=target_id,
         payload_hash=payload_hash(query_payload) if query_payload else "",
+        request_headers_summary=_headers_summary(request),
+        result_status=result_status,
+        result_summary=secret_safe_summary(result_summary),
+    )
+
+
+def _create_ai_image_action_log(
+    *,
+    request,
+    integration_client,
+    action_type,
+    result_status,
+    result_summary,
+    target_type="",
+    target_id="",
+):
+    return IntegrationActionLog.objects.create(
+        integration_client=integration_client,
+        action_type=action_type,
+        required_scope=IntegrationScope.AI_READ_IMAGES,
+        target_type=target_type,
+        target_id=target_id,
+        payload_hash="",
         request_headers_summary=_headers_summary(request),
         result_status=result_status,
         result_summary=secret_safe_summary(result_summary),

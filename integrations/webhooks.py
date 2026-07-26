@@ -123,6 +123,7 @@ def build_report_submitted_payload(*, report, event_id, produced_at):
             "riskAssessments": (
                 f"/api/integrations/v1/reports/{report.id}/risk-assessments"
             ),
+            "images": f"/api/integrations/v1/reports/{report.id}/images",
         },
     }
 
