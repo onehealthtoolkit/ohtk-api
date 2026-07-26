@@ -471,6 +471,13 @@ class WebhookDeliveryTests(TenantTestCase):
         self.assertEqual("Animal Sick/Death", payload["report"]["reportType"]["name"])
         self.assertEqual([self.authority.id], payload["report"]["relevantAuthorityIds"])
         self.assertNotIn("data", payload["report"])
+        self.assertNotIn("images", payload["report"])
+        self.assertEqual(
+            f"/api/integrations/v1/reports/{self.report.id}/images",
+            payload["links"]["images"],
+        )
+        self.assertNotIn("imageUrl", str(payload))
+        self.assertNotIn("/medias/", str(payload))
 
     def _create_integration_client(
         self,
