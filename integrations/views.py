@@ -1168,8 +1168,10 @@ def report_image_content(request, report_id, image_id):
     try:
         if not image.file or not image.file.name:
             raise FileNotFoundError("Image file is missing.")
-        file_handle = image.file.open("rb")
+        # Resolve MIME before opening the stream handle so sniffing cannot
+        # close the same FieldFile instance used by FileResponse.
         content_type = _image_content_type(image)
+        file_handle = image.file.open("rb")
         response = FileResponse(
             file_handle,
             content_type=content_type,
@@ -3031,13 +3033,64 @@ def _image_metadata_payload(image, *, report):
     }
 
 
+_GENERIC_CONTENT_TYPES = frozenset(
+    {
+        "",
+        "application/octet-stream",
+        "binary/octet-stream",
+        "application/binary",
+    }
+)
+
+
 def _image_content_type(image):
+    """Resolve a useful MIME type for report images.
+
+    Prefer an explicit storage/upload content type, then filename extension,
+    then a small magic-byte sniff. Extensionless UUID storage names (common
+    with S3/MinIO) often only resolve correctly via sniffing.
+    """
     file_field = image.file
     content_type = getattr(getattr(file_field, "file", None), "content_type", None)
-    if content_type:
-        return content_type
+    if content_type and content_type.lower().split(";", 1)[0].strip() not in _GENERIC_CONTENT_TYPES:
+        return content_type.split(";", 1)[0].strip()
+
     guessed, _encoding = mimetypes.guess_type(getattr(file_field, "name", "") or "")
-    return guessed or "application/octet-stream"
+    if guessed and guessed.lower() not in _GENERIC_CONTENT_TYPES:
+        return guessed
+
+    sniffed = _sniff_image_content_type(file_field)
+    if sniffed:
+        return sniffed
+
+    return "application/octet-stream"
+
+
+def _sniff_image_content_type(file_field):
+    if not file_field or not getattr(file_field, "name", None):
+        return None
+    # Open via storage so we do not mutate/close the FieldFile handle that
+    # FileResponse may already be streaming from.
+    try:
+        storage = getattr(file_field, "storage", None)
+        if storage is not None:
+            with storage.open(file_field.name, "rb") as handle:
+                head = handle.read(32) or b""
+        else:
+            with file_field.open("rb") as handle:
+                head = handle.read(32) or b""
+    except Exception:
+        return None
+
+    if head.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if head.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if head[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
+    if len(head) >= 12 and head.startswith(b"RIFF") and head[8:12] == b"WEBP":
+        return "image/webp"
+    return None
 
 
 def _image_byte_size(image):
