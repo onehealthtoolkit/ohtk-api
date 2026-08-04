@@ -1,0 +1,20 @@
+import graphene
+from graphql_jwt.decorators import login_required, superuser_required
+
+from accounts.report_location_fallback import (
+    set_report_use_village_location_fallback_enabled,
+)
+
+
+class AdminReportUseVillageLocationFallbackUpdateMutation(graphene.Mutation):
+    class Arguments:
+        enabled = graphene.Boolean(required=True)
+
+    enabled = graphene.Boolean(required=True)
+
+    @staticmethod
+    @login_required
+    @superuser_required
+    def mutate(root, info, enabled):
+        set_report_use_village_location_fallback_enabled(enabled)
+        return AdminReportUseVillageLocationFallbackUpdateMutation(enabled=enabled)
