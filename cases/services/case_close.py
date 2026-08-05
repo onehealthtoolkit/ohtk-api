@@ -76,31 +76,33 @@ def validate_close_payload(
             cleaned[field_id] = value.strip()
             if is_required and not cleaned[field_id]:
                 raise ValidationError(f"close payload field '{field_id}' is required")
-        elif field_type == "species_counts":
-            if not isinstance(value, dict):
+        elif field_type == "integer":
+            # One species per report: stamp_out is animals terminated (count), not a map.
+            if isinstance(value, bool) or not isinstance(value, (int, float, str)):
                 raise ValidationError(
-                    f"close payload field '{field_id}' must be an object of species counts"
+                    f"close payload field '{field_id}' must be an integer"
                 )
-            counts = {}
-            for species, count in value.items():
-                if not isinstance(species, str) or not species.strip():
-                    raise ValidationError(
-                        f"close payload field '{field_id}' has invalid species key"
-                    )
-                try:
-                    n = int(count)
-                except (TypeError, ValueError):
-                    raise ValidationError(
-                        f"close payload field '{field_id}' count for '{species}' must be an integer"
-                    )
-                if n < 0:
-                    raise ValidationError(
-                        f"close payload field '{field_id}' count for '{species}' must be >= 0"
-                    )
-                counts[species] = n
-            if is_required and len(counts) == 0:
-                raise ValidationError(f"close payload field '{field_id}' is required")
-            cleaned[field_id] = counts
+            try:
+                if isinstance(value, str):
+                    value = value.strip()
+                    if value == "":
+                        if is_required:
+                            raise ValidationError(
+                                f"close payload field '{field_id}' is required"
+                            )
+                        continue
+                    n = int(value)
+                else:
+                    n = int(value)
+            except (TypeError, ValueError):
+                raise ValidationError(
+                    f"close payload field '{field_id}' must be an integer"
+                )
+            if n < 0:
+                raise ValidationError(
+                    f"close payload field '{field_id}' must be >= 0"
+                )
+            cleaned[field_id] = n
         else:
             # Unknown types: accept JSON-serializable as-is if present
             cleaned[field_id] = value

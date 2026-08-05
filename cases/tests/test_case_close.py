@@ -31,7 +31,7 @@ class CaseCloseServiceTestCase(BaseTestCase):
                 },
                 {
                     "id": "stamp_out",
-                    "type": "species_counts",
+                    "type": "integer",
                     "requiredOn": ["officer"],
                 },
             ],
@@ -42,13 +42,26 @@ class CaseCloseServiceTestCase(BaseTestCase):
             validate_close_payload(
                 definition, {"test_result": "ok"}, source="officer"
             )
+        with self.assertRaises(ValidationError):
+            validate_close_payload(
+                definition,
+                {"test_result": "ok", "stamp_out": -1},
+                source="officer",
+            )
         cleaned = validate_close_payload(
             definition,
-            {"test_result": " Lab ", "stamp_out": {"Cattle": 2}},
+            {"test_result": " Lab ", "stamp_out": 3},
             source="officer",
         )
         self.assertEqual("Lab", cleaned["test_result"])
-        self.assertEqual({"Cattle": 2}, cleaned["stamp_out"])
+        self.assertEqual(3, cleaned["stamp_out"])
+        # string digits accepted and coerced
+        cleaned2 = validate_close_payload(
+            definition,
+            {"test_result": "x", "stamp_out": "0"},
+            source="officer",
+        )
+        self.assertEqual(0, cleaned2["stamp_out"])
         # system ignores required officer fields
         self.assertEqual(
             {},
