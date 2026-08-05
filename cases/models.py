@@ -89,6 +89,10 @@ class CaseStateMapping(BaseModel):
 
 
 class Case(BaseModel):
+    class CloseSource(models.TextChoices):
+        OFFICER = "officer", "Officer"
+        SYSTEM = "system", "System"
+
     objects = BaseModelManager()
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -116,10 +120,36 @@ class Case(BaseModel):
     # circle radius information that use to render outbreak on map
     outbreak_plan_info = models.JSONField(blank=True, null=True)
     status_label = models.CharField(max_length=50, blank=True, null=True)
+    # Layer 1 — universal case completion (CO2)
+    stopped_at = models.DateTimeField(null=True, blank=True)
+    close_source = models.CharField(
+        max_length=20, blank=True, default="", choices=CloseSource.choices
+    )
+    closed_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="closed_cases",
+    )
+    # Layer 2 — program close payload (validated by ReportType.close_definition)
+    close_payload = models.JSONField(default=dict, blank=True)
+    close_payload_schema_version = models.PositiveIntegerField(null=True, blank=True)
 
     @property
     def current_states(self):
         return self.casestate_set.filter(transition__isnull=True)
+
+    @property
+    def test_result(self):
+        """Officer test result from Layer2 close_payload (GraphQL/compat)."""
+        payload = self.close_payload if isinstance(self.close_payload, dict) else {}
+        return payload.get("test_result") or ""
+
+    def set_test_result(self, value: str):
+        payload = dict(self.close_payload) if isinstance(self.close_payload, dict) else {}
+        payload["test_result"] = value if value is not None else ""
+        self.close_payload = payload
 
     @classmethod
     def promote_from_incident_report(cls, report_id):
@@ -168,8 +198,21 @@ class Case(BaseModel):
 
         self.status_label = to_step.name
         if to_step.is_stop_state:
-            self.is_finished = True
-            self.save(update_fields=["is_finished", "status_label"])
+            # Layered close: stop step finishes via close_case when not already closed.
+            if not self.stopped_at:
+                from cases.services.case_close import close_case
+
+                form_payload = form_data if isinstance(form_data, dict) else {}
+                close_case(
+                    self,
+                    source=Case.CloseSource.OFFICER,
+                    actor=created_by,
+                    payload=form_payload,
+                    status_label=to_step.name,
+                )
+            else:
+                self.is_finished = True
+                self.save(update_fields=["is_finished", "status_label"])
         else:
             self.save(update_fields=["status_label"])
 

@@ -138,6 +138,8 @@ class AICommentApiTests(TenantTestCase):
         self.assertEqual(owner.pk, thread_comment.created_by_id)
         # Must not mis-attribute AI feedback to the reporter.
         self.assertNotEqual(self.reporter.pk, thread_comment.created_by_id)
+        # CO1: Excel "suspected" is the AI comment body.
+        self.assertEqual(payload["body"], self.report.ai_suspected)
 
         action_log = IntegrationActionLog.objects.get(
             result_status=IntegrationActionLog.ResultStatus.ACCEPTED

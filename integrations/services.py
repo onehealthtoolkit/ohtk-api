@@ -217,12 +217,27 @@ def create_integration_report_comment(
         recommendation=recommendation or {},
     )
     comment.save()
+    # CO1: Excel "suspected" = latest AI comment body (does not touch case.test_result).
+    apply_ai_suspected_from_comment_body(report=report, body=body)
     _bridge_integration_comment_to_thread(
         report=report,
         body=body,
         integration_comment=comment,
     )
     return comment
+
+
+def apply_ai_suspected_from_comment_body(*, report, body):
+    """Copy I4 AI comment body onto IncidentReport.ai_suspected (AI→AI replace OK)."""
+    from reports.models import IncidentReport
+
+    value = (body or "").strip()
+    if not value:
+        return
+    IncidentReport.objects.filter(pk=report.pk).update(ai_suspected=value)
+    # Keep in-memory instance consistent for callers that reuse report.
+    if hasattr(report, "ai_suspected"):
+        report.ai_suspected = value
 
 
 def resolve_ai_comment_thread_owner():

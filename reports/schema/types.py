@@ -36,6 +36,7 @@ class ReportTypeType(DjangoObjectType):
     definition = GenericScalar()
     followup_definition = GenericScalar()
     metric_accumulation = GenericScalar()
+    close_definition = GenericScalar()
     category = graphene.Field(CategoryType)
 
     class Meta:
@@ -196,6 +197,7 @@ class IncidentReportType(DjangoObjectType):
         RiskAssessmentProjectionType,
         limit=graphene.Int(default_value=3),
     )
+    ai_suspected = graphene.String(required=True)
 
     class Meta:
         model = IncidentReport
@@ -220,11 +222,15 @@ class IncidentReportType(DjangoObjectType):
             "case_id",
             "thread_id",
             "followups",
+            "ai_suspected",
         ]
         filterset_class = IncidentReportTypeFilter
 
     def resolve_gps_location(self, info):
         return self.gps_location_str
+
+    def resolve_ai_suspected(self, info):
+        return self.ai_suspected or ""
 
     def resolve_images(self, info):
         return self.images.all()
