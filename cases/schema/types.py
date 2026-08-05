@@ -4,7 +4,7 @@ from graphene_django import DjangoObjectType
 from django.db.models import Q
 from accounts.models import Authority
 
-from accounts.schema.types import AuthorityType
+from accounts.schema.types import AuthorityType, UserType
 from graphene.types.generic import GenericScalar
 from cases.models import (
     AuthorityNotification,
@@ -297,6 +297,12 @@ class CaseType(DjangoObjectType):
     states = graphene.List(CaseStateType)
     thread_id = graphene.Int()
     outbreak_plan_info = graphene.JSONString()
+    test_result = graphene.String(required=True)
+    ai_suspected = graphene.String(required=True)
+    stopped_at = graphene.DateTime()
+    close_source = graphene.String()
+    closed_by = graphene.Field(UserType)
+    close_payload = GenericScalar(required=True)
 
     class Meta:
         model = Case
@@ -310,6 +316,10 @@ class CaseType(DjangoObjectType):
             "thread_id",
             "outbreak_plan_info",
             "status_label",
+            "stopped_at",
+            "close_source",
+            "closed_by",
+            "close_payload",
         ]
         filterset_class = CaseTypeFilter
 
@@ -331,6 +341,22 @@ class CaseType(DjangoObjectType):
 
     def resolve_authorities(root, info):
         return root.authorities.all()
+
+    def resolve_test_result(root, info):
+        # Layer2 projection (compat for CO1b)
+        return root.test_result or ""
+
+    def resolve_close_payload(root, info):
+        return root.close_payload if isinstance(root.close_payload, dict) else {}
+
+    def resolve_close_source(root, info):
+        return root.close_source or ""
+
+    def resolve_ai_suspected(root, info):
+        report = root.report
+        if report is None:
+            return ""
+        return report.ai_suspected or ""
 
 
 class AdminNotificationTemplateAuthorityType(graphene.ObjectType):

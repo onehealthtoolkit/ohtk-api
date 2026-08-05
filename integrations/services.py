@@ -1,4 +1,5 @@
 import hashlib
+import logging
 from dataclasses import dataclass
 
 from django import VERSION as DJANGO_VERSION
@@ -20,6 +21,8 @@ from integrations.models import (
     RiskAssessment,
 )
 from integrations.utils import payload_hash, secret_safe_summary
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -196,6 +199,14 @@ def create_integration_report_comment(
     metadata=None,
     recommendation=None,
 ):
+    """
+    Persist the integration-owned AI comment audit row, then best-effort mirror
+    the body onto the report discussion thread for the dashboard Comments UI.
+
+    Thread bridge requires integrations.ai_default_comment_owner_user_id.
+    If the owner is missing/invalid, the integration comment is still kept and
+    the bridge failure is logged (never attributed to reported_by).
+    """
     comment = IntegrationReportComment(
         report=report,
         integration_client=integration_client,
@@ -206,7 +217,87 @@ def create_integration_report_comment(
         recommendation=recommendation or {},
     )
     comment.save()
+    # CO1: Excel "suspected" = latest AI comment body (does not touch case.test_result).
+    apply_ai_suspected_from_comment_body(report=report, body=body)
+    _bridge_integration_comment_to_thread(
+        report=report,
+        body=body,
+        integration_comment=comment,
+    )
     return comment
+
+
+def apply_ai_suspected_from_comment_body(*, report, body):
+    """Copy I4 AI comment body onto IncidentReport.ai_suspected (AI→AI replace OK)."""
+    from reports.models import IncidentReport
+
+    value = (body or "").strip()
+    if not value:
+        return
+    IncidentReport.objects.filter(pk=report.pk).update(ai_suspected=value)
+    # Keep in-memory instance consistent for callers that reuse report.
+    if hasattr(report, "ai_suspected"):
+        report.ai_suspected = value
+
+
+def resolve_ai_comment_thread_owner():
+    """
+    Resolve the User that will own the mirrored thread comment.
+
+    Only integrations.ai_default_comment_owner_user_id is used. Never fall back
+    to report.reported_by — that would mis-attribute AI feedback to the reporter.
+    """
+    from accounts.models import User
+    from integrations.policy import get_integration_policy
+
+    policy = get_integration_policy()
+    owner_id = (policy.get("ai_default_comment_owner_user_id") or "").strip()
+    if not owner_id:
+        return None
+
+    return User.objects.filter(pk=owner_id, is_active=True).first()
+
+
+def _bridge_integration_comment_to_thread(*, report, body, integration_comment=None):
+    from threads.models import Comment, Thread
+
+    owner = resolve_ai_comment_thread_owner()
+    if owner is None:
+        logger.error(
+            "can not create report comment: missing or inactive "
+            "integrations.ai_default_comment_owner_user_id "
+            "(report_id=%s integration_comment_id=%s external_action_id=%s)",
+            getattr(report, "id", None),
+            getattr(integration_comment, "comment_id", None)
+            or getattr(integration_comment, "id", None),
+            getattr(integration_comment, "external_action_id", "") or "",
+        )
+        return None
+
+    try:
+        thread = report.thread
+        if thread is None:
+            thread = Thread.objects.create()
+            report.thread = thread
+            report.save(update_fields=("thread", "updated_at"))
+
+        # Body is already partner-authored (often includes an AI label). Keep as-is
+        # so staff see the same text returned by the integration API.
+        return Comment.objects.create(
+            thread=thread,
+            body=body,
+            created_by=owner,
+        )
+    except Exception:
+        logger.exception(
+            "can not create report comment: thread bridge failed "
+            "(report_id=%s integration_comment_id=%s external_action_id=%s)",
+            getattr(report, "id", None),
+            getattr(integration_comment, "comment_id", None)
+            or getattr(integration_comment, "id", None),
+            getattr(integration_comment, "external_action_id", "") or "",
+        )
+        return None
 
 
 def create_risk_assessment(

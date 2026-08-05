@@ -27,6 +27,8 @@ class ReportType(BaseModel):
     definition = models.JSONField()
     followup_definition = models.JSONField(null=True, blank=True)
     metric_accumulation = models.JSONField(null=True, blank=True)
+    # Layer2 close payload schema (CO2). Empty/null = no program fields required.
+    close_definition = models.JSONField(null=True, blank=True)
     authorities = models.ManyToManyField(
         Authority,
         related_name="reportTypes",

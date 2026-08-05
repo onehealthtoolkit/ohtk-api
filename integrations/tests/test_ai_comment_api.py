@@ -62,7 +62,23 @@ class AICommentApiTests(TenantTestCase):
 
         self.assertEqual("integration-report-comments", match.url_name)
 
-    def test_create_comment_stores_integration_owned_comment_without_thread_comment(self):
+    def test_create_comment_stores_integration_comment_and_bridges_thread_comment(self):
+        from integrations.policy import set_integration_policy
+
+        owner = AuthorityUser.objects.create(
+            username="ai-comment-owner",
+            authority=self.authority,
+            role=AuthorityUser.Role.ADMIN,
+        )
+        set_integration_policy(
+            integration_enabled=True,
+            ai_enabled=True,
+            risk_evaluator_enabled=True,
+            cluster_detector_enabled=True,
+            ai_default_comment_owner_user_id=str(owner.id),
+            dashboard_risk_window_days=7,
+        )
+
         payload = {
             "externalActionId": "ai-action-001",
             "body": "AI assessment: unusual mortality pattern. Recommend officer review.",
@@ -111,7 +127,19 @@ class AICommentApiTests(TenantTestCase):
             },
             stored_comment.recommendation,
         )
-        self.assertEqual(0, Comment.objects.count())
+
+        # Bridge: dashboard Comments widget reads threads_comment via report.thread.
+        self.report.refresh_from_db()
+        self.assertIsNotNone(self.report.thread_id)
+        self.assertEqual(1, Comment.objects.count())
+        thread_comment = Comment.objects.get()
+        self.assertEqual(self.report.thread_id, thread_comment.thread_id)
+        self.assertEqual(payload["body"], thread_comment.body)
+        self.assertEqual(owner.pk, thread_comment.created_by_id)
+        # Must not mis-attribute AI feedback to the reporter.
+        self.assertNotEqual(self.reporter.pk, thread_comment.created_by_id)
+        # CO1: Excel "suspected" is the AI comment body.
+        self.assertEqual(payload["body"], self.report.ai_suspected)
 
         action_log = IntegrationActionLog.objects.get(
             result_status=IntegrationActionLog.ResultStatus.ACCEPTED
@@ -132,6 +160,87 @@ class AICommentApiTests(TenantTestCase):
         self.assertEqual(action_log, idempotency.action_log)
         self.assertEqual(202, idempotency.response_status_code)
         self.assertEqual(response_payload, idempotency.response_summary)
+
+    def test_missing_policy_owner_keeps_ai_comment_and_skips_thread_bridge(self):
+        payload = {
+            "externalActionId": "ai-no-owner-001",
+            "body": "AI comment persists even when thread owner is not configured.",
+        }
+
+        with self.assertLogs("integrations.services", level="ERROR") as logs:
+            response = self._post_comment(
+                payload,
+                idempotency_key="idem-no-owner-001",
+            )
+
+        self.assertEqual(202, response.status_code)
+        self.assertEqual(1, IntegrationReportComment.objects.count())
+        self.assertEqual(0, Comment.objects.count())
+        self.assertTrue(
+            any("can not create report comment" in message for message in logs.output)
+        )
+
+    def test_create_comment_uses_policy_default_owner_for_thread_bridge(self):
+        from integrations.policy import set_integration_policy
+
+        owner = AuthorityUser.objects.create(
+            username="ai-comment-owner",
+            authority=self.authority,
+            role=AuthorityUser.Role.ADMIN,
+        )
+        set_integration_policy(
+            integration_enabled=True,
+            ai_enabled=True,
+            risk_evaluator_enabled=True,
+            cluster_detector_enabled=True,
+            ai_default_comment_owner_user_id=str(owner.id),
+            dashboard_risk_window_days=7,
+        )
+
+        response = self._post_comment(
+            {
+                "externalActionId": "ai-policy-owner-001",
+                "body": "Bridged under configured AI comment owner.",
+            },
+            idempotency_key="idem-policy-owner-001",
+        )
+
+        self.assertEqual(202, response.status_code)
+        thread_comment = Comment.objects.get()
+        self.assertEqual(owner.pk, thread_comment.created_by_id)
+        self.assertEqual(
+            "Bridged under configured AI comment owner.",
+            thread_comment.body,
+        )
+
+    def test_idempotent_replay_does_not_duplicate_thread_comment(self):
+        from integrations.policy import set_integration_policy
+
+        owner = AuthorityUser.objects.create(
+            username="ai-replay-owner",
+            authority=self.authority,
+            role=AuthorityUser.Role.ADMIN,
+        )
+        set_integration_policy(
+            integration_enabled=True,
+            ai_enabled=True,
+            risk_evaluator_enabled=True,
+            cluster_detector_enabled=True,
+            ai_default_comment_owner_user_id=str(owner.id),
+            dashboard_risk_window_days=7,
+        )
+
+        payload = {
+            "externalActionId": "ai-replay-thread-001",
+            "body": "Replay must not create a second thread comment.",
+        }
+        first = self._post_comment(payload, idempotency_key="idem-replay-thread-001")
+        second = self._post_comment(payload, idempotency_key="idem-replay-thread-001")
+
+        self.assertEqual(202, first.status_code)
+        self.assertEqual(202, second.status_code)
+        self.assertEqual(1, IntegrationReportComment.objects.count())
+        self.assertEqual(1, Comment.objects.count())
 
     def test_external_action_id_can_supply_idempotency_key(self):
         response = self._post_comment(

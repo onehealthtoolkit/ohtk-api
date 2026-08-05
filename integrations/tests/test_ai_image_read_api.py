@@ -156,6 +156,76 @@ class AIImageReadApiTests(TenantTestCase):
         )
         self.assertEqual(str(self.report.id), action_log.result_summary["response"]["reportId"])
 
+    def test_extensionless_storage_name_sniffs_jpeg_content_type(self):
+        # MinIO/S3-style keys often omit extensions; partners still need image/*.
+        jpeg_bytes = (
+            b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
+            b"\xff\xd9"
+        )
+        image = Image.objects.create(
+            file=SimpleUploadedFile(
+                "d60732f8-53e0-4c3c-89f9-fdee95b9f5d8",
+                jpeg_bytes,
+                content_type="application/octet-stream",
+            ),
+            report=self.report,
+        )
+
+        list_response = self._get(self._list_url())
+        content_response = self._get(self._content_url(image.id))
+
+        self.assertEqual(200, list_response.status_code)
+        listed = list_response.json()["images"][0]
+        self.assertEqual(str(image.id), listed["id"])
+        self.assertEqual("image/jpeg", listed["contentType"])
+        self.assertEqual(200, content_response.status_code)
+        self.assertEqual("image/jpeg", content_response["Content-Type"].split(";", 1)[0])
+        self.assertEqual(jpeg_bytes, b"".join(content_response.streaming_content))
+
+    def test_extensionless_gif_sniffs_when_upload_content_type_missing(self):
+        image = Image.objects.create(
+            file=SimpleUploadedFile(
+                str(self.report.id),
+                self.small_gif,
+                # no useful content_type; filename has no extension
+            ),
+            report=self.report,
+        )
+
+        list_response = self._get(self._list_url())
+        content_response = self._get(self._content_url(image.id))
+
+        self.assertEqual("image/gif", list_response.json()["images"][0]["contentType"])
+        self.assertEqual(
+            "image/gif",
+            content_response["Content-Type"].split(";", 1)[0],
+        )
+
+    def test_explicit_upload_content_type_wins_over_filename_guess(self):
+        image = Image.objects.create(
+            file=SimpleUploadedFile(
+                "photo.bin",
+                self.small_gif,
+                content_type="image/gif",
+            ),
+            report=self.report,
+        )
+
+        response = self._get(self._list_url())
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("image/gif", response.json()["images"][0]["contentType"])
+
+    def test_filename_extension_used_when_present(self):
+        image = self._create_image("photo.gif")
+
+        response = self._get(self._list_url())
+
+        self.assertEqual(200, response.status_code)
+        # SimpleUploadedFile keeps content_type; either path should yield image/gif
+        self.assertEqual("image/gif", response.json()["images"][0]["contentType"])
+        self.assertEqual(str(image.id), response.json()["images"][0]["id"])
+
     def test_content_with_mismatched_report_and_image_is_not_found(self):
         other_report = IncidentReport.objects.create(
             data={"symptom": "other"},

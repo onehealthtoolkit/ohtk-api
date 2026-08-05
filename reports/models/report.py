@@ -121,6 +121,8 @@ class IncidentReport(AbstractIncidentReport):
         null=True,
     )
     definition = models.JSONField(null=True, blank=True)
+    # Excel "suspected": AI prediction text (I4 comment body). Not form data.suspected_disease.
+    ai_suspected = models.TextField(blank=True, default="")
 
     @property
     def gps_location_str(self):
