@@ -36,12 +36,12 @@ class AdminCaseTestResultUpdateMutation(graphene.Mutation):
             if user.is_authority_role_in([AuthorityUser.Role.REPORTER]):
                 raise GraphQLError("Not authorized to update case test result")
             authority = user.authorityuser.authority
-            in_charge = case.authorities.filter(
-                pk__in=authority.all_inherits_down()
-            ).exists()
+            # RawQuerySet cannot be passed to pk__in (TypeError: id expected a number).
+            child_ids = [item.pk for item in authority.all_inherits_down()]
+            in_charge = case.authorities.filter(pk__in=child_ids).exists()
             if not in_charge and case.report_id:
                 in_charge = case.report.relevant_authorities.filter(
-                    pk__in=authority.all_inherits_down()
+                    pk__in=child_ids
                 ).exists()
             if not in_charge:
                 raise GraphQLError("User's authority is not in charge of this case")
