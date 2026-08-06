@@ -14,6 +14,9 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font
 from openpyxl.utils import get_column_letter
 
+# Fixed report type for this LAHIS export (not a download parameter).
+DEFAULT_REPORT_TYPE_NAME = "Animal Sick/Death"
+
 # Template species headers (row 3), left-to-right within each metric block.
 SPECIES_HEADERS: Tuple[str, ...] = (
     "Buffalo",
@@ -346,21 +349,42 @@ def row_from_incident_report(report, case=None, village_name: str = "") -> List[
     )
 
 
+def resolve_fixed_report_type():
+    """
+    Always Animal Sick/Death for this export.
+    Optional tenant Configuration key cases.lahis_summarized_report_type_name.
+    """
+    from accounts.models import Configuration
+    from reports.models.report_type import ReportType
+
+    name = DEFAULT_REPORT_TYPE_NAME
+    try:
+        configured = Configuration.get("cases.lahis_summarized_report_type_name")
+        if configured and str(configured).strip():
+            name = str(configured).strip()
+    except Exception:
+        pass
+    return ReportType.objects.get(name=name)
+
+
 def collect_export_rows(
     *,
-    authority,
-    report_type,
     from_date=None,
     to_date=None,
+    report_type=None,
 ) -> List[List[Any]]:
-    """Query reports under authority tree and build template rows."""
+    """
+    Query all non-test reports of the fixed LAHIS report type (tenant-wide).
+    No authority filter — operators filter in Excel if needed.
+    """
     from cases.models import Case
     from reports.models.report import IncidentReport
 
-    sub_authorities = authority.all_inherits_down()
+    if report_type is None:
+        report_type = resolve_fixed_report_type()
+
     qs = (
         IncidentReport.objects.filter(
-            relevant_authorities__in=sub_authorities,
             test_flag=False,
             report_type=report_type,
         )
