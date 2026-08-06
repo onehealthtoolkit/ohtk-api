@@ -93,6 +93,12 @@ class Case(BaseModel):
         OFFICER = "officer", "Officer"
         SYSTEM = "system", "System"
 
+    class CloseOutcome(models.TextChoices):
+        """Officer finish outcomes (CO2b). Empty for system timeout / legacy."""
+
+        CLOSE_CASE = "close_case", "Close case"
+        FALSE_POSITIVE = "false_positive", "False positive"
+
     objects = BaseModelManager()
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -131,6 +137,10 @@ class Case(BaseModel):
         blank=True,
         on_delete=models.PROTECT,
         related_name="closed_cases",
+    )
+    # Officer finish outcome (CO2b); blank for system timeout
+    close_outcome = models.CharField(
+        max_length=32, blank=True, default="", choices=CloseOutcome.choices
     )
     # Layer 2 — program close payload (validated by ReportType.close_definition)
     close_payload = models.JSONField(default=dict, blank=True)
@@ -196,25 +206,10 @@ class Case(BaseModel):
         )
         current_state.save()
 
+        # WF1: stop step = workflow finished only (process tracking).
+        # Case lifecycle close is Finish (CO2b) or system timeout (CO3) — not workflow.
         self.status_label = to_step.name
-        if to_step.is_stop_state:
-            # Layered close: stop step finishes via close_case when not already closed.
-            if not self.stopped_at:
-                from cases.services.case_close import close_case
-
-                form_payload = form_data if isinstance(form_data, dict) else {}
-                close_case(
-                    self,
-                    source=Case.CloseSource.OFFICER,
-                    actor=created_by,
-                    payload=form_payload,
-                    status_label=to_step.name,
-                )
-            else:
-                self.is_finished = True
-                self.save(update_fields=["is_finished", "status_label"])
-        else:
-            self.save(update_fields=["status_label"])
+        self.save(update_fields=["status_label"])
 
         from cases.signals import case_state_forwarded
 
