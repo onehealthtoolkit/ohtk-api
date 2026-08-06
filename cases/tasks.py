@@ -14,17 +14,20 @@ logger = get_task_logger(__name__)
 def auto_close_stale_cases_all_tenants(days=None):
     """
     CO3: system timeout finish for all tenant schemas.
-    days defaults to settings.CASE_AUTO_CLOSE_DAYS or 21.
+
+    days: optional override (tests / one-shot ops).
+    When None, each tenant uses Configuration key cases.auto_close_days
+    (fallback settings.CASE_AUTO_CLOSE_DAYS, then 21).
     """
-    inactivity_days = days
-    if inactivity_days is None:
-        inactivity_days = getattr(settings, "CASE_AUTO_CLOSE_DAYS", 21)
     total = 0
     Tenant = get_tenant_model()
     for tenant in Tenant.objects.exclude(schema_name="public"):
         try:
             with schema_context(tenant.schema_name):
-                n = auto_close_stale_open_cases(days=int(inactivity_days))
+                # Resolve days inside schema so tenant Configuration applies.
+                n = auto_close_stale_open_cases(
+                    days=int(days) if days is not None else None
+                )
                 total += n
                 if n:
                     logger.info(

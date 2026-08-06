@@ -273,6 +273,21 @@ FIXTURE_DIRS = ["account/fixtures"]
 
 CELERY_TASK_ALWAYS_EAGER = env_bool("CELERY_TASK_ALWAYS_EAGER")
 
+# CO3: fallback only when tenant Configuration cases.auto_close_days is missing/invalid.
+# Prefer DB Configuration per tenant (see cases.auto_close_config).
+CASE_AUTO_CLOSE_DAYS = int(os.getenv("CASE_AUTO_CLOSE_DAYS", "21") or "21")
+
+# CO3: daily system timeout finish (per-tenant days resolved inside the task).
+# Requires a celery beat process (see celery-beat-entrypoint.sh / lahis-deployment celery-beat).
+from celery.schedules import crontab  # noqa: E402
+
+CELERY_BEAT_SCHEDULE = {
+    "co3-auto-close-stale-cases": {
+        "task": "cases.tasks.auto_close_stale_cases_all_tenants",
+        "schedule": crontab(hour=2, minute=0),  # daily 02:00 UTC
+    },
+}
+
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.getenv("EMAIL_HOST")
 EMAIL_PORT = os.getenv("EMAIL_PORT", default=587)

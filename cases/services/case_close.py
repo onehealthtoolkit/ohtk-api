@@ -276,6 +276,9 @@ def close_case(
     case.close_payload_schema_version = schema_version
     if status_label is not None:
         case.status_label = status_label
+    elif source_value == Case.CloseSource.SYSTEM:
+        # CO3: always mark so list/legacy never keep a stale open workflow label.
+        case.status_label = "Closed by system"
     elif not case.status_label:
         if outcome_value == OUTCOME_FALSE_POSITIVE:
             case.status_label = "False positive"
@@ -334,15 +337,22 @@ def case_last_activity_at(case):
     return max(c for c in candidates if c is not None)
 
 
-def auto_close_stale_open_cases(*, days: int = 21) -> int:
+def auto_close_stale_open_cases(*, days: Optional[int] = None) -> int:
     """
     CO3: close open cases with no activity for `days`.
     Runs in the current tenant schema. Returns count closed.
+
+    If days is None, uses tenant Configuration `cases.auto_close_days`
+    (see cases.auto_close_config.get_case_auto_close_days).
     """
     from datetime import timedelta
 
+    from cases.auto_close_config import get_case_auto_close_days
     from cases.models import Case
 
+    if days is None:
+        days = get_case_auto_close_days()
+    days = int(days)
     if days < 1:
         raise ValidationError("days must be >= 1")
 
