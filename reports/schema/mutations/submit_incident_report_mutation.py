@@ -88,6 +88,7 @@ class SubmitIncidentReport(graphene.Mutation):
             ),
             thread=thread,
             test_flag=test_flag,
+            village=village,
         )
         if village is not None:
             report.relevant_authorities.add(village.authority)

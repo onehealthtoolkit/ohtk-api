@@ -178,6 +178,14 @@ class IncidentReportTypeFilter(EmptyListInsensitiveFilterSet):
         return queryset.filter(filter_query)
 
 
+class IncidentReportVillageType(graphene.ObjectType):
+    """Lightweight village projection for report/case detail (OP1)."""
+
+    id = graphene.Int()
+    name = graphene.String()
+    code = graphene.String()
+
+
 class IncidentReportType(DjangoObjectType):
     data = GenericScalar()
     original_data = GenericScalar()
@@ -198,6 +206,7 @@ class IncidentReportType(DjangoObjectType):
         limit=graphene.Int(default_value=3),
     )
     ai_suspected = graphene.String(required=True)
+    village = graphene.Field(IncidentReportVillageType)
 
     class Meta:
         model = IncidentReport
@@ -228,6 +237,14 @@ class IncidentReportType(DjangoObjectType):
 
     def resolve_gps_location(self, info):
         return self.gps_location_str
+
+    def resolve_village(self, info):
+        village = getattr(self, "village", None)
+        if village is None:
+            return None
+        return IncidentReportVillageType(
+            id=village.id, name=village.name, code=village.code
+        )
 
     def resolve_ai_suspected(self, info):
         return self.ai_suspected or ""
