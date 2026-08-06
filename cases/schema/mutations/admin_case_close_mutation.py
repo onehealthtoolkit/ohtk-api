@@ -28,17 +28,21 @@ def _assert_can_manage_case(user, case):
 
 
 class AdminCaseCloseMutation(graphene.Mutation):
-    """Officer close: Layer1 completion + Layer2 payload (validated)."""
+    """
+    Officer Finish: Layer1 completion + outcome-scoped Layer2 payload.
+    outcome: close_case (default) | false_positive
+    """
 
     class Arguments:
         case_id = graphene.UUID(required=True)
         payload = GenericScalar(required=False)
+        outcome = graphene.String(required=False)
 
     result = graphene.Field(CaseType)
 
     @staticmethod
     @login_required
-    def mutate(root, info, case_id, payload=None):
+    def mutate(root, info, case_id, payload=None, outcome=None):
         try:
             case = Case.objects.select_related("report", "report__report_type").get(
                 pk=case_id
@@ -49,14 +53,28 @@ class AdminCaseCloseMutation(graphene.Mutation):
         user = info.context.user
         _assert_can_manage_case(user, case)
 
-        # Merge open-case draft payload with provided payload.
-        base = dict(case.close_payload) if isinstance(case.close_payload, dict) else {}
-        if payload is None:
-            merged = base
-        elif isinstance(payload, dict):
-            merged = {**base, **payload}
+        outcome_value = (outcome or Case.CloseOutcome.CLOSE_CASE).strip()
+        # close_case: merge open draft + submitted form.
+        # false_positive: do NOT merge draft (avoids leaking test_result/stamp_out).
+        if outcome_value == Case.CloseOutcome.FALSE_POSITIVE:
+            if payload is None:
+                merged = {}
+            elif isinstance(payload, dict):
+                merged = dict(payload)
+            else:
+                raise GraphQLError("payload must be an object")
         else:
-            raise GraphQLError("payload must be an object")
+            base = (
+                dict(case.close_payload)
+                if isinstance(case.close_payload, dict)
+                else {}
+            )
+            if payload is None:
+                merged = base
+            elif isinstance(payload, dict):
+                merged = {**base, **payload}
+            else:
+                raise GraphQLError("payload must be an object")
 
         try:
             close_case(
@@ -64,6 +82,7 @@ class AdminCaseCloseMutation(graphene.Mutation):
                 source=Case.CloseSource.OFFICER,
                 actor=user,
                 payload=merged,
+                outcome=outcome_value,
             )
         except ValidationError as exc:
             msg = "; ".join(exc.messages) if hasattr(exc, "messages") else str(exc)

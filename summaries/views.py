@@ -259,6 +259,8 @@ def export_incident_report_xls(request):
     from_date, to_date, tzinfo = parse_date_from_str(request)
 
     report_type = ReportType.objects.get(pk=request.GET.get("reportTypeId"))
+    from cases.models import Case
+
     rows = (
         IncidentReport.objects.all()
         .order_by("-created_at")
@@ -276,12 +278,20 @@ def export_incident_report_xls(request):
             "case_id",
             "id",
             "data",
+            "ai_suspected",
         )
     )
     if from_date:
         rows = rows.filter(created_at__gte=from_date)
     if to_date:
         rows = rows.filter(created_at__lte=to_date)
+
+    rows = list(rows)
+    case_ids = [r["case_id"] for r in rows if r["case_id"]]
+    case_by_id = {
+        str(c.id): c
+        for c in Case.objects.filter(id__in=case_ids).select_related("closed_by")
+    }
 
     if columnSplit is not None:
         form = parseForm(report_type.definition)
@@ -293,10 +303,30 @@ def export_incident_report_xls(request):
             "__reported_by__first_name": "REPORT BY NAME",
             "__case_id": "CASE ID",
             "__reportId": "Report ID",
+            "__stopped_at": "STOPPED DATE",
+            "__ai_suspected": "SUSPECTED (AI)",
+            "__test_result": "TEST RESULT",
+            "__stamp_out": "STAMPED OUT",
+            "__close_source": "CLOSE SOURCE",
+            "__close_outcome": "CLOSE OUTCOME",
+            "__closed_by": "CLOSED BY",
         }
         for row in rows:
             incidentReport = IncidentReport.objects.get(pk=row["id"])
             form = parseForm(incidentReport.definition or report_type.definition)
+            case = case_by_id.get(str(row["case_id"])) if row["case_id"] else None
+            payload = (
+                case.close_payload
+                if case and isinstance(case.close_payload, dict)
+                else {}
+            ) or {}
+            closed_by_name = ""
+            if case and case.closed_by_id:
+                closed_by_name = (
+                    f"{case.closed_by.first_name or ''} {case.closed_by.last_name or ''}".strip()
+                    or case.closed_by.username
+                    or ""
+                )
             # form.loadJsonValue(incidentReport.data)
             dataList = dataList + form.toJsonDataFrameValue(
                 report_td=str(row["id"]),
@@ -311,6 +341,21 @@ def export_incident_report_xls(request):
                     "__reported_by__id": row["reported_by__id"],
                     "__reported_by__first_name": row["reported_by__first_name"],
                     "__case_id": str(row["case_id"]),
+                    "__stopped_at": (
+                        case.stopped_at.astimezone().strftime("%d-%b-%Y %H:%M:%S")
+                        if case and case.stopped_at
+                        else ""
+                    ),
+                    "__ai_suspected": row.get("ai_suspected") or "",
+                    "__test_result": payload.get("test_result") or "",
+                    "__stamp_out": (
+                        payload.get("stamp_out")
+                        if payload.get("stamp_out") is not None
+                        else ""
+                    ),
+                    "__close_source": (case.close_source if case else "") or "",
+                    "__close_outcome": (case.close_outcome if case else "") or "",
+                    "__closed_by": closed_by_name,
                 },
                 header=headers,
             )
@@ -345,6 +390,13 @@ def export_incident_report_xls(request):
             "CASE_ID",
             "ID",
             "DATA",
+            "STOPPED DATE",
+            "SUSPECTED (AI)",
+            "TEST RESULT",
+            "STAMPED OUT",
+            "CLOSE SOURCE",
+            "CLOSE OUTCOME",
+            "CLOSED BY",
         ]
 
         for col_num in range(len(columns)):
@@ -380,26 +432,53 @@ def export_incident_report_xls(request):
         row_num = 4
         for row in rows:
             row_num += 1
-            col_num = 0
-            for item in row:
-                # print(type(row[item]))
-                if type(row[item]) == type(dict()):
-                    # print(json.dumps(row[item], indent=2))
-                    ws.write(
-                        row_num, col_num, json.dumps(row[item], indent=2), font_style
-                    )
-                elif type(row[item]) == datetime:
-                    # print(f"{item} {row[item]}")
-                    value = row[item].replace(tzinfo=tzinfo)
-                    ws.write(
-                        row_num,
-                        col_num,
-                        str(value.astimezone().strftime("%d-%b-%Y %H:%M:%S")),
-                        font_style,
-                    )
-                else:
-                    ws.write(row_num, col_num, str(row[item]), font_style)
-                col_num += 1
+            case = case_by_id.get(str(row["case_id"])) if row["case_id"] else None
+            payload = (
+                case.close_payload
+                if case and isinstance(case.close_payload, dict)
+                else {}
+            ) or {}
+            closed_by_name = ""
+            if case and case.closed_by_id:
+                closed_by_name = (
+                    f"{case.closed_by.first_name or ''} {case.closed_by.last_name or ''}".strip()
+                    or case.closed_by.username
+                    or ""
+                )
+            created = row["created_at"]
+            if isinstance(created, datetime):
+                created = created.replace(tzinfo=tzinfo).astimezone().strftime(
+                    "%d-%b-%Y %H:%M:%S"
+                )
+            incident = row["incident_date"]
+            if hasattr(incident, "strftime"):
+                incident = incident.strftime("%d-%b-%Y %H:%M:%S")
+            values = [
+                str(created),
+                str(incident),
+                str(row["reported_by__id"]),
+                str(row["reported_by__first_name"]),
+                str(row["case_id"] or ""),
+                str(row["id"]),
+                json.dumps(row["data"] or {}, indent=2),
+                (
+                    case.stopped_at.astimezone().strftime("%d-%b-%Y %H:%M:%S")
+                    if case and case.stopped_at
+                    else ""
+                ),
+                row.get("ai_suspected") or "",
+                payload.get("test_result") or "",
+                (
+                    payload.get("stamp_out")
+                    if payload.get("stamp_out") is not None
+                    else ""
+                ),
+                (case.close_source if case else "") or "",
+                (case.close_outcome if case else "") or "",
+                closed_by_name,
+            ]
+            for col_num, value in enumerate(values):
+                ws.write(row_num, col_num, str(value), font_style)
 
         wb.save(response)
 

@@ -301,6 +301,7 @@ class CaseType(DjangoObjectType):
     ai_suspected = graphene.String(required=True)
     stopped_at = graphene.DateTime()
     close_source = graphene.String()
+    close_outcome = graphene.String()
     closed_by = graphene.Field(UserType)
     close_payload = GenericScalar(required=True)
 
@@ -318,6 +319,7 @@ class CaseType(DjangoObjectType):
             "status_label",
             "stopped_at",
             "close_source",
+            "close_outcome",
             "closed_by",
             "close_payload",
         ]
@@ -351,6 +353,9 @@ class CaseType(DjangoObjectType):
 
     def resolve_close_source(root, info):
         return root.close_source or ""
+
+    def resolve_close_outcome(root, info):
+        return root.close_outcome or ""
 
     def resolve_ai_suspected(root, info):
         report = root.report

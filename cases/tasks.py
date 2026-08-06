@@ -1,11 +1,44 @@
 from django.conf import settings
+from django_tenants.utils import get_tenant_model, schema_context
 from cases.models import CaseDefinition, Case, NotificationTemplate
+from cases.services.case_close import auto_close_stale_open_cases
 from podd_api.celery import app
 from reports.models import IncidentReport
 from celery.utils.log import get_task_logger
 from dateutil.relativedelta import *
 
 logger = get_task_logger(__name__)
+
+
+@app.task
+def auto_close_stale_cases_all_tenants(days=None):
+    """
+    CO3: system timeout finish for all tenant schemas.
+    days defaults to settings.CASE_AUTO_CLOSE_DAYS or 21.
+    """
+    inactivity_days = days
+    if inactivity_days is None:
+        inactivity_days = getattr(settings, "CASE_AUTO_CLOSE_DAYS", 21)
+    total = 0
+    Tenant = get_tenant_model()
+    for tenant in Tenant.objects.exclude(schema_name="public"):
+        try:
+            with schema_context(tenant.schema_name):
+                n = auto_close_stale_open_cases(days=int(inactivity_days))
+                total += n
+                if n:
+                    logger.info(
+                        "CO3 auto-closed %s cases in schema %s",
+                        n,
+                        tenant.schema_name,
+                    )
+        except Exception:
+            logger.error(
+                "CO3 auto-close failed for schema %s",
+                tenant.schema_name,
+                exc_info=True,
+            )
+    return total
 
 
 @app.task
