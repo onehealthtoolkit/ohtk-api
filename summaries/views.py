@@ -250,6 +250,43 @@ def export_reporter_performance_xls(request):
         # return HttpResponse("return this string")
 
 
+def export_lahis_summarized_table_xls(request):
+    """
+    LAHIS-only FAO summarized dashboard table (.xlsx).
+    Used by lahis-ms /excels/lahis_summarized_table only.
+    """
+    import io
+
+    from summaries.lahis_summarized_table import build_workbook, collect_export_rows
+
+    authority_id = request.GET.get("authorityId")
+    authority = Authority.objects.get(pk=authority_id)
+    report_type = ReportType.objects.get(pk=request.GET.get("reportTypeId"))
+    from_date, to_date, _tzinfo = parse_date_from_str(request)
+
+    rows = collect_export_rows(
+        authority=authority,
+        report_type=report_type,
+        from_date=from_date,
+        to_date=to_date,
+    )
+    wb = build_workbook(rows)
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    response = HttpResponse(
+        buf.getvalue(),
+        content_type=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ),
+    )
+    filename = f"lahis_summarized_table_{report_type.name}.xlsx"
+    response["Content-Disposition"] = "attachment; filename=%s" % urllib.parse.quote(
+        filename
+    )
+    return response
+
+
 def export_incident_report_xls(request):
     authority_id = request.GET.get("authorityId")
     authority = Authority.objects.get(pk=authority_id)

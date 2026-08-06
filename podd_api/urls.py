@@ -55,6 +55,10 @@ urlpatterns += i18n_patterns(
         "excels/reporter_performance", summaries.views.export_reporter_performance_xls
     ),
     path("excels/incident_report", summaries.views.export_incident_report_xls),
+    path(
+        "excels/lahis_summarized_table",
+        summaries.views.export_lahis_summarized_table_xls,
+    ),
     path("excels/zero_report", summaries.views.export_zero_report_xls),
     path("excels/observation", summaries.views.export_observation_xls),
     path("excels/census_round", census.views.export_census_round_xls),
