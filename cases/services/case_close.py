@@ -15,11 +15,28 @@ from django.utils import timezone
 
 
 def get_close_definition_for_case(case) -> Optional[dict]:
+    """
+    Load ReportType.close_definition for the case's incident report.
+
+    Re-reads ReportType from the DB so callers are not affected by a stale
+    related-object cache after definition updates in the same process.
+    """
     report = getattr(case, "report", None)
     if report is None:
         return None
-    report_type = getattr(report, "report_type", None)
-    if report_type is None:
+    report_type_id = getattr(report, "report_type_id", None)
+    if not report_type_id:
+        report_type = getattr(report, "report_type", None)
+        report_type_id = getattr(report_type, "pk", None) if report_type else None
+    if not report_type_id:
+        return None
+    from reports.models import ReportType
+
+    try:
+        report_type = ReportType.objects.only("close_definition").get(
+            pk=report_type_id
+        )
+    except ReportType.DoesNotExist:
         return None
     definition = getattr(report_type, "close_definition", None)
     if not definition or not isinstance(definition, dict):
@@ -196,6 +213,109 @@ OUTCOME_CLOSE_CASE = "close_case"
 OUTCOME_FALSE_POSITIVE = "false_positive"
 OFFICER_OUTCOMES = (OUTCOME_CLOSE_CASE, OUTCOME_FALSE_POSITIVE)
 
+# Service account username for system-generated audit comments (auto-close).
+SYSTEM_AUDIT_USERNAME = "system"
+
+
+def _format_close_payload_for_audit(payload: Optional[dict]) -> str:
+    """Human-readable payload lines for comment body (skip empty / outcome key)."""
+    if not isinstance(payload, dict):
+        return ""
+    skip = {"close_outcome"}
+    lines = []
+    for key, value in payload.items():
+        if key in skip or value is None or value == "":
+            continue
+        label = str(key).replace("_", " ")
+        lines.append(f"{label}: {value}")
+    return "\n".join(lines)
+
+
+def _resolve_system_audit_user():
+    """Inactive system user for automatic-close audit comments."""
+    from accounts.models import User
+
+    user, _ = User.objects.get_or_create(
+        username=SYSTEM_AUDIT_USERNAME,
+        defaults={
+            "first_name": "System",
+            "last_name": "",
+            "is_active": False,
+            "is_staff": False,
+            "is_superuser": False,
+        },
+    )
+    return user
+
+
+def ensure_case_thread(case):
+    """Return case discussion thread, creating one if missing."""
+    from threads.models import Thread
+
+    thread = getattr(case, "thread", None)
+    if thread is not None:
+        return thread
+    report = getattr(case, "report", None)
+    if report is not None:
+        thread = getattr(report, "thread", None)
+        if thread is not None:
+            case.thread = thread
+            case.save(update_fields=["thread", "updated_at"])
+            return thread
+    thread = Thread.objects.create()
+    case.thread = thread
+    case.save(update_fields=["thread", "updated_at"])
+    return thread
+
+
+def post_case_audit_comment(case, *, actor, body: str):
+    """
+    Append an audit line to the case Comments thread.
+    actor may be None for system actions (uses inactive username=system).
+    """
+    from threads.models import Comment
+
+    text = (body or "").strip()
+    if not text:
+        return None
+    user = actor if actor is not None else _resolve_system_audit_user()
+    thread = ensure_case_thread(case)
+    return Comment.objects.create(thread=thread, body=text, created_by=user)
+
+
+def build_close_audit_body(
+    *,
+    source: str,
+    outcome: str = "",
+    payload: Optional[dict] = None,
+    action: str = "close",
+) -> str:
+    """
+    action:
+      close — initial finish
+      complete_after_auto_close — officer fills data after system timeout
+      superuser_edit — superuser edits finished close data
+    """
+    payload_lines = _format_close_payload_for_audit(payload)
+    source_value = source.value if hasattr(source, "value") else source
+
+    if action == "complete_after_auto_close":
+        head = "[Close data] Added after automatic close"
+    elif action == "superuser_edit":
+        head = "[Close data] Superuser edit"
+    elif source_value in ("system",):
+        head = "[Automatic close] Case finished by system after inactivity"
+    elif outcome == OUTCOME_FALSE_POSITIVE:
+        head = "[Case close] False positive"
+    else:
+        head = "[Case close] Close case"
+
+    if payload_lines:
+        return f"{head}\n{payload_lines}"
+    if action == "close" and source_value in ("system",):
+        return f"{head}\nNo close data recorded."
+    return head
+
 
 @transaction.atomic
 def close_case(
@@ -276,6 +396,9 @@ def close_case(
     case.close_payload_schema_version = schema_version
     if status_label is not None:
         case.status_label = status_label
+    elif source_value == Case.CloseSource.SYSTEM:
+        # CO3: always mark so list/legacy never keep a stale open workflow label.
+        case.status_label = "Automatically closed"
     elif not case.status_label:
         if outcome_value == OUTCOME_FALSE_POSITIVE:
             case.status_label = "False positive"
@@ -295,6 +418,16 @@ def close_case(
             "updated_at",
         ]
     )
+    post_case_audit_comment(
+        case,
+        actor=actor,
+        body=build_close_audit_body(
+            source=source_value,
+            outcome=outcome_value,
+            payload=cleaned_payload,
+            action="close",
+        ),
+    )
     return case
 
 
@@ -308,6 +441,114 @@ def update_open_case_close_payload(case, payload: dict) -> "Case":
     current.update(payload)
     case.close_payload = current
     case.save(update_fields=["close_payload", "updated_at"])
+    return case
+
+
+@transaction.atomic
+def complete_system_closed_case(case, *, actor, payload: Optional[dict] = None):
+    """
+    CO3b: officer fills Layer2 (test_result, stamp_out, …) after automatic close.
+
+    Does not reopen the case: keeps stopped_at, close_source=system, is_finished.
+    Sets close_outcome=close_case and validates payload like officer close.
+    """
+    from cases.models import Case
+
+    if case.stopped_at is None or not case.is_finished:
+        raise ValidationError("Case is not closed")
+    if case.close_source != Case.CloseSource.SYSTEM:
+        raise ValidationError(
+            "Only automatically closed cases can receive late close data"
+        )
+    if actor is None:
+        raise ValidationError("completing close data requires actor")
+
+    definition = get_close_definition_for_case(case)
+    cleaned_payload = validate_close_payload(
+        definition, payload or {}, source=Case.CloseSource.OFFICER
+    )
+    cleaned_payload["close_outcome"] = OUTCOME_CLOSE_CASE
+    schema_version = None
+    if definition and isinstance(definition.get("version"), int):
+        schema_version = definition["version"]
+
+    case.close_payload = cleaned_payload
+    case.close_outcome = OUTCOME_CLOSE_CASE
+    case.close_payload_schema_version = schema_version
+    # Keep lifecycle as system timeout; record who supplied the late data.
+    case.closed_by = actor
+    case.save(
+        update_fields=[
+            "close_payload",
+            "close_outcome",
+            "close_payload_schema_version",
+            "closed_by",
+            "updated_at",
+        ]
+    )
+    post_case_audit_comment(
+        case,
+        actor=actor,
+        body=build_close_audit_body(
+            source=Case.CloseSource.SYSTEM,
+            outcome=OUTCOME_CLOSE_CASE,
+            payload=cleaned_payload,
+            action="complete_after_auto_close",
+        ),
+    )
+    return case
+
+
+@transaction.atomic
+def update_finished_case_close_data(case, *, actor, payload: Optional[dict] = None):
+    """
+    Superuser-only: edit Layer2 close data on any finished case without reopening.
+
+    Keeps stopped_at, close_source, is_finished, closed_by (original finisher).
+    """
+    from cases.models import Case
+
+    if actor is None or not getattr(actor, "is_superuser", False):
+        raise ValidationError("Only superuser can edit finished close data")
+    if case.stopped_at is None or not case.is_finished:
+        raise ValidationError("Case is not closed")
+
+    outcome = (case.close_outcome or "").strip()
+    update_fields = ["close_payload", "updated_at"]
+
+    if outcome == OUTCOME_FALSE_POSITIVE:
+        raw = payload if isinstance(payload, dict) else {}
+        cleaned_payload = {
+            k: v for k, v in raw.items() if v is not None and v != ""
+        }
+        cleaned_payload["close_outcome"] = OUTCOME_FALSE_POSITIVE
+        case.close_payload = cleaned_payload
+    else:
+        # Officer close_case, system timeout, or empty outcome after auto-close.
+        definition = get_close_definition_for_case(case)
+        cleaned_payload = validate_close_payload(
+            definition, payload or {}, source=Case.CloseSource.OFFICER
+        )
+        cleaned_payload["close_outcome"] = OUTCOME_CLOSE_CASE
+        case.close_payload = cleaned_payload
+        if outcome != OUTCOME_CLOSE_CASE:
+            case.close_outcome = OUTCOME_CLOSE_CASE
+            update_fields.append("close_outcome")
+        if definition and isinstance(definition.get("version"), int):
+            case.close_payload_schema_version = definition["version"]
+            update_fields.append("close_payload_schema_version")
+
+    case.save(update_fields=update_fields)
+    post_case_audit_comment(
+        case,
+        actor=actor,
+        body=build_close_audit_body(
+            source=case.close_source or Case.CloseSource.OFFICER,
+            outcome=case.close_outcome or "",
+            payload=case.close_payload if isinstance(case.close_payload, dict) else {},
+            action="superuser_edit",
+        ),
+    )
     return case
 
 
@@ -334,15 +575,22 @@ def case_last_activity_at(case):
     return max(c for c in candidates if c is not None)
 
 
-def auto_close_stale_open_cases(*, days: int = 21) -> int:
+def auto_close_stale_open_cases(*, days: Optional[int] = None) -> int:
     """
     CO3: close open cases with no activity for `days`.
     Runs in the current tenant schema. Returns count closed.
+
+    If days is None, uses tenant Configuration `cases.auto_close_days`
+    (see cases.auto_close_config.get_case_auto_close_days).
     """
     from datetime import timedelta
 
+    from cases.auto_close_config import get_case_auto_close_days
     from cases.models import Case
 
+    if days is None:
+        days = get_case_auto_close_days()
+    days = int(days)
     if days < 1:
         raise ValidationError("days must be >= 1")
 

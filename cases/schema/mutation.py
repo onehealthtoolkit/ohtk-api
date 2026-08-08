@@ -22,6 +22,8 @@ from .mutations import (
     ForwardStateMutation,
     AdminCaseTestResultUpdateMutation,
     AdminCaseCloseMutation,
+    AdminCaseCompleteAfterAutoCloseMutation,
+    AdminCaseCloseDataUpdateMutation,
 )
 
 
@@ -29,6 +31,10 @@ class Mutation(graphene.ObjectType):
     promote_to_case = PromoteToCaseMutation.Field()
     admin_case_test_result_update = AdminCaseTestResultUpdateMutation.Field()
     admin_case_close = AdminCaseCloseMutation.Field()
+    admin_case_complete_after_auto_close = (
+        AdminCaseCompleteAfterAutoCloseMutation.Field()
+    )
+    admin_case_close_data_update = AdminCaseCloseDataUpdateMutation.Field()
     admin_case_definition_create = AdminCaseDefinitionCreateMutation.Field()
     admin_case_definition_update = AdminCaseDefinitionUpdateMutation.Field()
     admin_case_definition_delete = AdminCaseDefinitionDeleteMutation.Field()

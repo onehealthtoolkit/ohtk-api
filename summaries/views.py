@@ -250,6 +250,54 @@ def export_reporter_performance_xls(request):
         # return HttpResponse("return this string")
 
 
+def export_lahis_summarized_table_xls(request):
+    """
+    LAHIS-only FAO summarized dashboard table (.xlsx).
+    Fixed report type (Animal Sick/Death); all authorities; optional date range.
+    Used by lahis-ms /excels/lahis_summarized_table only.
+    """
+    import io
+
+    from django.http import HttpResponseBadRequest
+
+    from summaries.lahis_summarized_table import (
+        DEFAULT_REPORT_TYPE_NAME,
+        build_workbook,
+        collect_export_rows,
+        resolve_fixed_report_type,
+    )
+
+    from_date, to_date, _tzinfo = parse_date_from_str(request)
+    try:
+        report_type = resolve_fixed_report_type()
+    except ReportType.DoesNotExist:
+        return HttpResponseBadRequest(
+            f"Report type not found: {DEFAULT_REPORT_TYPE_NAME}"
+        )
+
+    rows = collect_export_rows(
+        from_date=from_date,
+        to_date=to_date,
+        report_type=report_type,
+    )
+    wb = build_workbook(rows)
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    response = HttpResponse(
+        buf.getvalue(),
+        content_type=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ),
+    )
+    safe_name = (report_type.name or "report").replace(" ", "_")
+    filename = f"lahis_summarized_table_{safe_name}.xlsx"
+    response["Content-Disposition"] = "attachment; filename=%s" % urllib.parse.quote(
+        filename
+    )
+    return response
+
+
 def export_incident_report_xls(request):
     authority_id = request.GET.get("authorityId")
     authority = Authority.objects.get(pk=authority_id)

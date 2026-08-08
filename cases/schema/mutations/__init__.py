@@ -14,6 +14,8 @@ from .admin_state_transition_delete_mutation import *
 from .forward_state_mutation import *
 from .admin_case_test_result_update_mutation import *
 from .admin_case_close_mutation import *
+from .admin_case_complete_after_auto_close_mutation import *
+from .admin_case_close_data_update_mutation import *
 from .admin_notification_template_create_mutation import *
 from .admin_notification_template_update_mutation import *
 from .admin_notification_template_delete_mutation import *

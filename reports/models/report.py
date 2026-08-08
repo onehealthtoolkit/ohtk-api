@@ -5,7 +5,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
 from easy_thumbnails.fields import ThumbnailerImageField
 
-from accounts.models import User, Authority
+from accounts.models import User, Authority, Village
 from common.models import BaseModel, BaseModelManager
 from common.eval import build_eval_obj, FormData
 from common.utils import convert_datetime_to_local_timezone
@@ -123,6 +123,14 @@ class IncidentReport(AbstractIncidentReport):
     definition = models.JSONField(null=True, blank=True)
     # Excel "suspected": AI prediction text (I4 comment body). Not form data.suspected_disease.
     ai_suspected = models.TextField(blank=True, default="")
+    # Optional village when officer creates report on dashboard (OP1) or other village-scoped entry.
+    village = models.ForeignKey(
+        Village,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="incident_reports",
+    )
 
     @property
     def gps_location_str(self):
