@@ -50,15 +50,21 @@ def get_reporter_village_location_point(user) -> Optional[Point]:
     return assignment.village.location
 
 
-def resolve_incident_report_gps(user, gps_location: Optional[str]) -> Optional[Point]:
+def resolve_incident_report_gps(
+    user, gps_location: Optional[str], preferred_village=None
+) -> Optional[Point]:
     """
     1. Client GPS if provided
-    2. Else village location if features.report_use_village_location_fallback=enable
-    3. Else None
+    2. Else explicitly selected village location (or None when it has none)
+    3. Without a selection, assigned village location if fallback is enabled
+    4. Else None
     """
     client_point = parse_client_gps_location(gps_location)
     if client_point is not None:
         return client_point
+
+    if preferred_village is not None:
+        return preferred_village.location
 
     if not is_report_use_village_location_fallback_enabled():
         return None
