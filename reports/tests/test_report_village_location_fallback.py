@@ -34,25 +34,32 @@ class ReportVillageLocationFallbackTestCase(BaseTestCase):
             census_role=VillageReporterAssignment.CensusRole.OFFICIAL,
         )
 
-    def _submit(self, report_id=None, gps_location=None):
+    def _submit(
+        self, report_id=None, gps_location=None, village_id=None, expect_errors=False
+    ):
         mutation = """
             mutation submit(
                 $data: GenericScalar!,
                 $reportTypeId: UUID!,
                 $incidentDate: Date!,
                 $reportId: UUID,
-                $gpsLocation: String
+                $gpsLocation: String,
+                $villageId: Int
             ) {
                 submitIncidentReport(
                     data: $data,
                     reportTypeId: $reportTypeId,
                     incidentDate: $incidentDate,
                     reportId: $reportId,
-                    gpsLocation: $gpsLocation
+                    gpsLocation: $gpsLocation,
+                    villageId: $villageId
                 ) {
                     result {
                         id
                         gpsLocation
+                        village {
+                            id
+                        }
                     }
                 }
             }
@@ -65,7 +72,11 @@ class ReportVillageLocationFallbackTestCase(BaseTestCase):
         }
         if gps_location is not None:
             variables["gpsLocation"] = gps_location
+        if village_id is not None:
+            variables["villageId"] = village_id
         result = self.client.execute(mutation, variables)
+        if expect_errors:
+            return result
         self.assertIsNone(result.errors, msg=result.errors)
         return result.data["submitIncidentReport"]["result"]
 
@@ -99,8 +110,58 @@ class ReportVillageLocationFallbackTestCase(BaseTestCase):
     def test_config_enabled_client_gps_wins_over_village(self):
         set_report_use_village_location_fallback_enabled(True)
         client_gps = "101.00300,13.23300"
-        data = self._submit(gps_location=client_gps)
+        data = self._submit(
+            gps_location=client_gps,
+            village_id=self.village.id,
+        )
         self.assertEqual(data["gpsLocation"], client_gps)
+
+    def test_reporter_can_submit_an_assigned_village(self):
+        set_report_use_village_location_fallback_enabled(False)
+
+        data = self._submit(village_id=self.village.id)
+
+        report = IncidentReport.objects.get(id=data["id"])
+        self.assertEqual(report.village, self.village)
+        self.assertEqual(data["village"]["id"], self.village.id)
+        self.assertAlmostEqual(report.gps_location.x, self.village.location.x)
+        self.assertAlmostEqual(report.gps_location.y, self.village.location.y)
+
+    def test_reporter_cannot_submit_an_unassigned_village(self):
+        other = Village.objects.create(
+            authority=self.jatujak,
+            code="V-JT2",
+            name="Other Village",
+            location=Point(100.99, 13.99),
+            active=True,
+        )
+
+        result = self._submit(village_id=other.id, expect_errors=True)
+
+        self.assertIsNotNone(result.errors)
+        self.assertIn("village is not assigned to reporter", str(result.errors))
+
+    def test_selected_village_location_wins_over_assignment_fallback(self):
+        set_report_use_village_location_fallback_enabled(True)
+        selected = Village.objects.create(
+            authority=self.jatujak,
+            code="V-JT2",
+            name="Selected Village",
+            location=Point(100.99, 13.99),
+            active=True,
+        )
+        VillageReporterAssignment.objects.create(
+            reporter=self.jatujak_reporter,
+            village=selected,
+            census_role=VillageReporterAssignment.CensusRole.OFFICIAL,
+        )
+
+        data = self._submit(village_id=selected.id)
+
+        report = IncidentReport.objects.get(id=data["id"])
+        self.assertEqual(report.village, selected)
+        self.assertAlmostEqual(report.gps_location.x, selected.location.x)
+        self.assertAlmostEqual(report.gps_location.y, selected.location.y)
 
     def test_config_enabled_village_without_location_null(self):
         set_report_use_village_location_fallback_enabled(True)

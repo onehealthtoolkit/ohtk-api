@@ -3,7 +3,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from graphql_jwt.decorators import login_required
 from graphene.types.generic import GenericScalar
 
-from accounts.models import AuthorityUser, Village
+from accounts.models import AuthorityUser, Village, VillageReporterAssignment
 from reports.models.report import IncidentReport
 from reports.models.report_type import ReportType
 from reports.report_location import resolve_incident_report_gps
@@ -22,7 +22,8 @@ class SubmitIncidentReport(graphene.Mutation):
         gps_location = graphene.String(required=False)
         incident_in_authority = graphene.Boolean(required=False)
         test_flag = graphene.Boolean(required=False, default_value=False)
-        # Dashboard officer create (OP1): village under actor authority tree
+        # Dashboard officers select within their authority scope; Mobile reporters
+        # select from their own village assignments.
         village_id = graphene.Int(required=False)
 
     result = graphene.Field(IncidentReportType)
@@ -47,7 +48,6 @@ class SubmitIncidentReport(graphene.Mutation):
 
         user = info.context.user
         report_type = ReportType.objects.get(pk=report_type_id)
-        location = resolve_incident_report_gps(user, gps_location)
         if incident_in_authority is None:
             incident_in_authority = False
 
@@ -71,9 +71,15 @@ class SubmitIncidentReport(graphene.Mutation):
                     if not actor_authority.is_in_inherits_down([village.authority_id]):
                         raise PermissionDenied("village not under admin authority")
                 elif user.is_authority_role_in([AuthorityUser.Role.REPORTER]):
-                    raise PermissionDenied("reporters cannot select village on submit")
-            if location is None and village.location is not None:
-                location = village.location
+                    if not VillageReporterAssignment.objects.filter(
+                        reporter=user.authorityuser,
+                        village=village,
+                    ).exists():
+                        raise PermissionDenied("village is not assigned to reporter")
+
+        location = resolve_incident_report_gps(
+            user, gps_location, preferred_village=village
+        )
 
         thread = Thread.objects.create()
         report = IncidentReport.objects.create(
