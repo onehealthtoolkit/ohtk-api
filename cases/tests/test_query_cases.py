@@ -86,11 +86,15 @@ class QueryCasesTestCase(BaseTestCase):
         self.assertEqual(str(self.mere_case1.id), result.data["caseGet"]["id"])
 
     def test_q_matches_renderer_or_ai_suspected(self):
-        self.mers_report.renderer_data = "Cattle 3 heads"
-        self.mers_report.save(update_fields=["renderer_data"])
-        self.mers_report2.renderer_data = "Pig"
-        self.mers_report2.ai_suspected = "possible FMD"
-        self.mers_report2.save(update_fields=["renderer_data", "ai_suspected"])
+        # IncidentReport.save() always re-renders renderer_data from the type
+        # template, so set the stored text via QuerySet.update.
+        IncidentReport.objects.filter(pk=self.mers_report.pk).update(
+            renderer_data="Cattle 3 heads"
+        )
+        IncidentReport.objects.filter(pk=self.mers_report2.pk).update(
+            renderer_data="Pig",
+            ai_suspected="possible FMD",
+        )
 
         result = self.client.execute(
             """

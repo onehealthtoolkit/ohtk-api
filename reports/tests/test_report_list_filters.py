@@ -34,18 +34,24 @@ class ReportListFilterTests(TenantTestCase):
         self.report_type.authorities.add(self.authority)
 
     def _create_report(self, **kwargs):
+        renderer_data = kwargs.pop("renderer_data", "Cattle 3 heads")
+        ai_suspected = kwargs.pop("ai_suspected", "")
         defaults = {
             "reported_by": self.user,
             "report_type": self.report_type,
             "data": {},
             "incident_date": date(2026, 8, 1),
             "relevant_authority_resolved": True,
-            "renderer_data": "Cattle 3 heads",
-            "ai_suspected": "",
         }
         defaults.update(kwargs)
         report = IncidentReport.objects.create(**defaults)
         report.relevant_authorities.add(self.authority)
+        # IncidentReport.save() overwrites renderer_data from the type template.
+        IncidentReport.objects.filter(pk=report.pk).update(
+            renderer_data=renderer_data,
+            ai_suspected=ai_suspected,
+        )
+        report.refresh_from_db()
         return report
 
     def execute(self, query, variables=None):
