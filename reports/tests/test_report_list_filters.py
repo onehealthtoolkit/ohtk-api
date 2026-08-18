@@ -5,7 +5,7 @@ from django.utils.timezone import now
 from django_tenants.test.cases import TenantTestCase
 from django.db import connection
 
-from accounts.models import Authority, AuthorityUser
+from accounts.models import Authority, AuthorityUser, Village
 from podd_api.schema import schema
 from reports.models import Category, IncidentReport, ReportType
 
@@ -159,3 +159,48 @@ class ReportListFilterTests(TenantTestCase):
         self.assertEqual(ids, {str(mid.id)})
         self.assertNotIn(str(early.id), ids)
         self.assertNotIn(str(late.id), ids)
+
+    def test_village_id_in_filters_by_report_village(self):
+        village_a = Village.objects.create(
+            authority=self.authority, code="V-A", name="Village A", active=True
+        )
+        village_b = Village.objects.create(
+            authority=self.authority, code="V-B", name="Village B", active=True
+        )
+        in_a = self._create_report(village=village_a)
+        self._create_report(village=village_b)
+        self._create_report()
+
+        result = self.execute(
+            """
+            query($villageIds: [ID]) {
+              incidentReports(village_Id_In: $villageIds, limit: 20, offset: 0) {
+                results { id }
+              }
+            }
+            """,
+            {"villageIds": [str(village_a.id)]},
+        )
+        self.assertIsNone(result.errors, result.errors)
+        ids = {item["id"] for item in result.data["incidentReports"]["results"]}
+        self.assertEqual(ids, {str(in_a.id)})
+
+    def test_empty_village_id_in_does_not_filter(self):
+        village = Village.objects.create(
+            authority=self.authority, code="V-E", name="Village Empty", active=True
+        )
+        with_village = self._create_report(village=village)
+        without_village = self._create_report()
+
+        result = self.execute(
+            """
+            query {
+              incidentReports(village_Id_In: [], limit: 20, offset: 0) {
+                results { id }
+              }
+            }
+            """
+        )
+        self.assertIsNone(result.errors, result.errors)
+        ids = {item["id"] for item in result.data["incidentReports"]["results"]}
+        self.assertEqual(ids, {str(with_village.id), str(without_village.id)})
