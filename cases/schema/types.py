@@ -269,11 +269,14 @@ class CaseTypeFilter(EmptyListInsensitiveFilterSet):
     include_child_authorities = django_filters.BooleanFilter(
         method="child_authorities_filter"
     )
+    q = django_filters.CharFilter(method="q_filter")
+    case_statuses = django_filters.CharFilter(method="case_statuses_filter")
 
     class Meta:
         model = Case
         fields = {
             "report__created_at": ["lte", "gte"],
+            "report__incident_date": ["lte", "gte"],
             "report__relevant_authorities__id": ["in"],
             "report__report_type__id": ["in"],
         }
@@ -288,6 +291,37 @@ class CaseTypeFilter(EmptyListInsensitiveFilterSet):
             )
 
         return queryset
+
+    def q_filter(self, queryset, name, value):
+        text = (value or "").strip()
+        if not text:
+            return queryset
+        return queryset.filter(
+            Q(report__renderer_data__icontains=text)
+            | Q(report__ai_suspected__icontains=text)
+            | Q(description__icontains=text)
+        )
+
+    def case_statuses_filter(self, queryset, name, value):
+        raw_values = value.split(",") if isinstance(value, str) else value or []
+        tokens = {item.strip().upper() for item in raw_values if item}
+        if not tokens:
+            return queryset
+
+        status_query = Q()
+        if "OPEN" in tokens:
+            status_query |= Q(is_finished=False)
+        if "CLOSE_CASE" in tokens:
+            status_query |= Q(is_finished=True) & ~Q(close_source="system") & (
+                Q(close_outcome="close_case") | Q(close_outcome="")
+            )
+        if "FALSE_POSITIVE" in tokens:
+            status_query |= Q(is_finished=True, close_outcome="false_positive")
+        if "AUTOMATIC_CLOSE" in tokens:
+            status_query |= Q(is_finished=True, close_source="system")
+        if not status_query:
+            return queryset.none()
+        return queryset.filter(status_query)
 
 
 class CaseType(DjangoObjectType):

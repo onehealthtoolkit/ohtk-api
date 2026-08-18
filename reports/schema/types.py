@@ -127,6 +127,8 @@ class IncidentReportTypeFilter(EmptyListInsensitiveFilterSet):
         method="child_authorities_filter"
     )
     current_risk_levels = CharInFilter(method="current_risk_levels_filter")
+    q = django_filters.CharFilter(method="q_filter")
+    only_case = django_filters.BooleanFilter(method="only_case_filter")
 
     class Meta:
         model = IncidentReport
@@ -176,6 +178,19 @@ class IncidentReportTypeFilter(EmptyListInsensitiveFilterSet):
         if include_no_assessment:
             filter_query |= ~Q(id__in=current_risk_ids)
         return queryset.filter(filter_query)
+
+    def q_filter(self, queryset, name, value):
+        text = (value or "").strip()
+        if not text:
+            return queryset
+        return queryset.filter(
+            Q(renderer_data__icontains=text) | Q(ai_suspected__icontains=text)
+        )
+
+    def only_case_filter(self, queryset, name, value):
+        if value:
+            return queryset.filter(case_id__isnull=False)
+        return queryset
 
 
 class IncidentReportVillageType(graphene.ObjectType):

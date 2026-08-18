@@ -84,3 +84,95 @@ class QueryCasesTestCase(BaseTestCase):
         self.assertIsNotNone(result.data["caseGet"])
         self.assertIsNotNone(result.data["caseGet"]["id"])
         self.assertEqual(str(self.mere_case1.id), result.data["caseGet"]["id"])
+
+    def test_q_matches_renderer_or_ai_suspected(self):
+        self.mers_report.renderer_data = "Cattle 3 heads"
+        self.mers_report.save(update_fields=["renderer_data"])
+        self.mers_report2.renderer_data = "Pig"
+        self.mers_report2.ai_suspected = "possible FMD"
+        self.mers_report2.save(update_fields=["renderer_data", "ai_suspected"])
+
+        result = self.client.execute(
+            """
+            query($q: String) {
+              casesQuery(q: $q) {
+                results { id }
+              }
+            }
+            """,
+            {"q": "Cattle"},
+        )
+        self.assertIsNone(result.errors, result.errors)
+        ids = {item["id"] for item in result.data["casesQuery"]["results"]}
+        self.assertEqual(ids, {str(self.mere_case1.id)})
+
+        result = self.client.execute(
+            """
+            query($q: String) {
+              casesQuery(q: $q) {
+                results { id }
+              }
+            }
+            """,
+            {"q": "FMD"},
+        )
+        self.assertIsNone(result.errors, result.errors)
+        ids = {item["id"] for item in result.data["casesQuery"]["results"]}
+        self.assertEqual(ids, {str(self.mere_case2.id)})
+
+    def test_case_statuses_filter(self):
+        self.mere_case1.is_finished = False
+        self.mere_case1.save(update_fields=["is_finished"])
+        self.mere_case2.is_finished = True
+        self.mere_case2.close_outcome = "false_positive"
+        self.mere_case2.close_source = "officer"
+        self.mere_case2.save(
+            update_fields=["is_finished", "close_outcome", "close_source"]
+        )
+        closed = Case.objects.create(
+            report=self.dengue_report,
+            description="closed",
+            state_definition=self.mers_state_definition,
+            is_finished=True,
+            close_outcome="close_case",
+            close_source="officer",
+        )
+        closed.authorities.add(self.bkk)
+        auto = Case.objects.create(
+            report=self.dengue_report_jatujak,
+            description="auto",
+            state_definition=self.mers_state_definition,
+            is_finished=True,
+            close_source="system",
+        )
+        auto.authorities.add(self.bkk)
+
+        result = self.client.execute(
+            """
+            query($statuses: String) {
+              casesQuery(caseStatuses: $statuses) {
+                results { id }
+              }
+            }
+            """,
+            {"statuses": "OPEN,FALSE_POSITIVE"},
+        )
+        self.assertIsNone(result.errors, result.errors)
+        ids = {item["id"] for item in result.data["casesQuery"]["results"]}
+        self.assertEqual(ids, {str(self.mere_case1.id), str(self.mere_case2.id)})
+        self.assertNotIn(str(closed.id), ids)
+        self.assertNotIn(str(auto.id), ids)
+
+        result = self.client.execute(
+            """
+            query($statuses: String) {
+              casesQuery(caseStatuses: $statuses) {
+                results { id }
+              }
+            }
+            """,
+            {"statuses": "AUTOMATIC_CLOSE"},
+        )
+        self.assertIsNone(result.errors, result.errors)
+        ids = {item["id"] for item in result.data["casesQuery"]["results"]}
+        self.assertEqual(ids, {str(auto.id)})
