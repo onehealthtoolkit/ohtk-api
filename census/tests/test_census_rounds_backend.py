@@ -466,3 +466,135 @@ class CensusRoundsBackendTests(JSONWebTokenTestCase):
         self.assertTrue(errors)
         self.assertEqual(errors[0][0], "census_period_start")
         self.assertIn("MM-DD", errors[0][1])
+
+    def test_officer_can_submit_census_for_village_in_authority(self):
+        occurrence = self.create_round()
+        self.client.authenticate(self.officer)
+
+        result = self.submit_snapshot("2026-05-19", occurrence_id=occurrence.id)
+
+        self.assertIsNone(result.errors, result.errors)
+        payload = result.data["submitVillageCensusSnapshotV2"]["result"]
+        self.assertEqual(payload["__typename"], "VillageCensusSnapshotType")
+        snapshot = VillageCensusSnapshot.objects.get(pk=payload["id"])
+        self.assertEqual(snapshot.reporter_id, self.officer.id)
+        self.assertEqual(snapshot.village_id, self.village.id)
+
+    def test_admin_can_submit_census_for_child_authority_village(self):
+        child_authority = Authority.objects.create(name="child", code="CA")
+        child_authority.inherits.add(self.authority)
+        child_village = Village.objects.create(
+            code="V003", name="Child Village", authority=child_authority
+        )
+        occurrence = self.create_round()
+        self.client.authenticate(self.admin)
+
+        result = self.client.execute(
+            """
+            mutation submitVillageCensusSnapshotV2(
+                $villageId: Int!,
+                $definitionVersionId: Int!,
+                $occurrenceId: Int,
+                $censusDate: Date!,
+                $formData: GenericScalar!
+            ) {
+                submitVillageCensusSnapshotV2(
+                    villageId: $villageId,
+                    definitionVersionId: $definitionVersionId,
+                    occurrenceId: $occurrenceId,
+                    censusDate: $censusDate,
+                    formData: $formData
+                ) {
+                    result {
+                        __typename
+                        ... on VillageCensusSnapshotType {
+                            id
+                        }
+                        ... on VillageCensusSnapshotProblem {
+                            fields { name message }
+                        }
+                    }
+                }
+            }
+            """,
+            {
+                "villageId": child_village.id,
+                "definitionVersionId": self.version.id,
+                "occurrenceId": occurrence.id,
+                "censusDate": "2026-05-19",
+                "formData": self.animal_form_data(),
+            },
+        )
+
+        self.assertIsNone(result.errors, result.errors)
+        payload = result.data["submitVillageCensusSnapshotV2"]["result"]
+        self.assertEqual(payload["__typename"], "VillageCensusSnapshotType")
+        snapshot = VillageCensusSnapshot.objects.get(pk=payload["id"])
+        self.assertEqual(snapshot.reporter_id, self.admin.id)
+
+    def test_officer_cannot_submit_census_outside_authority(self):
+        occurrence = self.create_round()
+        self.client.authenticate(self.officer)
+
+        result = self.client.execute(
+            """
+            mutation submitVillageCensusSnapshotV2(
+                $villageId: Int!,
+                $definitionVersionId: Int!,
+                $occurrenceId: Int,
+                $censusDate: Date!,
+                $formData: GenericScalar!
+            ) {
+                submitVillageCensusSnapshotV2(
+                    villageId: $villageId,
+                    definitionVersionId: $definitionVersionId,
+                    occurrenceId: $occurrenceId,
+                    censusDate: $censusDate,
+                    formData: $formData
+                ) {
+                    result {
+                        __typename
+                        ... on VillageCensusSnapshotProblem {
+                            fields { name message }
+                        }
+                    }
+                }
+            }
+            """,
+            {
+                "villageId": self.outside_village.id,
+                "definitionVersionId": self.version.id,
+                "occurrenceId": occurrence.id,
+                "censusDate": "2026-05-19",
+                "formData": self.animal_form_data(),
+            },
+        )
+
+        self.assertIsNone(result.errors, result.errors)
+        fields = result.data["submitVillageCensusSnapshotV2"]["result"]["fields"]
+        self.assertEqual(fields[0]["name"], "village_id")
+        self.assertEqual(fields[0]["message"], "village is not under your authority")
+
+    def test_volunteer_reporter_still_cannot_submit_census(self):
+        volunteer = AuthorityUser.objects.create(
+            username="volunteer-reporter",
+            authority=self.authority,
+            role=AuthorityUser.Role.REPORTER,
+        )
+        VillageReporterAssignment.objects.create(
+            reporter=volunteer,
+            village=self.village,
+            census_role=VillageReporterAssignment.CensusRole.VOLUNTEER,
+        )
+        occurrence = self.create_round()
+        self.client.authenticate(volunteer)
+
+        result = self.submit_snapshot("2026-05-19", occurrence_id=occurrence.id)
+
+        self.assertIsNone(result.errors, result.errors)
+        fields = result.data["submitVillageCensusSnapshotV2"]["result"]["fields"]
+        self.assertEqual(fields[0]["name"], "village_id")
+        self.assertEqual(
+            fields[0]["message"],
+            "official reporter assignment is required for village",
+        )
