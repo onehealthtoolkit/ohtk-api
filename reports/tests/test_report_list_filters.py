@@ -11,7 +11,8 @@ from reports.models import Category, IncidentReport, ReportType
 
 
 class ReportListFilterTests(TenantTestCase):
-    def setup_tenant(self, tenant):
+    @classmethod
+    def setup_tenant(cls, tenant):
         tenant.name = "Tenant Alpha"
 
     def setUp(self):
