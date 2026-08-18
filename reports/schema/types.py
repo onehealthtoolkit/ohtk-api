@@ -139,6 +139,7 @@ class IncidentReportTypeFilter(EmptyListInsensitiveFilterSet):
             "relevant_authorities__id": ["in"],
             "report_type__id": ["in"],
             "test_flag": ["exact"],
+            "village__id": ["in"],
         }
 
     def child_authorities_filter(self, queryset, name, value):
