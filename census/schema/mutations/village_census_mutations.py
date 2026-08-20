@@ -74,6 +74,40 @@ def validate_official_assignment(user, village_id, problems):
     return assignment
 
 
+def validate_submit_permission(user, village, problems):
+    """Official reporters keep the mobile path. Staff may submit in review scope."""
+    if village is None:
+        return None
+
+    if user.is_superuser:
+        if not user.is_authority_user:
+            problems.append(
+                AdminFieldValidationProblem(
+                    name="reporter",
+                    message="staff submit requires an authority user",
+                )
+            )
+            return None
+        return user.authorityuser
+
+    if user.is_authority_role_in(
+        [AuthorityUser.Role.ADMIN, AuthorityUser.Role.OFFICER]
+    ):
+        if not user.authorityuser.authority.is_in_inherits_down(
+            [village.authority_id]
+        ):
+            problems.append(
+                AdminFieldValidationProblem(
+                    name="village_id",
+                    message="village is not under your authority",
+                )
+            )
+            return None
+        return user.authorityuser
+
+    return validate_official_assignment(user, village.id, problems)
+
+
 def validate_census_definition_version(definition_version_id, problems):
     try:
         definition_version = CensusDefinitionVersion.objects.select_related(
@@ -502,10 +536,10 @@ class SubmitVillageCensusSnapshotV2Mutation(graphene.Mutation):
             )
 
         user = info.context.user
-        if not user.is_authority_user:
+        if not user.is_superuser and not user.is_authority_user:
             raise GraphQLError("Permission denied.")
 
-        validate_official_assignment(user, village_id, problems)
+        validate_submit_permission(user, village, problems)
         definition_version = validate_census_definition_version(
             definition_version_id, problems
         )
