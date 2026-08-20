@@ -35,7 +35,7 @@ class AuthorityUserRegisterMutation(graphene.Mutation):
         first_name = graphene.String(required=True)
         last_name = graphene.String(required=True)
         telephone = graphene.String(required=False)
-        email = graphene.String(required=True)
+        email = graphene.String(required=False)
         address = graphene.String(required=False)
         gender = graphene.String(required=False)
         age = graphene.Int(required=False)
@@ -54,7 +54,7 @@ class AuthorityUserRegisterMutation(graphene.Mutation):
         username,
         first_name,
         last_name,
-        email,
+        email="",
         telephone=None,
         address=None,
         gender=None,
@@ -72,7 +72,7 @@ class AuthorityUserRegisterMutation(graphene.Mutation):
                 first_name=first_name,
                 last_name=last_name,
                 telephone=telephone,
-                email=email,
+                email=email or "",
                 address=address,
                 gender=normalized_gender,
                 age=normalized_age,

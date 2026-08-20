@@ -19,43 +19,43 @@ class ResetPasswordRequestMutation(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, email):
-        # get user by email
+        address = (email or "").strip()
+        if not address:
+            return ResetPasswordMutation(success=True)
+        user = User.objects.filter(email=address).first()
+        if user is None:
+            return ResetPasswordMutation(success=True)
+        token = secrets.token_urlsafe(48)
+
         try:
-            user = User.objects.get(email=email)
-            token = secrets.token_urlsafe(48)
+            client = Client.objects.get(schema_name=connection.schema_name)
+            domain_instance = Domain.objects.filter(tenant=client).first()
+            if domain_instance:
+                domain = domain_instance.domain
+        except Client.DoesNotExist:
+            domain = None
 
-            try:
-                client = Client.objects.get(schema_name=connection.schema_name)
-                domain_instance = Domain.objects.filter(tenant=client).first()
-                if domain_instance:
-                    domain = domain_instance.domain
-            except Client.DoesNotExist:
-                domain = None
+        # save reset password token
+        PasswordResetToken.objects.create(
+            user=user,
+            token=token,
+            token_expiry=now() + timedelta(hours=1),
+        )
 
-            # save reset password token
-            PasswordResetToken.objects.create(
-                user=user,
-                token=token,
-                token_expiry=now() + timedelta(hours=1),
+        link = f"{settings.DASHBOARD_URL}/reset-password/{token}"
+        if domain:
+            link = link + "?domain=" + domain
+
+        if settings.DEBUG:
+            print(f"Reset password link: {link}")
+        else:
+            send_mail(
+                "Reset password",
+                f"Please click the link to reset your password: {link}",
+                f"noreply@{settings.EMAIL_DOMAIN}",
+                [address],
+                fail_silently=False,
             )
-
-            link = f"{settings.DASHBOARD_URL}/reset-password/{token}"
-            if domain:
-                link = link + "?domain=" + domain
-
-            if settings.DEBUG:
-                print(f"Reset password link: {link}")
-            else:
-                send_mail(
-                    "Reset password",
-                    f"Please click the link to reset your password: {link}",
-                    f"noreply@{settings.EMAIL_DOMAIN}",
-                    [email],
-                    fail_silently=False,
-                )
-
-        except User.DoesNotExist:
-            pass
         # always return true
         return ResetPasswordMutation(success=True)
 
