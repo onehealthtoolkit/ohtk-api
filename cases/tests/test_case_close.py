@@ -1,7 +1,4 @@
-from datetime import timedelta
-
 from django.core.exceptions import ValidationError
-from django.utils import timezone
 from graphql_jwt.testcases import JSONWebTokenClient
 
 from accounts.models import AuthorityUser, Configuration
@@ -12,14 +9,12 @@ from cases.auto_close_config import (
 )
 from cases.models import Case
 from cases.services.case_close import (
-    auto_close_stale_open_cases,
     close_case,
     complete_system_closed_case,
     update_finished_case_close_data,
     validate_close_payload,
 )
 from cases.tests.base_testcase import BaseTestCase
-from reports.models import FollowUpReport
 from threads.models import Comment
 
 
@@ -383,15 +378,6 @@ class CaseCloseServiceTestCase(BaseTestCase):
                 payload={},
             )
 
-    def _age_case_activity(self, days_ago: int):
-        """Set case + report created_at to now - days_ago (activity clock baseline)."""
-        old = timezone.now() - timedelta(days=days_ago)
-        Case.objects.filter(pk=self.case.pk).update(created_at=old)
-        self.case.report.created_at = old
-        self.case.report.save(update_fields=["created_at"])
-        self.case.refresh_from_db()
-        return old
-
     def test_get_case_auto_close_days_from_configuration(self):
         Configuration.objects.filter(key=CASE_AUTO_CLOSE_DAYS_KEY).delete()
         self.assertEqual(21, get_case_auto_close_days())
@@ -401,93 +387,6 @@ class CaseCloseServiceTestCase(BaseTestCase):
             value="not-a-number"
         )
         self.assertEqual(21, get_case_auto_close_days())
-
-    def test_auto_close_stale_uses_configuration_days(self):
-        set_case_auto_close_days(10)
-        # Fresh case: not closed
-        n = auto_close_stale_open_cases()
-        self.case.refresh_from_db()
-        self.assertFalse(self.case.is_finished)
-        self.assertEqual(0, n)
-
-        # Age report activity past config window
-        self._age_case_activity(11)
-
-        n = auto_close_stale_open_cases()
-        self.case.refresh_from_db()
-        self.assertEqual(1, n)
-        self.assertTrue(self.case.is_finished)
-        self.assertEqual(Case.CloseSource.SYSTEM, self.case.close_source)
-        self.assertEqual("", self.case.close_outcome or "")
-        self.assertEqual({}, self.case.close_payload or {})
-        self.assertEqual("Automatically closed", self.case.status_label)
-
-    def test_auto_close_explicit_days_overrides_configuration(self):
-        set_case_auto_close_days(100)
-        self._age_case_activity(5)
-
-        n = auto_close_stale_open_cases(days=3)
-        self.case.refresh_from_db()
-        self.assertEqual(1, n)
-        self.assertTrue(self.case.is_finished)
-
-    def test_auto_close_day_20_stays_open_day_21_closes(self):
-        """T1/T2: default 21-day window boundary."""
-        set_case_auto_close_days(21)
-        self._age_case_activity(20)
-        n = auto_close_stale_open_cases()
-        self.case.refresh_from_db()
-        self.assertEqual(0, n)
-        self.assertFalse(self.case.is_finished)
-
-        self._age_case_activity(21)
-        n = auto_close_stale_open_cases()
-        self.case.refresh_from_db()
-        self.assertEqual(1, n)
-        self.assertTrue(self.case.is_finished)
-        self.assertEqual(Case.CloseSource.SYSTEM, self.case.close_source)
-        self.assertEqual("Automatically closed", self.case.status_label)
-
-    def test_auto_close_followup_resets_clock(self):
-        """T3: old case + recent follow-up stays open."""
-        set_case_auto_close_days(21)
-        self._age_case_activity(30)
-        fu = FollowUpReport.objects.create(
-            reported_by=self.user,
-            report_type=self.mers_report_type,
-            data={"note": "recent follow-up"},
-            incident=self.case.report,
-        )
-        # Force follow-up activity to 1 day ago (created_at may be auto_now_add)
-        recent = timezone.now() - timedelta(days=1)
-        FollowUpReport.objects.filter(pk=fu.pk).update(created_at=recent)
-
-        n = auto_close_stale_open_cases()
-        self.case.refresh_from_db()
-        self.assertEqual(0, n)
-        self.assertFalse(self.case.is_finished)
-
-    def test_auto_close_skips_already_officer_finished(self):
-        """T4: already closed cases are not re-closed."""
-        set_case_auto_close_days(21)
-        self._age_case_activity(30)
-        close_case(
-            self.case,
-            source=Case.CloseSource.OFFICER,
-            actor=self.user,
-            outcome="close_case",
-            payload={},
-        )
-        self.case.refresh_from_db()
-        officer_stopped = self.case.stopped_at
-        officer_label = self.case.status_label
-
-        n = auto_close_stale_open_cases()
-        self.case.refresh_from_db()
-        self.assertEqual(0, n)
-        self.assertEqual(Case.CloseSource.OFFICER, self.case.close_source)
-        self.assertEqual(officer_stopped, self.case.stopped_at)
-        self.assertEqual(officer_label, self.case.status_label)
 
     def test_complete_system_closed_case_fills_layer2(self):
         """CO3b: officer can add test_result/stamp_out after automatic close."""

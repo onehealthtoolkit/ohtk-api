@@ -1,7 +1,7 @@
-"""Tenant Configuration for CO3 system timeout days.
+"""Tenant Configuration for the legacy single CO3 window.
 
-Key lives in the tenant schema (django-tenants), same as other Configuration rows.
-Value is a positive integer string (e.g. \"21\").
+D07 auto-close does **not** use this key. It is kept for admin/ops display
+and tests of Configuration.get. The job windows are 14 (LOW) and 21 (MR/HR).
 """
 
 from django.conf import settings
