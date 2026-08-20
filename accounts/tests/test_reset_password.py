@@ -23,6 +23,21 @@ class PasswordResetTests(JSONWebTokenTestCase):
         prt = PasswordResetToken.objects.get(user=self.user)
         self.assertIsNotNone(prt)
 
+    def test_reset_password_request_empty_email_does_not_crash(self):
+        User.objects.create_user(username="empty1", email="")
+        User.objects.create_user(username="empty2", email="")
+        query = """
+        mutation resetPasswordRequest($email: String!) {
+            resetPasswordRequest(email: $email) {
+                success
+            }
+        }
+        """
+        result = self.client.execute(query, variables={"email": ""})
+        self.assertIsNone(result.errors, result.errors)
+        self.assertTrue(result.data["resetPasswordRequest"]["success"])
+        self.assertEqual(PasswordResetToken.objects.count(), 0)
+
     @override_settings(DEBUG=True)
     def test_reset_password(self):
         query = """
