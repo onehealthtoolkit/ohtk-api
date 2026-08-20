@@ -13,11 +13,10 @@ logger = get_task_logger(__name__)
 @app.task
 def auto_close_stale_cases_all_tenants(days=None):
     """
-    CO3: system timeout finish for all tenant schemas.
+    CO3 / D07: system timeout finish for all tenant schemas.
 
-    days: optional override (tests / one-shot ops).
-    When None, each tenant uses Configuration key cases.auto_close_days
-    (fallback settings.CASE_AUTO_CLOSE_DAYS, then 21).
+    days: optional override of both D07 windows (tests / one-shot ops).
+    When None, LOW=14d silence and MR/HR=21d cleared-or-plateau.
     """
     total = 0
     Tenant = get_tenant_model()

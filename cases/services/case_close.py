@@ -577,24 +577,30 @@ def case_last_activity_at(case):
 
 def auto_close_stale_open_cases(*, days: Optional[int] = None) -> int:
     """
-    CO3: close open cases with no activity for `days`.
-    Runs in the current tenant schema. Returns count closed.
+    CO3 / D07: system-finish open cases that meet the risk-tiered clock.
 
-    If days is None, uses tenant Configuration `cases.auto_close_days`
-    (see cases.auto_close_config.get_case_auto_close_days).
+    Default windows: LOW = 14 days silence; MEDIUM/HIGH/CRITICAL/none = 21 days
+    after derived ongoing=0 or no new sick.
+
+    days: optional override of **both** windows (ops one-shot / tests).
+    Tenant `cases.auto_close_days` is not the D07 rule.
     """
-    from datetime import timedelta
-
-    from cases.auto_close_config import get_case_auto_close_days
     from cases.models import Case
+    from cases.services.auto_close_eligibility import (
+        AUTO_CLOSE_LR_DAYS,
+        AUTO_CLOSE_MRHR_DAYS,
+        should_system_auto_close,
+    )
 
-    if days is None:
-        days = get_case_auto_close_days()
-    days = int(days)
-    if days < 1:
-        raise ValidationError("days must be >= 1")
+    lr_days = AUTO_CLOSE_LR_DAYS
+    mrhr_days = AUTO_CLOSE_MRHR_DAYS
+    if days is not None:
+        days = int(days)
+        if days < 0:
+            raise ValidationError("days must be >= 0")
+        lr_days = mrhr_days = days
 
-    cutoff = timezone.now() - timedelta(days=days)
+    now = timezone.now()
     closed = 0
     qs = (
         Case.objects.filter(stopped_at__isnull=True, is_finished=False)
@@ -603,14 +609,15 @@ def auto_close_stale_open_cases(*, days: Optional[int] = None) -> int:
     )
     for case in qs:
         try:
-            last = case_last_activity_at(case)
-        except Exception:
-            continue
-        if last is None or last > cutoff:
-            continue
-        try:
-            close_case(case, source="system", actor=None, payload={})
-            closed += 1
+            with transaction.atomic():
+                if not should_system_auto_close(
+                    case, now=now, lr_days=lr_days, mrhr_days=mrhr_days
+                ):
+                    continue
+                close_case(case, source="system", actor=None, payload={})
+                closed += 1
         except ValidationError:
+            continue
+        except Exception:
             continue
     return closed
