@@ -3,12 +3,28 @@ from easy_thumbnails.files import get_thumbnailer
 from graphene_django import DjangoObjectType
 
 from common.types import AdminValidationProblem
+from threads.attachment_files import (
+    KIND_DOCUMENT,
+    KIND_IMAGE,
+    attachment_filename,
+    attachment_kind,
+    inferred_content_type,
+    is_image_attachment,
+)
 from threads.models import Comment, CommentAttachment
+
+
+class CommentAttachmentKind(graphene.Enum):
+    IMAGE = KIND_IMAGE
+    DOCUMENT = KIND_DOCUMENT
 
 
 class CommentAttachmentType(DjangoObjectType):
     thumbnail = graphene.String()
     file = graphene.String()
+    filename = graphene.String()
+    content_type = graphene.String()
+    kind = graphene.Field(CommentAttachmentKind)
 
     class Meta:
         model = CommentAttachment
@@ -17,8 +33,22 @@ class CommentAttachmentType(DjangoObjectType):
     def resolve_file(self, info):
         return self.file.url
 
+    def resolve_filename(self, info):
+        return attachment_filename(self.file)
+
+    def resolve_content_type(self, info):
+        return inferred_content_type(attachment_filename(self.file))
+
+    def resolve_kind(self, info):
+        return attachment_kind(attachment_filename(self.file))
+
     def resolve_thumbnail(self, info):
-        return get_thumbnailer(self.file)["thumbnail"].url
+        if not self.file or not is_image_attachment(self.file.name):
+            return None
+        try:
+            return get_thumbnailer(self.file)["thumbnail"].url
+        except Exception:
+            return None
 
 
 class CommentType(DjangoObjectType):

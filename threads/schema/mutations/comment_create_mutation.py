@@ -3,6 +3,7 @@ from graphene_file_upload.scalars import Upload
 from graphql_jwt.decorators import login_required
 
 from common.utils import is_not_empty
+from threads.attachment_files import validate_comment_upload
 from threads.models import Thread, Comment, CommentAttachment
 from threads.schema.types import CommentCreateResult, CommentCreateProblem
 
@@ -24,6 +25,11 @@ class CommentCreateMutation(graphene.Mutation):
         problems = []
         if body_problem := is_not_empty("body", body, "Body must not be empty"):
             problems.append(body_problem)
+        if files:
+            for upload in files:
+                file_problem = validate_comment_upload(upload)
+                if file_problem:
+                    problems.append(file_problem)
 
         if len(problems) > 0:
             return CommentCreateMutation(result=CommentCreateProblem(fields=problems))

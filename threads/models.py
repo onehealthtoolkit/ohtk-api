@@ -3,6 +3,7 @@ from easy_thumbnails.fields import ThumbnailerField
 
 from accounts.models import User
 from common.models import BaseModel, BaseModelManager
+from threads.attachment_files import is_image_attachment
 
 
 class Thread(BaseModel):
@@ -38,4 +39,9 @@ class CommentAttachment(BaseModel):
     file = ThumbnailerField(upload_to="attachments")
 
     def generate_thumbnails(self):
-        self.file.generate_all_thumbnails()
+        if not self.file or not is_image_attachment(self.file.name):
+            return
+        try:
+            self.file.generate_all_thumbnails()
+        except Exception:
+            return
