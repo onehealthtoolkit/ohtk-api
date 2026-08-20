@@ -615,6 +615,8 @@ class DynamicCensusDefinitionBackendTests(JSONWebTokenTestCase):
             for row in animal_version["runtimeSchema"]["rows"]
         }
         self.assertIn("group:LARGE_RUMINANT", runtime_rows)
+        self.assertIn("group:DOG", runtime_rows)
+        self.assertIn("species:DOG", runtime_rows)
         self.assertIn("species:CATTLE", runtime_rows)
         self.assertEqual(
             runtime_rows["species:CATTLE"]["dimensions"]["species"], "CATTLE"
