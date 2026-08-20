@@ -2,7 +2,7 @@ from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
 
-from census.definition_schema import generate_runtime_schema
+from census.definition_schema import generate_runtime_schema, is_grouped_animal_schema
 from census.models import CensusDefinition, CensusDefinitionVersion
 
 
@@ -82,6 +82,13 @@ DEFAULT_ANIMAL_DEFINITION_SCHEMA = {
                         "la": "ເປັດ, ຫ່ານ, ນົກ",
                     },
                 },
+            ],
+        },
+        {
+            "key": "DOG",
+            "label": {"default": "Dog", "la": "ໝາ"},
+            "species": [
+                {"key": "DOG", "label": {"default": "Dog", "la": "ໝາ"}},
             ],
         },
     ],
@@ -205,6 +212,53 @@ def save_schema_draft(definition, schema, definition_schema=None):
         )
 
 
+def default_dog_group():
+    return {
+        "key": "DOG",
+        "label": {"default": "Dog", "la": "ໝາ"},
+        "species": [
+            {"key": "DOG", "label": {"default": "Dog", "la": "ໝາ"}},
+        ],
+    }
+
+
+def animal_schema_missing_dog(definition_schema, runtime_schema=None):
+    groups = (definition_schema or {}).get("groups") or []
+    if groups:
+        return all(group.get("key") != "DOG" for group in groups)
+    rows = (runtime_schema or {}).get("rows") or []
+    return not any(
+        (row.get("row_key") or row.get("key")) == "group:DOG"
+        for row in rows
+        if isinstance(row, dict)
+    )
+
+
+def ensure_dog_group_on_published_animal(definition, current):
+    """Publish a new Option A version that adds Dog HH + heads if missing.
+
+    Does not rewrite a flat v1 schema or a grouped schema that already has Dog.
+    """
+    if current is None:
+        return current
+    authored = current.definition_schema or {}
+    runtime = current.schema or {}
+    if authored and not is_grouped_animal_schema(authored):
+        return current
+    if not animal_schema_missing_dog(authored, runtime):
+        return current
+    if authored.get("groups"):
+        new_authored = dict(authored)
+        new_authored["groups"] = list(authored["groups"]) + [default_dog_group()]
+    else:
+        new_authored = DEFAULT_ANIMAL_DEFINITION_SCHEMA
+    return publish_schema_version(
+        definition,
+        generate_runtime_schema(new_authored),
+        new_authored,
+    )
+
+
 def ensure_published_schema(definition, schema, reset_schema=False):
     current = definition.versions.filter(
         status=CensusDefinitionVersion.Status.PUBLISHED
@@ -223,6 +277,8 @@ def ensure_default_census_setup(seed_species=True, reset_schema=False):
         default_schema_for_kind(CensusDefinition.Kind.ANIMAL),
         reset_schema=reset_schema,
     )
+    if not reset_schema:
+        animal_version = ensure_dog_group_on_published_animal(animal, animal_version)
     human_version = ensure_published_schema(
         human,
         default_schema_for_kind(CensusDefinition.Kind.HUMAN),

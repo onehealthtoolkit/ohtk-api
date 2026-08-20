@@ -1,3 +1,5 @@
+import copy
+
 from django.utils import timezone
 from graphql_jwt.testcases import JSONWebTokenTestCase
 
@@ -7,6 +9,7 @@ from census.animal_census_capability import set_animal_census_capability_enabled
 from census.census_definition_defaults import (
     DEFAULT_ANIMAL_DEFINITION_SCHEMA,
     default_schema_for_kind,
+    ensure_dog_group_on_published_animal,
 )
 from census.definition_schema import (
     generate_runtime_schema,
@@ -52,6 +55,8 @@ class GroupedAnimalCensusSchemaTests(JSONWebTokenTestCase):
         row_keys = [row["row_key"] for row in runtime["rows"]]
         self.assertIn("group:PIG", row_keys)
         self.assertIn("species:PIG", row_keys)
+        self.assertIn("group:DOG", row_keys)
+        self.assertIn("species:DOG", row_keys)
         self.assertIn("group:LARGE_RUMINANT", row_keys)
         self.assertIn("species:CATTLE", row_keys)
 
@@ -60,6 +65,10 @@ class GroupedAnimalCensusSchemaTests(JSONWebTokenTestCase):
         pig_species_measures = {m["key"] for m in by_key["species:PIG"]["measures"]}
         self.assertEqual(pig_group_measures, {"household_quantity"})
         self.assertEqual(pig_species_measures, {"animal_quantity"})
+        dog_group_measures = {m["key"] for m in by_key["group:DOG"]["measures"]}
+        dog_species_measures = {m["key"] for m in by_key["species:DOG"]["measures"]}
+        self.assertEqual(dog_group_measures, {"household_quantity"})
+        self.assertEqual(dog_species_measures, {"animal_quantity"})
 
     def test_flat_v1_schema_still_generates(self):
         authored = {
@@ -142,6 +151,8 @@ class GroupedAnimalCensusSchemaTests(JSONWebTokenTestCase):
                 "row_key": "species:OTHER_POULTRY",
                 "measures": {"animal_quantity": 20},
             },
+            {"row_key": "group:DOG", "measures": {"household_quantity": 2}},
+            {"row_key": "species:DOG", "measures": {"animal_quantity": 7}},
         ]
         form_data = {
             "summary": {
@@ -204,6 +215,8 @@ class GroupedAnimalCensusSchemaTests(JSONWebTokenTestCase):
         self.assertEqual(facts["group:LARGE_RUMINANT"], {"household_quantity": 10})
         self.assertNotIn("household_quantity", facts["species:CATTLE"])
         self.assertEqual(facts["species:CATTLE"]["animal_quantity"], 20)
+        self.assertEqual(facts["group:DOG"], {"household_quantity": 2})
+        self.assertEqual(facts["species:DOG"], {"animal_quantity": 7})
 
         snapshot = AnimalCensusFact.objects.filter(snapshot_id=payload["id"]).first().snapshot
         summary = species_summary(snapshot)
@@ -259,3 +272,28 @@ class GroupedAnimalCensusSchemaTests(JSONWebTokenTestCase):
             or any("must be zero when households is zero" in m for m in messages),
             messages,
         )
+
+    def test_ensure_dog_group_publishes_new_version_when_missing(self):
+        old = copy.deepcopy(DEFAULT_ANIMAL_DEFINITION_SCHEMA)
+        old["groups"] = [g for g in old["groups"] if g["key"] != "DOG"]
+        definition = CensusDefinition.objects.create(
+            kind=CensusDefinition.Kind.ANIMAL, enabled=True, sort_order=1
+        )
+        version = CensusDefinitionVersion.objects.create(
+            definition=definition,
+            version=1,
+            status=CensusDefinitionVersion.Status.PUBLISHED,
+            schema=generate_runtime_schema(old),
+            definition_schema=old,
+            published_at=timezone.now(),
+        )
+        updated = ensure_dog_group_on_published_animal(definition, version)
+        self.assertNotEqual(updated.id, version.id)
+        self.assertGreater(updated.version, version.version)
+        group_keys = {g["key"] for g in updated.definition_schema["groups"]}
+        self.assertIn("DOG", group_keys)
+        row_keys = {r["row_key"] for r in updated.schema["rows"]}
+        self.assertIn("group:DOG", row_keys)
+        self.assertIn("species:DOG", row_keys)
+        again = ensure_dog_group_on_published_animal(definition, updated)
+        self.assertEqual(again.id, updated.id)
