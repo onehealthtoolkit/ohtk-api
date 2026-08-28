@@ -27,6 +27,7 @@ from accounts.schema.mutations import (
     AdminConfigurationDeleteMutation,
     AdminVillageCapabilityUpdateMutation,
     AdminReportUseVillageLocationFallbackUpdateMutation,
+    AdminReportRestrictToAssignedScopeUpdateMutation,
     AdminVillageCreateMutation,
     AdminVillageUpdateMutation,
     RequestToDeleteMyAccountMutation,
@@ -63,6 +64,9 @@ class Mutation(graphene.ObjectType):
     admin_village_capability_update = AdminVillageCapabilityUpdateMutation.Field()
     admin_report_use_village_location_fallback_update = (
         AdminReportUseVillageLocationFallbackUpdateMutation.Field()
+    )
+    admin_report_restrict_to_assigned_scope_update = (
+        AdminReportRestrictToAssignedScopeUpdateMutation.Field()
     )
     admin_village_create = AdminVillageCreateMutation.Field()
     admin_village_update = AdminVillageUpdateMutation.Field()

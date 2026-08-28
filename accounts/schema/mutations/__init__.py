@@ -12,5 +12,6 @@ from .admin_place_mutations import *
 from .admin_configuration_mutations import *
 from .admin_village_capability_mutations import *
 from .admin_report_location_fallback_mutations import *
+from .admin_report_restrict_to_assigned_scope_mutations import *
 from .admin_village_mutations import *
 from .request_to_delete_my_account_mutation import *

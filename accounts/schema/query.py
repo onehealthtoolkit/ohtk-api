@@ -41,6 +41,9 @@ from accounts.village_capability import is_village_capability_enabled
 from accounts.report_location_fallback import (
     is_report_use_village_location_fallback_enabled,
 )
+from accounts.report_restrict_to_assigned_scope import (
+    is_report_restrict_to_assigned_scope_enabled,
+)
 from pagination import DjangoPaginationConnectionField
 
 
@@ -87,6 +90,7 @@ class Query(graphene.ObjectType):
     )
     village_capability_enabled = graphene.Boolean(required=True)
     report_use_village_location_fallback_enabled = graphene.Boolean(required=True)
+    report_restrict_to_assigned_scope_enabled = graphene.Boolean(required=True)
 
     get_login_qr_token = graphene.Field(
         LoginQrTokenType, user_id=graphene.ID(required=True)
@@ -263,6 +267,11 @@ class Query(graphene.ObjectType):
     @login_required
     def resolve_report_use_village_location_fallback_enabled(root, info):
         return is_report_use_village_location_fallback_enabled()
+
+    @staticmethod
+    @login_required
+    def resolve_report_restrict_to_assigned_scope_enabled(root, info):
+        return is_report_restrict_to_assigned_scope_enabled()
 
     @staticmethod
     @login_required

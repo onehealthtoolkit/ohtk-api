@@ -10,6 +10,8 @@ channels==4.0.0
 channels-redis==4.0.0
 click==8.1.2
 daphne==4.0.0
+cryptography==44.0.3
+pyOpenSSL==24.3.0
 Django==4.2.30
 django-crum==0.7.9
 django-filter==23.5

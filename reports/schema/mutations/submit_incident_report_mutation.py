@@ -4,6 +4,9 @@ from graphql_jwt.decorators import login_required
 from graphene.types.generic import GenericScalar
 
 from accounts.models import AuthorityUser, Village, VillageReporterAssignment
+from accounts.report_restrict_to_assigned_scope import (
+    is_report_restrict_to_assigned_scope_enabled,
+)
 from reports.models.report import IncidentReport
 from reports.models.report_type import ReportType
 from reports.report_location import resolve_incident_report_gps
@@ -50,6 +53,7 @@ class SubmitIncidentReport(graphene.Mutation):
         report_type = ReportType.objects.get(pk=report_type_id)
         if incident_in_authority is None:
             incident_in_authority = False
+        restrict_to_assigned_scope = is_report_restrict_to_assigned_scope_enabled()
 
         village = None
         if village_id is not None:
@@ -90,7 +94,9 @@ class SubmitIncidentReport(graphene.Mutation):
             incident_date=incident_date,
             gps_location=location,
             relevant_authority_resolved=bool(
-                incident_in_authority or village is not None
+                restrict_to_assigned_scope
+                or incident_in_authority
+                or village is not None
             ),
             thread=thread,
             test_flag=test_flag,
@@ -98,6 +104,9 @@ class SubmitIncidentReport(graphene.Mutation):
         )
         if village is not None:
             report.relevant_authorities.add(village.authority)
+        elif restrict_to_assigned_scope:
+            if getattr(user, "is_authority_user", False):
+                report.relevant_authorities.add(user.authorityuser.authority)
         elif incident_in_authority:
             report.relevant_authorities.add(user.authorityuser.authority)
         else:
