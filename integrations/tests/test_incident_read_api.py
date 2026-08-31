@@ -10,11 +10,11 @@ from django_tenants.test.cases import TenantTestCase
 from django_tenants.test.client import TenantClient
 from oauth2_provider.models import get_access_token_model, get_application_model
 
-from accounts.models import Authority, AuthorityUser
+from accounts.models import Authority, AuthorityUser, Village
 from integrations.constants import IntegrationScope
 from integrations.models import IntegrationActionLog, IntegrationClient, RiskAssessment
 from integrations.services import create_risk_assessment
-from reports.models import Category, IncidentReport, ReportType
+from reports.models import Category, FollowUpReport, IncidentReport, ReportType
 
 
 class IncidentReadApiTests(TenantTestCase):
@@ -156,6 +156,8 @@ class IncidentReadApiTests(TenantTestCase):
         self.assertNotIn("reportedBy", incident)
         self.assertNotIn("images", incident)
         self.assertNotIn("uploadFiles", incident)
+        self.assertNotIn("followUps", incident)
+        self.assertNotIn("village", incident)
 
         action_log = IntegrationActionLog.objects.get()
         self.assertEqual("incident.read", action_log.action_type)
@@ -168,6 +170,60 @@ class IncidentReadApiTests(TenantTestCase):
         )
         self.assertEqual("[REDACTED]", action_log.request_headers_summary["Authorization"])
         self.assertEqual(str(self.report.id), action_log.result_summary["response"]["incidentId"])
+
+    def test_detail_includes_summary_inputs_when_client_has_ai_read_report(self):
+        village = Village.objects.create(
+            code="V1", name="Sangthong", authority=self.parent_authority
+        )
+        IncidentReport.objects.filter(pk=self.report.pk).update(
+            village=village,
+            renderer_data="Pig 2 heads died",
+        )
+        followup = FollowUpReport.objects.create(
+            incident=self.report,
+            data={"note": "still sick"},
+            reported_by=self.reporter,
+            report_type=self.report_type,
+        )
+        FollowUpReport.objects.filter(pk=followup.pk).update(
+            renderer_data="Follow-up: 1 recovered"
+        )
+        _, _, token = self._create_oauth_client(
+            "ai-incident-detail",
+            scope_codes=[
+                IntegrationScope.INCIDENT_READ,
+                IntegrationScope.AI_READ_REPORT,
+            ],
+            token="ai-incident-detail-token",
+        )
+
+        response = self._get_detail(token=token.token)
+        self.assertEqual(200, response.status_code)
+        incident = response.json()["incident"]
+        self.assertEqual("Pig 2 heads died", incident["rendererData"])
+        self.assertEqual(
+            {
+                "id": village.id,
+                "code": "V1",
+                "name": "Sangthong",
+                "authorityId": self.parent_authority.id,
+            },
+            incident["village"],
+        )
+        self.assertEqual(1, len(incident["followUps"]))
+        self.assertEqual(str(followup.id), incident["followUps"][0]["id"])
+        self.assertEqual(
+            "Follow-up: 1 recovered", incident["followUps"][0]["rendererData"]
+        )
+        self.assertNotIn("data", incident)
+        self.assertNotIn("private-report-input", str(incident))
+
+        list_response = self._get(
+            "/api/integrations/v1/incidents?limit=1", token=token.token
+        )
+        listed = list_response.json()["incidents"][0]
+        self.assertNotIn("rendererData", listed)
+        self.assertNotIn("followUps", listed)
 
     def test_list_incidents_filters_by_incident_date_authority_hierarchy_and_paginates(self):
         url = (

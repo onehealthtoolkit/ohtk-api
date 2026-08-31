@@ -13,7 +13,13 @@ from django.db import transaction
 from django.db import connection
 from django.utils import timezone
 
-from integrations.constants import IntegrationEventType, IntegrationScope
+from integrations.constants import (
+    AI_EVALUATION_SCHEMA_VERSION,
+    AI_SUMMARY_PROMPT_PREVIEW_LENGTH,
+    AI_SUMMARY_PURPOSE,
+    IntegrationEventType,
+    IntegrationScope,
+)
 from integrations.exceptions import WebhookSigningSecretError
 from integrations.models import (
     IntegrationClient,
@@ -21,7 +27,11 @@ from integrations.models import (
     WebhookDelivery,
     WebhookEndpoint,
 )
-from integrations.policy import IntegrationPolicyDenied, assert_integration_feature_enabled
+from integrations.policy import (
+    FEATURE_AI,
+    IntegrationPolicyDenied,
+    assert_integration_feature_enabled,
+)
 from integrations.secret_resolvers import SettingsWebhookSigningSecretResolver
 from integrations.services import assert_integration_tenant_schema
 from integrations.utils import payload_hash, secret_safe_summary
@@ -87,6 +97,142 @@ def record_report_submitted_event(*, report_id, enqueue_delivery_tasks=True):
             attempt_webhook_delivery.delay(delivery.id)
 
     return WebhookEventResult(event=event, deliveries=tuple(deliveries_to_enqueue))
+
+
+def record_ai_evaluation_requested_event(
+    *,
+    report_id,
+    requested_by_user,
+    purpose=AI_SUMMARY_PURPOSE,
+    user_prompt="",
+    enqueue_delivery_tasks=True,
+):
+    assert_integration_tenant_schema()
+    try:
+        assert_integration_feature_enabled(FEATURE_AI)
+    except IntegrationPolicyDenied:
+        return WebhookEventResult(event=None, deliveries=())
+
+    report = (
+        IncidentReport.objects.select_related("report_type", "report_type__category")
+        .prefetch_related("relevant_authorities")
+        .get(pk=report_id)
+    )
+
+    produced_at = timezone.now()
+    event_id = uuid.uuid4()
+    payload = build_ai_evaluation_requested_payload(
+        report=report,
+        event_id=event_id,
+        produced_at=produced_at,
+        requested_by_user=requested_by_user,
+        purpose=purpose,
+        user_prompt=user_prompt,
+    )
+    event = IntegrationEvent.objects.create(
+        event_id=event_id,
+        event_type=IntegrationEventType.AI_EVALUATION_REQUESTED,
+        schema_version=AI_EVALUATION_SCHEMA_VERSION,
+        source_app="reports",
+        subject_type="reports.IncidentReport",
+        subject_id=str(report.id),
+        payload_hash=payload_hash(payload),
+        payload_summary=secret_safe_summary(
+            payload,
+            max_string_length=None,
+            max_list_length=None,
+        ),
+        produced_at=produced_at,
+        status=IntegrationEvent.Status.RECORDED,
+    )
+
+    _create_missing_deliveries(event)
+    deliveries_to_enqueue = _deliveries_needing_enqueue(event)
+
+    if deliveries_to_enqueue:
+        event.status = IntegrationEvent.Status.QUEUED
+        event.save(update_fields=("status", "updated_at"))
+
+    if enqueue_delivery_tasks:
+        from integrations.tasks import attempt_webhook_delivery
+
+        for delivery in deliveries_to_enqueue:
+            attempt_webhook_delivery.delay(delivery.id)
+
+    return WebhookEventResult(event=event, deliveries=tuple(deliveries_to_enqueue))
+
+
+def has_active_ai_evaluation_endpoint():
+    return bool(
+        _active_subscribed_endpoints(IntegrationEventType.AI_EVALUATION_REQUESTED)
+    )
+
+
+def build_ai_evaluation_requested_payload(
+    *,
+    report,
+    event_id,
+    produced_at,
+    requested_by_user,
+    purpose=AI_SUMMARY_PURPOSE,
+    user_prompt="",
+):
+    payload = {
+        "schemaVersion": AI_EVALUATION_SCHEMA_VERSION,
+        "eventType": IntegrationEventType.AI_EVALUATION_REQUESTED,
+        "eventId": str(event_id),
+        "producedAt": produced_at.isoformat(),
+        "purpose": purpose or AI_SUMMARY_PURPOSE,
+        "tenant": _tenant_payload(),
+        "requestedBy": _requested_by_payload(requested_by_user),
+        "report": {
+            "id": str(report.id),
+            "createdAt": _isoformat_or_none(report.created_at),
+            "incidentDate": report.incident_date.isoformat()
+            if report.incident_date
+            else None,
+            "reportType": {
+                "id": str(report.report_type.id),
+                "name": report.report_type.name,
+                "category": str(report.report_type.category)
+                if report.report_type.category_id
+                else None,
+            },
+            "relevantAuthorityIds": list(
+                report.relevant_authorities.order_by("id").values_list("id", flat=True)
+            ),
+            "caseId": str(report.case_id) if report.case_id else None,
+        },
+        "links": {
+            "incident": f"/api/integrations/v1/incidents/{report.id}",
+            "comments": f"/api/integrations/v1/reports/{report.id}/comments",
+            "riskAssessments": (
+                f"/api/integrations/v1/reports/{report.id}/risk-assessments"
+            ),
+            "images": f"/api/integrations/v1/reports/{report.id}/images",
+        },
+    }
+    prompt = (user_prompt or "").strip()
+    if prompt:
+        payload["userPrompt"] = prompt
+        payload["userPromptLength"] = len(prompt)
+        payload["userPromptPreview"] = prompt[:AI_SUMMARY_PROMPT_PREVIEW_LENGTH]
+    return payload
+
+
+def _requested_by_payload(user):
+    if user is None:
+        return {"id": None, "username": "", "role": ""}
+    role = ""
+    if getattr(user, "is_authority_user", False):
+        role = user.authorityuser.role
+    elif getattr(user, "is_superuser", False):
+        role = "SUPERUSER"
+    return {
+        "id": str(user.pk),
+        "username": getattr(user, "username", "") or "",
+        "role": role,
+    }
 
 
 def build_report_submitted_payload(*, report, event_id, produced_at):
@@ -381,7 +527,10 @@ def _active_subscribed_endpoints(event_type):
 
 
 def _endpoint_has_report_submitted_scope(endpoint, event_type):
-    if event_type != IntegrationEventType.REPORT_SUBMITTED:
+    if event_type not in (
+        IntegrationEventType.REPORT_SUBMITTED,
+        IntegrationEventType.AI_EVALUATION_REQUESTED,
+    ):
         return True
     return endpoint.integration_client.has_scope(IntegrationScope.AI_READ_REPORT)
 

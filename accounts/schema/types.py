@@ -347,6 +347,7 @@ class UserProfileType(graphene.ObjectType):
     consent = graphene.Boolean()
     features = graphene.List(graphene.String)
     assigned_villages = graphene.List(VillageType)
+    ai_summary_enabled = graphene.Boolean(required=True)
 
     def resolve_authority_name(self, info):
         if self.is_authority_user:
@@ -397,6 +398,11 @@ class UserProfileType(graphene.ObjectType):
                 reporter_assignments__reporter=self
             ).distinct()
         return []
+
+    def resolve_ai_summary_enabled(self, info):
+        from integrations.ai_summary import ai_summary_enabled_for_user
+
+        return ai_summary_enabled_for_user(info.context.user)
 
 
 class CheckInvitationCodeType(DjangoObjectType):

@@ -26,6 +26,15 @@ def _is_enabled(key):
     return _get_value(key, FEATURE_ENABLED_VALUE) == FEATURE_ENABLED_VALUE
 
 
+def is_ai_enabled_flag():
+    """True only when Configuration integrations.ai_enabled is explicitly enable.
+
+    Missing or any other value is off. Dashboard Ask-AI uses this, not the
+    default-on policy used by existing REST clients.
+    """
+    return _get_value(AI_ENABLED_KEY, "") == FEATURE_ENABLED_VALUE
+
+
 def _set_value(key, value):
     configuration = Configuration._base_manager.filter(key=key).first()
     if configuration:

@@ -1,3 +1,10 @@
 podd_api/local.py
 medias
 .env*
+.venv
+.git
+.pytest_cache
+**/.DS_Store
+**/__pycache__
+.mypy_cache
+.htmlcov

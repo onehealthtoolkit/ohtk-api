@@ -413,6 +413,24 @@ class AdminIntegrationPolicyUpdateResult(graphene.Union):
         )
 
 
+class OfficerAiSummaryRequestSuccess(graphene.ObjectType):
+    event_id = graphene.UUID(required=True)
+    report_id = graphene.UUID(required=True)
+    status = graphene.String(required=True)
+
+
+class OfficerAiSummaryRequestProblem(AdminValidationProblem):
+    code = graphene.String(required=True)
+
+
+class OfficerAiSummaryRequestResult(graphene.Union):
+    class Meta:
+        types = (
+            OfficerAiSummaryRequestSuccess,
+            OfficerAiSummaryRequestProblem,
+        )
+
+
 def integration_scope_options():
     return [
         IntegrationOptionType(code=code, label=label)

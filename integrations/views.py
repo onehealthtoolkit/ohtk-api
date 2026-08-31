@@ -44,14 +44,18 @@ from integrations.services import (
     create_risk_assessment,
     get_active_integration_client,
     get_current_risk_assessment,
+    resolve_ai_comment_thread_owner,
 )
 from integrations.utils import payload_hash, secret_safe_summary
 from reports.models import Image, IncidentReport
+from threads.attachment_files import attachment_filename, attachment_kind
+from threads.models import Comment
 
 
 ACTION_INCIDENT_READ = "incident.read"
 ACTION_CENSUS_READ = "census.read"
 ACTION_AI_CREATE_COMMENT = "ai.create_comment"
+ACTION_AI_READ_COMMENTS = "ai.read_comments"
 ACTION_AI_READ_IMAGES = "ai.read_images"
 ACTION_AI_READ_IMAGE_CONTENT = "ai.read_image_content"
 ACTION_RISK_UPDATE = "risk.update"
@@ -64,6 +68,7 @@ TARGET_VILLAGE = "accounts.Village"
 TARGET_CLUSTER_RESULT = "integrations.IntegrationClusterResult"
 TARGET_CLUSTER_EXTERNAL = "integrations.IntegrationClusterResult.externalClusterId"
 SCHEMA_VERSION = "2026-06-02"
+AI_COMMENTS_SCHEMA_VERSION = "2026-08-31"
 INCIDENT_LIST_DEFAULT_LIMIT = 50
 INCIDENT_LIST_MAX_LIMIT = 100
 INCIDENT_LIST_MAX_OFFSET = 10000
@@ -271,8 +276,12 @@ def incident_detail(request, report_id):
 
     try:
         report = (
-            IncidentReport.objects.select_related("report_type", "report_type__category")
-            .prefetch_related("relevant_authorities")
+            IncidentReport.objects.select_related(
+                "report_type",
+                "report_type__category",
+                "village",
+            )
+            .prefetch_related("relevant_authorities", "followups")
             .get(pk=report_id)
         )
     except IncidentReport.DoesNotExist:
@@ -297,12 +306,15 @@ def incident_detail(request, report_id):
 
     try:
         current_risk_assessment = get_current_risk_assessment(report=report)
+        incident = _incident_payload(
+            report,
+            current_risk_assessment=current_risk_assessment,
+        )
+        if integration_client.has_scope(IntegrationScope.AI_READ_REPORT):
+            _add_ai_summary_inputs(incident, report)
         response_payload = {
             "schemaVersion": SCHEMA_VERSION,
-            "incident": _incident_payload(
-                report,
-                current_risk_assessment=current_risk_assessment,
-            ),
+            "incident": incident,
             "links": _incident_links(report.id),
         }
         _create_incident_read_action_log(
@@ -1242,9 +1254,88 @@ def report_image_content(request, report_id, image_id):
         )
 
 
+def _report_comments_get(request, report_id):
+    target_id = str(report_id)
+    auth_response, integration_client = _authorize_ai_comment_read_request(
+        request,
+        target_id=target_id,
+    )
+    if auth_response is not None:
+        return auth_response
+
+    try:
+        report = IncidentReport.objects.select_related("thread").get(pk=report_id)
+    except IncidentReport.DoesNotExist:
+        _create_action_log(
+            request=request,
+            integration_client=integration_client,
+            target_id=target_id,
+            action_type=ACTION_AI_READ_COMMENTS,
+            required_scope=IntegrationScope.AI_READ_REPORT,
+            result_status=IntegrationActionLog.ResultStatus.REJECTED,
+            result_summary={
+                "error": {
+                    "code": "incident_not_found",
+                    "message": "Incident was not found in the selected tenant.",
+                },
+            },
+        )
+        return _error_response(
+            status=404,
+            code="incident_not_found",
+            message="Incident was not found in the selected tenant.",
+        )
+
+    try:
+        comments = _thread_comment_payloads(report)
+        response_payload = {
+            "schemaVersion": AI_COMMENTS_SCHEMA_VERSION,
+            "reportId": str(report.id),
+            "comments": comments,
+        }
+        _create_action_log(
+            request=request,
+            integration_client=integration_client,
+            target_id=target_id,
+            action_type=ACTION_AI_READ_COMMENTS,
+            required_scope=IntegrationScope.AI_READ_REPORT,
+            result_status=IntegrationActionLog.ResultStatus.ACCEPTED,
+            result_summary={
+                "response": {
+                    "reportId": str(report.id),
+                    "commentCount": len(comments),
+                },
+            },
+        )
+        return JsonResponse(response_payload, status=200)
+    except Exception:
+        _create_action_log(
+            request=request,
+            integration_client=integration_client,
+            target_id=target_id,
+            action_type=ACTION_AI_READ_COMMENTS,
+            required_scope=IntegrationScope.AI_READ_REPORT,
+            result_status=IntegrationActionLog.ResultStatus.FAILED,
+            result_summary={
+                "error": {
+                    "code": "comment_read_failed",
+                    "message": "Report comments read failed.",
+                },
+            },
+        )
+        return _error_response(
+            status=500,
+            code="comment_read_failed",
+            message="Report comments read failed.",
+        )
+
+
 @csrf_exempt
-@require_POST
+@require_http_methods(["GET", "POST"])
 def report_comments(request, report_id):
+    if request.method == "GET":
+        return _report_comments_get(request, report_id)
+
     target_id = str(report_id)
 
     try:
@@ -1864,6 +1955,131 @@ def report_risk_assessments(request, report_id):
         )
 
     return JsonResponse(response_payload, status=202)
+
+
+def _authorize_ai_comment_read_request(request, *, target_id=""):
+    try:
+        assert_integration_tenant_schema()
+    except PublicSchemaDenied as exc:
+        return (
+            _error_response(
+                status=403,
+                code="tenant_denied",
+                message=str(exc),
+            ),
+            None,
+        )
+
+    oauth_context = _verify_oauth_context(request)
+    if oauth_context is None:
+        return (
+            _error_response(
+                status=401,
+                code="oauth_required",
+                message="A valid OAuth2 bearer token is required.",
+                headers={"WWW-Authenticate": "Bearer"},
+            ),
+            None,
+        )
+
+    oauth_application = oauth_context["application"]
+    oauth_user = oauth_context["user"]
+    try:
+        auth_context = get_active_integration_client(oauth_application)
+    except (PublicSchemaDenied, IntegrationClientDenied) as exc:
+        return (
+            _error_response(
+                status=403,
+                code="integration_client_denied",
+                message=str(exc),
+            ),
+            None,
+        )
+
+    integration_client = auth_context.integration_client
+    if oauth_user is not None:
+        _create_action_log(
+            request=request,
+            integration_client=integration_client,
+            target_id=target_id,
+            action_type=ACTION_AI_READ_COMMENTS,
+            required_scope=IntegrationScope.AI_READ_REPORT,
+            result_status=IntegrationActionLog.ResultStatus.REJECTED,
+            result_summary={
+                "error": {
+                    "code": "service_identity_denied",
+                    "message": (
+                        "Integration endpoints require service OAuth tokens "
+                        "without a human user."
+                    ),
+                }
+            },
+        )
+        return (
+            _error_response(
+                status=403,
+                code="service_identity_denied",
+                message=(
+                    "Integration endpoints require service OAuth tokens without a "
+                    "human user."
+                ),
+            ),
+            None,
+        )
+
+    if not integration_client.has_scope(IntegrationScope.AI_READ_REPORT):
+        _create_action_log(
+            request=request,
+            integration_client=integration_client,
+            target_id=target_id,
+            action_type=ACTION_AI_READ_COMMENTS,
+            required_scope=IntegrationScope.AI_READ_REPORT,
+            result_status=IntegrationActionLog.ResultStatus.REJECTED,
+            result_summary={
+                "error": {
+                    "code": "scope_denied",
+                    "message": (
+                        "Integration client lacks required scope: "
+                        f"{IntegrationScope.AI_READ_REPORT}"
+                    ),
+                }
+            },
+        )
+        return (
+            _error_response(
+                status=403,
+                code="scope_denied",
+                message=(
+                    "Integration client lacks required scope: "
+                    f"{IntegrationScope.AI_READ_REPORT}"
+                ),
+            ),
+            None,
+        )
+
+    try:
+        assert_integration_feature_enabled(FEATURE_AI)
+    except IntegrationPolicyDenied as exc:
+        _create_action_log(
+            request=request,
+            integration_client=integration_client,
+            target_id=target_id,
+            action_type=ACTION_AI_READ_COMMENTS,
+            required_scope=IntegrationScope.AI_READ_REPORT,
+            result_status=IntegrationActionLog.ResultStatus.REJECTED,
+            result_summary={
+                "error": {
+                    "code": exc.code,
+                    "message": exc.message,
+                }
+            },
+        )
+        return (
+            _error_response(status=403, code=exc.code, message=exc.message),
+            None,
+        )
+
+    return None, integration_client
 
 
 def _authorize_ai_image_read_request(
@@ -2872,6 +3088,67 @@ def _parse_report_type_ids(raw_value):
         raise _IncidentFilterError("reportTypeIds must be comma-separated UUIDs.") from exc
 
 
+def _add_ai_summary_inputs(incident, report):
+    village = getattr(report, "village", None)
+    incident["village"] = _village_payload(village) if village is not None else None
+    incident["rendererData"] = report.renderer_data or ""
+    followups = sorted(
+        report.followups.all(),
+        key=lambda item: (
+            item.created_at or item.id,
+            str(item.id),
+        ),
+    )
+    incident["followUps"] = [
+        {
+            "id": str(followup.id),
+            "createdAt": _isoformat_or_none(followup.created_at),
+            "rendererData": followup.renderer_data or "",
+        }
+        for followup in followups
+    ]
+    return incident
+
+
+def _thread_comment_payloads(report):
+    thread = report.thread
+    if thread is None:
+        return []
+
+    owner = resolve_ai_comment_thread_owner()
+    owner_id = owner.pk if owner is not None else None
+    comments = (
+        Comment.objects.filter(thread=thread, deleted_at__isnull=True)
+        .select_related("created_by")
+        .prefetch_related("attachments")
+        .order_by("created_at", "id")
+    )
+    return [
+        {
+            "id": str(comment.id),
+            "body": comment.body or "",
+            "createdAt": _isoformat_or_none(comment.created_at),
+            "authorUsername": getattr(comment.created_by, "username", "") or "",
+            "isAiOwner": bool(owner_id and comment.created_by_id == owner_id),
+            "attachments": [
+                _comment_attachment_payload(attachment)
+                for attachment in comment.attachments.all()
+            ],
+        }
+        for comment in comments
+    ]
+
+
+def _comment_attachment_payload(attachment):
+    file_name = attachment_filename(attachment.file)
+    kind = attachment_kind(file_name)
+    return {
+        "id": str(attachment.id),
+        "fileName": file_name,
+        "kind": "image" if kind == "IMAGE" else "document",
+    }
+
+
 def _incident_payload(report, *, current_risk_assessment=None, include_links=False):
     report_type = report.report_type
     payload = {
@@ -3711,14 +3988,16 @@ def _create_action_log(
     raw_payload=None,
     idempotency_key="",
     external_action_id="",
+    action_type=ACTION_AI_CREATE_COMMENT,
+    required_scope=IntegrationScope.AI_CREATE_COMMENT,
 ):
     payload_value = raw_payload if raw_payload is not None else payload
     payload_hash_value = payload_hash(payload_value) if payload_value is not None else ""
 
     return IntegrationActionLog.objects.create(
         integration_client=integration_client,
-        action_type=ACTION_AI_CREATE_COMMENT,
-        required_scope=IntegrationScope.AI_CREATE_COMMENT,
+        action_type=action_type,
+        required_scope=required_scope,
         target_type=TARGET_REPORT,
         target_id=target_id,
         idempotency_key=idempotency_key,
