@@ -218,7 +218,10 @@ def create_integration_report_comment(
     )
     comment.save()
     # CO1: Excel "suspected" = latest AI comment body (does not touch case.test_result).
-    apply_ai_suspected_from_comment_body(report=report, body=body)
+    # I9: summary comments must not overwrite ai_suspected.
+    apply_ai_suspected_from_comment_body(
+        report=report, body=body, metadata=comment.metadata
+    )
     _bridge_integration_comment_to_thread(
         report=report,
         body=body,
@@ -227,9 +230,19 @@ def create_integration_report_comment(
     return comment
 
 
-def apply_ai_suspected_from_comment_body(*, report, body):
-    """Copy I4 AI comment body onto IncidentReport.ai_suspected (AI→AI replace OK)."""
+def apply_ai_suspected_from_comment_body(*, report, body, metadata=None):
+    """Copy I4 AI comment body onto IncidentReport.ai_suspected (AI→AI replace OK).
+
+    Skip when metadata.kind is "summary" so officer Ask-AI text does not
+    overwrite Excel suspected-disease (I9-D7).
+    """
     from reports.models import IncidentReport
+
+    kind = ""
+    if isinstance(metadata, dict):
+        kind = str(metadata.get("kind") or "").strip().lower()
+    if kind == "summary":
+        return
 
     value = (body or "").strip()
     if not value:

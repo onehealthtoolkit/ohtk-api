@@ -17,6 +17,7 @@ from integrations.policy import (
     set_integration_policy,
 )
 from integrations.schema.query import require_superuser
+from integrations.ai_summary import AiSummaryRequestError, request_officer_ai_summary
 from integrations.schema.types import (
     AdminIntegrationClientCreateProblem,
     AdminIntegrationClientCreateResult,
@@ -35,6 +36,9 @@ from integrations.schema.types import (
     AdminWebhookEndpointUpdateProblem,
     AdminWebhookEndpointUpdateResult,
     AdminWebhookEndpointUpdateSuccess,
+    OfficerAiSummaryRequestProblem,
+    OfficerAiSummaryRequestResult,
+    OfficerAiSummaryRequestSuccess,
 )
 
 
@@ -535,6 +539,43 @@ class AdminIntegrationPolicyUpdateMutation(graphene.Mutation):
         )
 
 
+class OfficerAiSummaryRequestMutation(graphene.Mutation):
+    class Arguments:
+        report_id = graphene.UUID(required=True)
+        user_prompt = graphene.String(required=False)
+
+    result = graphene.Field(OfficerAiSummaryRequestResult)
+
+    @staticmethod
+    @login_required
+    def mutate(root, info, report_id, user_prompt=None):
+        try:
+            payload = request_officer_ai_summary(
+                user=info.context.user,
+                report_id=report_id,
+                user_prompt=user_prompt,
+            )
+        except AiSummaryRequestError as exc:
+            fields = []
+            if exc.field:
+                fields.append(_field_problem(exc.field, exc.message))
+            return OfficerAiSummaryRequestMutation(
+                result=OfficerAiSummaryRequestProblem(
+                    code=exc.code,
+                    message=exc.message,
+                    fields=fields,
+                )
+            )
+
+        return OfficerAiSummaryRequestMutation(
+            result=OfficerAiSummaryRequestSuccess(
+                event_id=payload["event_id"],
+                report_id=payload["report_id"],
+                status=payload["status"],
+            )
+        )
+
+
 class Mutation(graphene.ObjectType):
     admin_integration_client_create = AdminIntegrationClientCreateMutation.Field()
     admin_integration_client_update = AdminIntegrationClientUpdateMutation.Field()
@@ -546,3 +587,4 @@ class Mutation(graphene.ObjectType):
     admin_webhook_endpoint_update = AdminWebhookEndpointUpdateMutation.Field()
     admin_webhook_endpoint_disable = AdminWebhookEndpointDisableMutation.Field()
     admin_integration_policy_update = AdminIntegrationPolicyUpdateMutation.Field()
+    officer_ai_summary_request = OfficerAiSummaryRequestMutation.Field()

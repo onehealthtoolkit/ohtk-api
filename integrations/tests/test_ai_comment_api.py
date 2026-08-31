@@ -161,6 +161,24 @@ class AICommentApiTests(TenantTestCase):
         self.assertEqual(202, idempotency.response_status_code)
         self.assertEqual(response_payload, idempotency.response_summary)
 
+    def test_summary_kind_does_not_overwrite_ai_suspected(self):
+        self.report.ai_suspected = "FMD"
+        self.report.save(update_fields=("ai_suspected",))
+
+        response = self._post_comment(
+            {
+                "externalActionId": "ai-summary-001",
+                "body": "AI summary: two pigs died.",
+                "metadata": {"kind": "summary"},
+            },
+            idempotency_key="idem-summary-001",
+        )
+
+        self.assertEqual(202, response.status_code)
+        self.report.refresh_from_db()
+        self.assertEqual("FMD", self.report.ai_suspected)
+        self.assertEqual(1, IntegrationReportComment.objects.count())
+
     def test_missing_policy_owner_keeps_ai_comment_and_skips_thread_bridge(self):
         payload = {
             "externalActionId": "ai-no-owner-001",

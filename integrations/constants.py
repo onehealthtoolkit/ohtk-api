@@ -31,6 +31,7 @@ class IntegrationEventType:
     CASE_STATE_CHANGED = "case.state_changed"
     CLUSTER_EVALUATION_REQUESTED = "cluster.evaluation_requested"
     RISK_EVALUATION_REQUESTED = "risk.evaluation_requested"
+    AI_EVALUATION_REQUESTED = "ai.evaluation_requested"
 
     CHOICES = (
         (REPORT_SUBMITTED, "Report submitted"),
@@ -39,6 +40,7 @@ class IntegrationEventType:
         (CASE_STATE_CHANGED, "Case state changed"),
         (CLUSTER_EVALUATION_REQUESTED, "Cluster evaluation requested"),
         (RISK_EVALUATION_REQUESTED, "Risk evaluation requested"),
+        (AI_EVALUATION_REQUESTED, "AI evaluation requested"),
     )
 
     CODES = {code for code, _label in CHOICES}
@@ -70,3 +72,9 @@ def is_secret_key_name(key):
 
 
 IDEMPOTENCY_UNIQUENESS = "(integration_client, action_type, key)"
+
+AI_EVALUATION_SCHEMA_VERSION = "2026-08-31"
+AI_SUMMARY_PURPOSE = "summary"
+AI_SUMMARY_DEBOUNCE_SECONDS = 60
+AI_SUMMARY_USER_PROMPT_MAX_LENGTH = 2000
+AI_SUMMARY_PROMPT_PREVIEW_LENGTH = 120
