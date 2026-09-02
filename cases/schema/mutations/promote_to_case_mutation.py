@@ -26,7 +26,15 @@ class PromoteToCaseMutation(graphene.Mutation):
             if user.is_authority_role_in([AuthorityUser.Role.REPORTER]):
                 raise GraphQLError("Not authorized to promote report to case")
 
-            if not report.relevant_authorities.filter(pk=user.authority.pk).exists():
+            if not user.is_authority_user:
+                raise GraphQLError("User is not authority user")
+
+            # JWT loads accounts.User, not AuthorityUser. Use the same
+            # inherits_down set as the report list.
+            authority = user.authorityuser.authority
+            if not report.relevant_authorities.filter(
+                pk__in=[item.pk for item in authority.all_inherits_down()]
+            ).exists():
                 raise GraphQLError("User's authority is not in charge of this report")
 
         case = Case.promote_from_incident_report(report_id)
