@@ -379,6 +379,40 @@ class VillageReporterOnboardingTests(JSONWebTokenTestCase):
             list(invitation.villages.values_list("code", flat=True)), ["V001"]
         )
 
+    def test_deleted_assignment_is_hidden_from_mobile_and_dashboard(self):
+        reporter = AuthorityUser.objects.create(
+            username="removed-assignment", authority=self.authority, role="REP"
+        )
+        other = AuthorityUser.objects.create(
+            username="other-assignment", authority=self.authority, role="REP"
+        )
+        removed = VillageReporterAssignment.objects.create(
+            reporter=reporter, village=self.village1
+        )
+        removed.delete()
+        VillageReporterAssignment.objects.create(reporter=other, village=self.village1)
+        retained = VillageReporterAssignment.objects.create(
+            reporter=reporter, village=self.village2
+        )
+        mobile_query = "{ me { assignedVillages { code } } }"
+        dashboard_query = """
+            query($id: ID!) {
+                authorityUser(id: $id) { assignedVillages { code } }
+            }
+        """
+        for expected in [[{"code": "V002"}], []]:
+            self.client.authenticate(reporter)
+            mobile = self.client.execute(mobile_query)
+            self.assertIsNone(mobile.errors, mobile.errors)
+            self.assertEqual(mobile.data["me"]["assignedVillages"], expected)
+            self.client.authenticate(self.super_user)
+            dashboard = self.client.execute(dashboard_query, {"id": reporter.pk})
+            self.assertIsNone(dashboard.errors, dashboard.errors)
+            self.assertEqual(
+                dashboard.data["authorityUser"]["assignedVillages"], expected
+            )
+            retained.delete()
+
     def test_query_me_returns_assigned_villages(self):
         set_village_capability_enabled(True)
         reporter = AuthorityUser.objects.create(

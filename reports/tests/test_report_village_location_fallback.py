@@ -141,6 +141,19 @@ class ReportVillageLocationFallbackTestCase(BaseTestCase):
         self.assertIsNotNone(result.errors)
         self.assertIn("village is not assigned to reporter", str(result.errors))
 
+    def test_reporter_cannot_submit_a_soft_deleted_assignment(self):
+        assignment = VillageReporterAssignment.objects.get(
+            reporter=self.jatujak_reporter, village=self.village
+        )
+        assignment.delete()
+        before = IncidentReport.objects.count()
+
+        result = self._submit(village_id=self.village.id, expect_errors=True)
+
+        self.assertIsNotNone(result.errors)
+        self.assertIn("village is not assigned to reporter", str(result.errors))
+        self.assertEqual(IncidentReport.objects.count(), before)
+
     def test_selected_village_location_wins_over_assignment_fallback(self):
         set_report_use_village_location_fallback_enabled(True)
         selected = Village.objects.create(
