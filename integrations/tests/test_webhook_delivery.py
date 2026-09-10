@@ -9,6 +9,8 @@ from django.test import SimpleTestCase, override_settings
 from django.urls import get_resolver
 from django.utils import timezone
 from django_tenants.test.cases import TenantTestCase
+from django_tenants.utils import get_public_schema_name, schema_context
+from tenants.models import Domain
 from oauth2_provider.models import get_application_model
 
 from accounts.models import Authority, AuthorityUser
@@ -467,6 +469,9 @@ class WebhookDeliveryTests(TenantTestCase):
         self.assertEqual(IntegrationEventType.REPORT_SUBMITTED, payload["eventType"])
         self.assertEqual(event_id, payload["eventId"])
         self.assertEqual(connection.schema_name, payload["tenant"]["schema"])
+        self.assertEqual(
+            f"https://{self.get_test_tenant_domain()}", payload["tenant"]["apiBaseUrl"]
+        )
         self.assertEqual(str(self.report.id), payload["report"]["id"])
         self.assertEqual("Animal Sick/Death", payload["report"]["reportType"]["name"])
         self.assertEqual([self.authority.id], payload["report"]["relevantAuthorityIds"])
@@ -478,6 +483,25 @@ class WebhookDeliveryTests(TenantTestCase):
         )
         self.assertNotIn("imageUrl", str(payload))
         self.assertNotIn("/medias/", str(payload))
+
+    def test_payload_uses_primary_domain_instead_of_alias_or_schema_name(self):
+        with schema_context(get_public_schema_name()):
+            Domain.objects.create(
+                tenant=self.tenant, domain="training.example.org", is_primary=True
+            )
+        payload = build_report_submitted_payload(
+            report=self.report, event_id="primary-domain", produced_at=timezone.now()
+        )
+        self.assertEqual("https://training.example.org", payload["tenant"]["apiBaseUrl"])
+        self.assertEqual(self.tenant.schema_name, connection.schema_name)
+
+    def test_payload_without_primary_domain_does_not_guess_api_host(self):
+        with schema_context(get_public_schema_name()):
+            Domain.objects.filter(tenant=self.tenant).update(is_primary=False)
+        payload = build_report_submitted_payload(
+            report=self.report, event_id="no-domain", produced_at=timezone.now()
+        )
+        self.assertIsNone(payload["tenant"]["apiBaseUrl"])
 
     def _create_integration_client(
         self,
