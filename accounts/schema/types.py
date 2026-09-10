@@ -293,7 +293,10 @@ class AuthorityUserType(DjangoObjectType):
         )
 
     def resolve_assigned_villages(self, info):
-        return Village.objects.filter(reporter_assignments__reporter=self).distinct()
+        return Village.objects.filter(
+            reporter_assignments__reporter=self,
+            reporter_assignments__deleted_at__isnull=True,
+        ).distinct()
 
     def resolve_assigned_village_assignments(self, info):
         return (
@@ -395,7 +398,8 @@ class UserProfileType(graphene.ObjectType):
     def resolve_assigned_villages(self, info):
         if self.is_authority_user:
             return Village.objects.filter(
-                reporter_assignments__reporter=self
+                reporter_assignments__reporter=self,
+                reporter_assignments__deleted_at__isnull=True,
             ).distinct()
         return []
 
