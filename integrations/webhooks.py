@@ -12,6 +12,7 @@ from django.db.models import Q
 from django.db import transaction
 from django.db import connection
 from django.utils import timezone
+from django_tenants.utils import get_public_schema_name, schema_context
 
 from integrations.constants import (
     AI_EVALUATION_SCHEMA_VERSION,
@@ -36,6 +37,7 @@ from integrations.secret_resolvers import SettingsWebhookSigningSecretResolver
 from integrations.services import assert_integration_tenant_schema
 from integrations.utils import payload_hash, secret_safe_summary
 from reports.models import IncidentReport
+from tenants.models import Domain
 
 
 REPORT_SUBMITTED_SCHEMA_VERSION = "2026-06-02"
@@ -683,7 +685,16 @@ def _signing_path(url):
 
 def _tenant_payload():
     schema_name = getattr(connection, "schema_name", None)
-    tenant = {"schema": schema_name}
+    tenant = {"schema": schema_name, "apiBaseUrl": None}
+    if schema_name and schema_name != get_public_schema_name():
+        # Resolve the registered host, never infer it from the schema name or
+        # an incoming request (delivery also runs in Celery without a request).
+        with schema_context(get_public_schema_name()):
+            domain = Domain.objects.filter(
+                tenant__schema_name=schema_name, is_primary=True
+            ).first()
+        if domain is not None:
+            tenant["apiBaseUrl"] = f"https://{domain.domain}"
     tenant_obj = getattr(connection, "tenant", None)
     if tenant_obj is not None:
         tenant["code"] = getattr(tenant_obj, "schema_name", schema_name)

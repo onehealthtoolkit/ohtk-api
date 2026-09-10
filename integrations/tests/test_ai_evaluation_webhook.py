@@ -84,6 +84,9 @@ class AiEvaluationWebhookTests(TenantTestCase):
         self.assertEqual(1, len(result.deliveries))
         self.assertEqual(endpoint, result.deliveries[0].endpoint)
         payload = result.event.payload_summary
+        self.assertEqual(
+            f"https://{self.get_test_tenant_domain()}", payload["tenant"]["apiBaseUrl"]
+        )
         self.assertEqual("ai.evaluation_requested", payload["eventType"])
         self.assertEqual("summary", payload["purpose"])
         self.assertEqual("Focus on deaths.", payload["userPrompt"])
