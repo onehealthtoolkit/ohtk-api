@@ -463,8 +463,9 @@ class CaseCloseServiceTestCase(BaseTestCase):
         complete_audit = [
             b for b in bodies if "Added after automatic close" in b
         ][-1]
-        self.assertIn("test result: Lab +", complete_audit)
-        self.assertIn("stamp out: 2", complete_audit)
+        # Configured question labels are the audit's user-facing field names.
+        self.assertIn("Test result: Lab +", complete_audit)
+        self.assertIn("Stamped out: 2", complete_audit)
 
     def test_complete_system_closed_rejects_open_and_officer_closed(self):
         with self.assertRaises(ValidationError):
