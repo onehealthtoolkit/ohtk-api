@@ -17,6 +17,7 @@ from openpyxl.utils import get_column_letter
 
 # Fixed report type for this LAHIS export (not a download parameter).
 DEFAULT_REPORT_TYPE_NAME = "Animal Sick/Death"
+LAO_REPORT_TYPE_NAME = "ລາຍງານສັດປ່ວຍ/ຕາຍ"
 
 # Template species headers (row 3), left-to-right within each metric block.
 SPECIES_HEADERS: Tuple[str, ...] = (
@@ -83,14 +84,21 @@ def normalize_species(raw: Any) -> Optional[str]:
         s = s.split(",")[0].strip()
     mapping = {
         "buffalo": "Buffalo",
+        "ຄວາຍ": "Buffalo",
         "cattle": "Cattle",
+        "ງົວ": "Cattle",
         "pig": "pig",
+        "ໝູ": "pig",
         "goat": "Goat-Sheep",
+        "ແບ້": "Goat-Sheep",
         "sheep": "Goat-Sheep",
+        "ແກະ": "Goat-Sheep",
         "goat-sheep": "Goat-Sheep",
         "goatsheep": "Goat-Sheep",
         "chicken": "Chicken",
+        "ໄກ່": "Chicken",
         "duck": "Duck",
+        "ເປັດ": "Duck",
     }
     return mapping.get(s)
 
@@ -498,6 +506,7 @@ def resolve_fixed_report_type():
     Optional tenant Configuration key cases.lahis_summarized_report_type_name.
     """
     from accounts.models import Configuration
+    from django.db.models.functions import Trim
     from reports.models.report_type import ReportType
 
     name = DEFAULT_REPORT_TYPE_NAME
@@ -507,7 +516,14 @@ def resolve_fixed_report_type():
             name = str(configured).strip()
     except Exception:
         pass
-    return ReportType.objects.get(name=name)
+    try:
+        return ReportType.objects.get(name=name)
+    except ReportType.DoesNotExist:
+        if name != DEFAULT_REPORT_TYPE_NAME:
+            raise
+        return ReportType.objects.annotate(trimmed_name=Trim("name")).get(
+            trimmed_name=LAO_REPORT_TYPE_NAME
+        )
 
 
 def collect_export_rows(
