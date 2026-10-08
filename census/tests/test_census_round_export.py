@@ -5,6 +5,7 @@ from accounts.village_capability import set_village_capability_enabled
 from census.animal_census_capability import set_animal_census_capability_enabled
 from census.export import authority_hierarchy_path, build_export_table
 from census.models import (
+    AnimalCensusFact,
     CensusDefinition,
     CensusDefinitionVersion,
     CensusRoundDefinition,
@@ -80,8 +81,6 @@ class CensusRoundExportTests(TestCase):
                 }
             },
         )
-        from census.models import AnimalCensusFact
-
         AnimalCensusFact.objects.create(
             snapshot=snapshot,
             row_key="species:CATTLE",
@@ -113,6 +112,45 @@ class CensusRoundExportTests(TestCase):
         self.assertEqual(row[table["headers"].index("Cattle")], 12)
         self.assertEqual(row[table["headers"].index("Total animals")], 12)
         self.assertEqual(row[table["headers"].index("Village households")], 10)
+
+    def test_export_includes_group_households_without_splitting_species(self):
+        snapshot = VillageCensusSnapshot.objects.get(village=self.village)
+        AnimalCensusFact.objects.create(
+            snapshot=snapshot,
+            row_key="group:LARGE_RUMINANT",
+            row_label="Cattle and buffalo",
+            measures={"household_quantity": 3},
+        )
+        AnimalCensusFact.objects.create(
+            snapshot=snapshot,
+            row_key="group:PIG",
+            row_label="Pig",
+            measures={"household_quantity": 0},
+        )
+        AnimalCensusFact.objects.create(
+            snapshot=snapshot,
+            row_key="species:BUFFALO",
+            row_label="Buffalo",
+            measures={"animal_quantity": 2},
+        )
+        Village.objects.create(code="V002", name="No census", authority=self.district)
+
+        table = build_export_table(self.occurrence, self.officer)
+        headers = table["headers"]
+        self.assertIn("Cattle and buffalo households", headers)
+        self.assertIn("Pig households", headers)
+        self.assertNotIn("Cattle households", headers)
+        self.assertNotIn("Buffalo households", headers)
+        self.assertLess(
+            headers.index("Pig households"), headers.index("Cattle")
+        )
+
+        rows = {row[headers.index("Village code")]: row for row in table["rows"]}
+        self.assertEqual(rows["V001"][headers.index("Cattle and buffalo households")], 3)
+        self.assertEqual(rows["V001"][headers.index("Pig households")], 0)
+        self.assertEqual(rows["V001"][headers.index("Cattle")], 12)
+        self.assertEqual(rows["V001"][headers.index("Buffalo")], 2)
+        self.assertIsNone(rows["V002"][headers.index("Pig households")])
 
     def test_export_view_requires_auth_and_returns_xls(self):
         request = self.factory.get(
