@@ -7,6 +7,8 @@ Legacy thin shape is still accepted for older seeds/tests:
   { "fields": [{ "id", "type", "requiredOn": ["officer"] }] }
 """
 
+import json
+import logging
 from typing import Any, Dict, List, Optional
 
 from django.core.exceptions import ValidationError
@@ -71,6 +73,7 @@ def extract_close_fields(definition: Optional[dict]) -> List[dict]:
                     fields.append(
                         {
                             "name": name,
+                            "label": field.get("label") or question.get("label"),
                             "type": field.get("type") or "text",
                             "required": bool(field.get("required")),
                             "min": field.get("min"),
@@ -96,6 +99,7 @@ def extract_close_fields(definition: Optional[dict]) -> List[dict]:
         fields.append(
             {
                 "name": name,
+                "label": field.get("label"),
                 "type": field.get("type") or "text",
                 # thin schema used requiredOn: ["officer"]
                 "required": "officer" in required_on,
@@ -217,16 +221,57 @@ OFFICER_OUTCOMES = (OUTCOME_CLOSE_CASE, OUTCOME_FALSE_POSITIVE)
 SYSTEM_AUDIT_USERNAME = "system"
 
 
-def _format_close_payload_for_audit(payload: Optional[dict]) -> str:
-    """Human-readable payload lines for comment body (skip empty / outcome key)."""
+CLOSE_AUDIT_MESSAGES_KEY = "cases.close_audit_messages"
+DEFAULT_CLOSE_AUDIT_MESSAGES = {
+    "close_case": "[Case close] Close case",
+    "false_positive": "[Case close] False positive",
+    "automatic_close": "[Automatic close] Case finished by system after inactivity",
+    "complete_after_auto_close": "[Close data] Added after automatic close",
+    "superuser_edit": "[Close data] Superuser edit",
+    "no_close_data": "No close data recorded.",
+    "reason": "reason",
+}
+logger = logging.getLogger(__name__)
+
+
+def get_close_audit_messages() -> dict:
+    """Read the current tenant once per audit; never cache across tenants."""
+    from accounts.models import Configuration
+
+    messages = dict(DEFAULT_CLOSE_AUDIT_MESSAGES)
+    raw = Configuration.get(CLOSE_AUDIT_MESSAGES_KEY)
+    if not raw:
+        return messages
+    try:
+        configured = json.loads(raw)
+        if not isinstance(configured, dict):
+            raise ValueError("Expected an object")
+    except (TypeError, ValueError):
+        logger.warning("Invalid JSON object in Configuration %s; using defaults", CLOSE_AUDIT_MESSAGES_KEY)
+        return messages
+    for key in messages:
+        value = configured.get(key)
+        if isinstance(value, str) and value.strip():
+            messages[key] = value
+    return messages
+
+
+def _format_close_payload_for_audit(payload, *, definition=None, reason_label=None) -> str:
+    """Use form labels for fields and preserve the submitted values, including zero."""
     if not isinstance(payload, dict):
         return ""
-    skip = {"close_outcome"}
+    labels = {}
+    for field in extract_close_fields(definition):
+        label = field.get("label")
+        if isinstance(label, str) and label.strip():
+            labels.setdefault(field["name"], label)
     lines = []
     for key, value in payload.items():
-        if key in skip or value is None or value == "":
+        if key == "close_outcome" or value is None or value == "":
             continue
-        label = str(key).replace("_", " ")
+        label = labels.get(key, str(key).replace("_", " "))
+        if key == "reason" and reason_label is not None:
+            label = reason_label
         lines.append(f"{label}: {value}")
     return "\n".join(lines)
 
@@ -289,6 +334,7 @@ def build_close_audit_body(
     outcome: str = "",
     payload: Optional[dict] = None,
     action: str = "close",
+    definition: Optional[dict] = None,
 ) -> str:
     """
     action:
@@ -296,24 +342,29 @@ def build_close_audit_body(
       complete_after_auto_close — officer fills data after system timeout
       superuser_edit — superuser edits finished close data
     """
-    payload_lines = _format_close_payload_for_audit(payload)
+    messages = get_close_audit_messages()
+    payload_lines = _format_close_payload_for_audit(
+        payload,
+        definition=definition if outcome != OUTCOME_FALSE_POSITIVE else None,
+        reason_label=messages["reason"] if outcome == OUTCOME_FALSE_POSITIVE else None,
+    )
     source_value = source.value if hasattr(source, "value") else source
 
     if action == "complete_after_auto_close":
-        head = "[Close data] Added after automatic close"
+        head = messages["complete_after_auto_close"]
     elif action == "superuser_edit":
-        head = "[Close data] Superuser edit"
+        head = messages["superuser_edit"]
     elif source_value in ("system",):
-        head = "[Automatic close] Case finished by system after inactivity"
+        head = messages["automatic_close"]
     elif outcome == OUTCOME_FALSE_POSITIVE:
-        head = "[Case close] False positive"
+        head = messages["false_positive"]
     else:
-        head = "[Case close] Close case"
+        head = messages["close_case"]
 
     if payload_lines:
         return f"{head}\n{payload_lines}"
     if action == "close" and source_value in ("system",):
-        return f"{head}\nNo close data recorded."
+        return f"{head}\n{messages['no_close_data']}"
     return head
 
 
@@ -426,6 +477,7 @@ def close_case(
             outcome=outcome_value,
             payload=cleaned_payload,
             action="close",
+            definition=definition,
         ),
     )
     return case
@@ -494,6 +546,7 @@ def complete_system_closed_case(case, *, actor, payload: Optional[dict] = None):
             outcome=OUTCOME_CLOSE_CASE,
             payload=cleaned_payload,
             action="complete_after_auto_close",
+            definition=definition,
         ),
     )
     return case
@@ -513,6 +566,7 @@ def update_finished_case_close_data(case, *, actor, payload: Optional[dict] = No
     if case.stopped_at is None or not case.is_finished:
         raise ValidationError("Case is not closed")
 
+    definition = get_close_definition_for_case(case)
     outcome = (case.close_outcome or "").strip()
     update_fields = ["close_payload", "updated_at"]
 
@@ -525,7 +579,6 @@ def update_finished_case_close_data(case, *, actor, payload: Optional[dict] = No
         case.close_payload = cleaned_payload
     else:
         # Officer close_case, system timeout, or empty outcome after auto-close.
-        definition = get_close_definition_for_case(case)
         cleaned_payload = validate_close_payload(
             definition, payload or {}, source=Case.CloseSource.OFFICER
         )
@@ -547,6 +600,7 @@ def update_finished_case_close_data(case, *, actor, payload: Optional[dict] = No
             outcome=case.close_outcome or "",
             payload=case.close_payload if isinstance(case.close_payload, dict) else {},
             action="superuser_edit",
+            definition=definition,
         ),
     )
     return case
