@@ -34,6 +34,7 @@ from summaries.lahis_summarized_table import (
     normalize_species,
     parse_gps,
     resolve_report_census_snapshot,
+    resolve_fixed_report_type,
     resolve_report_village_name,
     species_column_offset,
 )
@@ -45,6 +46,18 @@ class LahisSummarizedTableUnitTests(SimpleTestCase):
         self.assertEqual("pig", normalize_species("Pig"))
         self.assertEqual("Goat-Sheep", normalize_species("Goat"))
         self.assertEqual("Goat-Sheep", normalize_species("Sheep"))
+        lao_species = {
+            "ຄວາຍ": "Buffalo",
+            "ງົວ": "Cattle",
+            "ໝູ": "pig",
+            "ແບ້": "Goat-Sheep",
+            "ແກະ": "Goat-Sheep",
+            "ໄກ່": "Chicken",
+            "ເປັດ": "Duck",
+        }
+        for value, header in lao_species.items():
+            with self.subTest(value=value):
+                self.assertEqual(header, normalize_species(value))
         self.assertIsNone(normalize_species("Dog"))
         self.assertIsNone(normalize_species(""))
 
@@ -223,6 +236,15 @@ class LahisSummarizedTableUnitTests(SimpleTestCase):
 
 
 class LahisSummarizedTableCensusIntegrationTests(BaseTestCase):
+    def test_resolve_fixed_report_type_with_lao_name(self):
+        self.animal_sick_death_report_type.name = " ລາຍງານສັດປ່ວຍ/ຕາຍ"
+        self.animal_sick_death_report_type.save(update_fields=["name"])
+
+        self.assertEqual(
+            self.animal_sick_death_report_type.id,
+            resolve_fixed_report_type().id,
+        )
+
     def setUp(self):
         super().setUp()
         self.village = Village.objects.create(
