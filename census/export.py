@@ -4,11 +4,11 @@ Census round Excel export helpers.
 Layout:
   - Rows: villages (scoped by authority hierarchy permission)
   - Leading columns: authority hierarchy levels (root → leaf) + village identity
-  - Metric columns: household totals, total animals, then one column per species/row_key
+  - Metric columns: household totals, total animals, group households, species animals
 """
 
 from accounts.models import Authority
-from census.rounds import build_coverage, species_summary
+from census.rounds import build_coverage
 
 
 def authority_hierarchy_path(authority):
@@ -62,6 +62,22 @@ def collect_species_columns(coverage_rows):
     return columns
 
 
+def collect_group_columns(coverage_rows):
+    """Stable ordered list of (row_key, row_label) for group household columns."""
+    columns = []
+    seen = set()
+    for row in coverage_rows:
+        snapshot = row.get("snapshot")
+        if snapshot is None:
+            continue
+        for fact in snapshot.facts.all():
+            if not fact.row_key.startswith("group:") or fact.row_key in seen:
+                continue
+            seen.add(fact.row_key)
+            columns.append((fact.row_key, fact.row_label or fact.row_key))
+    return columns
+
+
 def build_export_table(occurrence, user, authority_id=None):
     """
     Build headers + data rows for a census round export.
@@ -90,6 +106,7 @@ def build_export_table(occurrence, user, authority_id=None):
     # At least one hierarchy column so the sheet stays readable when empty.
     hierarchy_depth = max(max_depth, 1)
 
+    group_columns = collect_group_columns(coverage_rows)
     species_columns = collect_species_columns(coverage_rows)
 
     headers = []
@@ -108,6 +125,8 @@ def build_export_table(occurrence, user, authority_id=None):
             "Total animals",
         ]
     )
+    for _key, label in group_columns:
+        headers.append(f"{label} households")
     for _key, label in species_columns:
         headers.append(label)
 
@@ -115,6 +134,15 @@ def build_export_table(occurrence, user, authority_id=None):
     for row, path in zip(coverage_rows, hierarchy_paths):
         village = row["village"]
         snapshot = row.get("snapshot")
+        group_map = (
+            {
+                fact.row_key: (fact.measures or {}).get("household_quantity")
+                for fact in snapshot.facts.all()
+                if fact.row_key.startswith("group:")
+            }
+            if snapshot is not None
+            else {}
+        )
         species_map = {
             (item.get("row_key") or item.get("rowKey")): item.get(
                 "animal_quantity", item.get("animalQuantity")
@@ -146,6 +174,8 @@ def build_export_table(occurrence, user, authority_id=None):
                 row.get("total_animal_quantity"),
             ]
         )
+        for key, _label in group_columns:
+            cells.append(group_map.get(key))
         for key, _label in species_columns:
             cells.append(species_map.get(key))
         data_rows.append(cells)

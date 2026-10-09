@@ -138,7 +138,8 @@ def export_census_round_xls(request):
         last_col,
         (
             "Rows are villages. Authority L* columns are hierarchy "
-            "(root to leaf). Metric columns are household and species counts."
+            "(root to leaf). Metric columns are household totals, group "
+            "households, and species animal counts."
         ),
         body_style,
     )
