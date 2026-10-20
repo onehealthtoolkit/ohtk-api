@@ -25,16 +25,22 @@ from reports.models import Category, IncidentReport, ReportType
 from tenants.models import Client as Tenant, Domain
 
 
-@override_settings(
-    ALLOWED_HOSTS=["localhost", "tenant.test.com", "promote-other.test"],
-    CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
-)
 class CasePromoteApiTests(TenantTestCase):
     @classmethod
     def setup_tenant(cls, tenant):
         tenant.name = "Case promotion tenant"
 
     def setUp(self):
+        # TenantTestCase skips Django's setUpClass, so class setting overrides
+        # are not applied. Activate them for each test instead.
+        settings_override = override_settings(
+            ALLOWED_HOSTS=["localhost", "tenant.test.com", "promote-other.test"],
+            CHANNEL_LAYERS={
+                "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}
+            },
+        )
+        settings_override.enable()
+        self.addCleanup(settings_override.disable)
         connection.set_tenant(self.tenant)
         self.client = TenantClient(self.tenant)
         self.authority = Authority.objects.create(code="CASE", name="Case authority")
