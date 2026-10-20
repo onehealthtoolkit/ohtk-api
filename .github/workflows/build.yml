@@ -89,6 +89,7 @@ jobs:
         run: |
           pytest accounts/tests -q
           pytest cases/tests -q
+          pytest integrations/tests/test_case_promote_api.py -q
           pytest common/tests -q
           pytest notifications/tests -q
           pytest observations/tests -q

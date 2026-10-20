@@ -14,6 +14,7 @@ from oauth2_provider.oauth2_validators import OAuth2Validator
 from oauthlib.oauth2 import Server
 
 from accounts.models import Authority, Village
+from cases.models import Case, StateDefinition
 from census.models import (
     CensusDefinition,
     VillageCensusSnapshot,
@@ -55,6 +56,7 @@ from threads.models import Comment
 ACTION_INCIDENT_READ = "incident.read"
 ACTION_CENSUS_READ = "census.read"
 ACTION_AI_CREATE_COMMENT = "ai.create_comment"
+ACTION_CASE_PROMOTE = "case.promote"
 ACTION_AI_READ_COMMENTS = "ai.read_comments"
 ACTION_AI_READ_IMAGES = "ai.read_images"
 ACTION_AI_READ_IMAGE_CONTENT = "ai.read_image_content"
@@ -1625,6 +1627,174 @@ def report_comments(request, report_id):
         )
 
     return JsonResponse(response_payload, status=202)
+
+
+@csrf_exempt
+@require_POST
+def report_promote_case(request, report_id):
+    target_id = str(report_id)
+    try:
+        assert_integration_tenant_schema()
+    except PublicSchemaDenied as exc:
+        return _error_response(status=403, code="tenant_denied", message=str(exc))
+
+    oauth_context = _verify_oauth_context(request)
+    if oauth_context is None:
+        return _error_response(
+            status=401,
+            code="oauth_required",
+            message="A valid OAuth2 bearer token is required.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    try:
+        auth_context = get_active_integration_client(oauth_context["application"])
+    except (PublicSchemaDenied, IntegrationClientDenied) as exc:
+        return _error_response(
+            status=403, code="integration_client_denied", message=str(exc)
+        )
+
+    integration_client = auth_context.integration_client
+    payload = None
+    idempotency_key = ""
+    external_action_id = ""
+
+    def audit(result_status, result_summary, raw_payload=None):
+        return _create_action_log(
+            request=request,
+            integration_client=integration_client,
+            target_id=target_id,
+            action_type=ACTION_CASE_PROMOTE,
+            required_scope=IntegrationScope.CASE_PROMOTE,
+            payload=payload,
+            raw_payload=raw_payload,
+            idempotency_key=idempotency_key,
+            external_action_id=external_action_id,
+            result_status=result_status,
+            result_summary=result_summary,
+        )
+
+    def reject(status, code, message, raw_payload=None):
+        audit(
+            IntegrationActionLog.ResultStatus.REJECTED,
+            {
+                "error": {"code": code, "message": message},
+                "payloadSummary": secret_safe_summary(payload),
+            },
+            raw_payload=raw_payload,
+        )
+        return _error_response(status=status, code=code, message=message)
+
+    if oauth_context["user"] is not None:
+        return reject(
+            403,
+            "service_identity_denied",
+            "Integration endpoints require service OAuth tokens without a human user.",
+        )
+    if not integration_client.has_scope(IntegrationScope.CASE_PROMOTE):
+        return reject(
+            403,
+            "scope_denied",
+            f"Integration client lacks required scope: {IntegrationScope.CASE_PROMOTE}",
+        )
+    try:
+        assert_integration_feature_enabled(FEATURE_AI)
+    except IntegrationPolicyDenied as exc:
+        return reject(403, exc.code, exc.message)
+
+    payload, parse_error = _parse_json_body(request)
+    if parse_error:
+        return reject(400, "invalid_json", parse_error, raw_payload=request.body)
+    if set(payload) - {"externalActionId"}:
+        return reject(400, "invalid_payload", "Only externalActionId is allowed.")
+    external_action_id = payload.get("externalActionId", "")
+    if not isinstance(external_action_id, str) or len(external_action_id) > 200:
+        external_action_id = ""
+        return reject(
+            400,
+            "invalid_payload",
+            "externalActionId must be a string of 200 characters or fewer.",
+        )
+    external_action_id = external_action_id.strip()
+    idempotency_key = _idempotency_key(
+        request, {"external_action_id": external_action_id}
+    )
+    if not idempotency_key or len(idempotency_key) > 200:
+        idempotency_key = ""
+        return reject(
+            400,
+            "invalid_payload",
+            "Idempotency-Key header or body externalActionId is required (200 characters or fewer).",
+        )
+
+    try:
+        with transaction.atomic():
+            # Serialize integration promotions, including requests using different keys.
+            report = IncidentReport.objects.select_for_update().get(pk=report_id)
+            idempotency = claim_idempotency_key(
+                integration_client=integration_client,
+                action_type=ACTION_CASE_PROMOTE,
+                key=idempotency_key,
+                request_payload=payload,
+                target_type=TARGET_REPORT,
+                target_id=target_id,
+            )
+            if idempotency.replayed:
+                response_payload = idempotency.record.response_summary
+                audit(
+                    IntegrationActionLog.ResultStatus.REPLAYED,
+                    {
+                        "response": response_payload,
+                        "originalActionLogId": _action_id_for_record(
+                            idempotency.record
+                        ),
+                    },
+                )
+                return JsonResponse(
+                    response_payload, status=idempotency.record.response_status_code
+                )
+
+            already_promoted = bool(report.case_id)
+            if not already_promoted:
+                definition = StateDefinition.resolve(report.report_type_id)
+                if (
+                    not definition
+                    or not definition.statestep_set.filter(is_start_state=True).exists()
+                ):
+                    raise ValidationError(
+                        "No case workflow with a start state is configured."
+                    )
+            case = Case.promote_from_incident_report(report_id)
+            response_payload = {
+                "schemaVersion": SCHEMA_VERSION,
+                "status": "accepted",
+                "case": {"id": str(case.id), "reportId": target_id},
+                "alreadyPromoted": already_promoted,
+            }
+            action_log = audit(
+                IntegrationActionLog.ResultStatus.ACCEPTED,
+                {"response": response_payload},
+            )
+            idempotency.record.response_status_code = 200
+            idempotency.record.response_summary = response_payload
+            idempotency.record.action_log = action_log
+            idempotency.record.save(
+                update_fields=(
+                    "response_status_code",
+                    "response_summary",
+                    "action_log",
+                    "updated_at",
+                )
+            )
+    except IncidentReport.DoesNotExist:
+        return reject(
+            404, "report_not_found", "Report was not found in the selected tenant."
+        )
+    except IntegrationIdempotencyConflict as exc:
+        return reject(409, "idempotency_conflict", str(exc))
+    except ValidationError as exc:
+        return reject(409, "case_workflow_unavailable", "; ".join(exc.messages))
+
+    return JsonResponse(response_payload, status=200)
 
 
 @csrf_exempt

@@ -50,6 +50,11 @@ urlpatterns = [
         name="integration-report-image-content",
     ),
     path(
+        "reports/<uuid:report_id>/promote-case",
+        views.report_promote_case,
+        name="integration-report-promote-case",
+    ),
+    path(
         "reports/<uuid:report_id>/risk-assessments",
         views.report_risk_assessments,
         name="integration-report-risk-assessments",
