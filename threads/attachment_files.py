@@ -22,6 +22,15 @@ IMAGE_CONTENT_TYPES = {
 DOCUMENT_CONTENT_TYPES = {"application/pdf"}
 ALLOWED_CONTENT_TYPES = IMAGE_CONTENT_TYPES | DOCUMENT_CONTENT_TYPES
 
+_ATTACHMENT_CONTENT_TYPES = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".pdf": "application/pdf",
+}
+
 MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 
 _IMAGE_FORMAT_METADATA = {
@@ -60,6 +69,9 @@ def is_image_attachment(name, content_type=None):
 def inferred_content_type(name, uploaded_content_type=None):
     if uploaded_content_type:
         return uploaded_content_type
+    known_type = _ATTACHMENT_CONTENT_TYPES.get(attachment_extension(name))
+    if known_type:
+        return known_type
     guessed, _encoding = mimetypes.guess_type(name or "")
     return guessed or ""
 
