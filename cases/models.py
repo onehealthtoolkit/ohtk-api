@@ -3,7 +3,7 @@ from typing import List, Union
 import re
 
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import QuerySet
 from django.template import Template, Context
 from django.template.defaultfilters import striptags
@@ -190,7 +190,7 @@ class Case(BaseModel):
 
         from cases.signals import case_promoted
 
-        case_promoted.send(sender=cls, case=case)
+        transaction.on_commit(lambda: case_promoted.send(sender=cls, case=case))
 
         return case
 
