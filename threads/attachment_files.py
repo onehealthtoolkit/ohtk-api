@@ -1,5 +1,8 @@
 import mimetypes
 import os
+import warnings
+
+from PIL import Image
 
 from common.types import AdminFieldValidationProblem
 
@@ -20,6 +23,13 @@ DOCUMENT_CONTENT_TYPES = {"application/pdf"}
 ALLOWED_CONTENT_TYPES = IMAGE_CONTENT_TYPES | DOCUMENT_CONTENT_TYPES
 
 MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
+
+_IMAGE_FORMAT_METADATA = {
+    "JPEG": (".jpg", "image/jpeg"),
+    "PNG": (".png", "image/png"),
+    "GIF": (".gif", "image/gif"),
+    "WEBP": (".webp", "image/webp"),
+}
 
 
 def attachment_filename(file_field):
@@ -81,4 +91,47 @@ def validate_comment_upload(upload):
             name="files",
             message="attachment must be an image (jpeg, png, gif, webp) or a PDF",
         )
+    return None
+
+
+def prepare_comment_upload(upload):
+    """Accept older mobile image uploads after inspecting their actual contents."""
+    problem = validate_comment_upload(upload)
+    if problem is None or upload is None:
+        return problem
+    if (
+        upload.size > MAX_ATTACHMENT_BYTES
+        or attachment_extension(upload.name)
+        or (upload.content_type or "").lower() not in ("", "application/octet-stream")
+    ):
+        return problem
+
+    position = upload.tell()
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            upload.seek(0)
+            with Image.open(upload) as image:
+                metadata = _IMAGE_FORMAT_METADATA.get(image.format)
+                if metadata is None:
+                    return problem
+                image.verify()
+            # Verification checks the container; loading also detects truncated pixels.
+            upload.seek(0)
+            with Image.open(upload) as image:
+                image.load()
+    except (
+        OSError,
+        ValueError,
+        SyntaxError,
+        Image.DecompressionBombError,
+        Image.DecompressionBombWarning,
+    ):
+        return problem
+    finally:
+        upload.seek(position)
+
+    extension, content_type = metadata
+    upload.name = f"{upload.name}{extension}"
+    upload.content_type = content_type
     return None
