@@ -1,6 +1,7 @@
 import json
 from io import BytesIO
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, override_settings
@@ -69,7 +70,8 @@ class CommentCreateMutationTests(BaseTestCase):
         self.assertIsNone(result.errors, result.errors)
         return result.data["commentCreate"]["result"]
 
-    def test_legacy_mobile_images_are_saved_and_queryable_with_thumbnails(self):
+    @patch("threads.attachment_files.mimetypes.guess_type", return_value=(None, None))
+    def test_legacy_mobile_images_are_saved_and_queryable_with_thumbnails(self, _guess_type):
         for image_format, extension, content_type in (
             ("JPEG", ".jpg", "image/jpeg"),
             ("PNG", ".png", "image/png"),

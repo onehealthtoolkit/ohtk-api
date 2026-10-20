@@ -5,7 +5,50 @@ from django.core.files.uploadedfile import SimpleUploadedFile, TemporaryUploaded
 from django.test import SimpleTestCase
 from PIL import Image
 
-from threads.attachment_files import MAX_ATTACHMENT_BYTES, prepare_comment_upload
+from threads.attachment_files import (
+    MAX_ATTACHMENT_BYTES,
+    inferred_content_type,
+    prepare_comment_upload,
+)
+
+
+class InferredContentTypeTests(SimpleTestCase):
+    @patch("threads.attachment_files.mimetypes.guess_type", return_value=(None, None))
+    def test_supported_attachments_do_not_depend_on_system_mime_types(self, guess_type):
+        for extension, expected in (
+            ("jpg", "image/jpeg"),
+            ("jpeg", "image/jpeg"),
+            ("png", "image/png"),
+            ("gif", "image/gif"),
+            ("webp", "image/webp"),
+            ("pdf", "application/pdf"),
+        ):
+            for suffix in (extension, extension.upper()):
+                with self.subTest(suffix=suffix):
+                    self.assertEqual(
+                        inferred_content_type(f"attachments/photo.{suffix}"), expected
+                    )
+        guess_type.assert_not_called()
+
+    def test_uploaded_content_type_still_takes_precedence(self):
+        self.assertEqual(
+            inferred_content_type("photo.webp", "application/octet-stream"),
+            "application/octet-stream",
+        )
+
+    @patch(
+        "threads.attachment_files.mimetypes.guess_type",
+        return_value=("text/plain", None),
+    )
+    def test_other_extensions_still_use_system_mime_types(self, guess_type):
+        self.assertEqual(inferred_content_type("note.txt"), "text/plain")
+        guess_type.assert_called_once_with("note.txt")
+
+    @patch("threads.attachment_files.mimetypes.guess_type", return_value=(None, None))
+    def test_unknown_or_missing_names_still_return_empty_string(self, guess_type):
+        for name in ("photo.unknown", "photo", "", None):
+            with self.subTest(name=name):
+                self.assertEqual(inferred_content_type(name), "")
 
 
 class PrepareCommentUploadTests(SimpleTestCase):
