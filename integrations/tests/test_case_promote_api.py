@@ -26,6 +26,7 @@ from tenants.models import Client as Tenant, Domain
 
 
 @override_settings(
+    ALLOWED_HOSTS=["localhost", "tenant.test.com", "promote-other.test"],
     CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 )
 class CasePromoteApiTests(TenantTestCase):
@@ -300,7 +301,7 @@ class CasePromoteApiTests(TenantTestCase):
                 self._url(),
                 data="{}",
                 content_type="application/json",
-                HTTP_HOST="unknown.test",
+                HTTP_HOST="localhost",
             )
         finally:
             connection.set_tenant(self.tenant)
