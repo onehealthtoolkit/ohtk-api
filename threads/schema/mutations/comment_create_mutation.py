@@ -3,7 +3,7 @@ from graphene_file_upload.scalars import Upload
 from graphql_jwt.decorators import login_required
 
 from common.utils import is_not_empty
-from threads.attachment_files import validate_comment_upload
+from threads.attachment_files import prepare_comment_upload
 from threads.models import Thread, Comment, CommentAttachment
 from threads.schema.types import CommentCreateResult, CommentCreateProblem
 
@@ -27,7 +27,7 @@ class CommentCreateMutation(graphene.Mutation):
             problems.append(body_problem)
         if files:
             for upload in files:
-                file_problem = validate_comment_upload(upload)
+                file_problem = prepare_comment_upload(upload)
                 if file_problem:
                     problems.append(file_problem)
 
