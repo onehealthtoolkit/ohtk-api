@@ -14,6 +14,7 @@ from integrations.services import get_current_risk_assessment
 
 from reports.models import ReportType, Category, IncidentReport, ReporterNotification
 from reports.models.report import Image, FollowUpReport, UploadFile
+from .case_status import get_report_case_status
 
 
 class CategoryType(DjangoObjectType):
@@ -202,6 +203,12 @@ class IncidentReportVillageType(graphene.ObjectType):
     code = graphene.String()
 
 
+class ReportCaseStatus(graphene.ObjectType):
+    is_finished = graphene.Boolean(required=True)
+    close_source = graphene.String(required=True)
+    close_outcome = graphene.String(required=True)
+
+
 class IncidentReportType(DjangoObjectType):
     data = GenericScalar()
     original_data = GenericScalar()
@@ -223,6 +230,7 @@ class IncidentReportType(DjangoObjectType):
     )
     ai_suspected = graphene.String(required=True)
     village = graphene.Field(IncidentReportVillageType)
+    case_status = graphene.Field(ReportCaseStatus)
 
     class Meta:
         model = IncidentReport
@@ -253,6 +261,9 @@ class IncidentReportType(DjangoObjectType):
 
     def resolve_gps_location(self, info):
         return self.gps_location_str
+
+    def resolve_case_status(self, info):
+        return get_report_case_status(self)
 
     def resolve_village(self, info):
         village = getattr(self, "village", None)
