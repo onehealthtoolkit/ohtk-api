@@ -11,6 +11,7 @@ from reports.models import ReportType, Category
 from reports.models.report import IncidentReport, FollowUpReport
 from reports.models.reporter_notification import ReporterNotification
 from reports.summary.reporter_report_detail_by_day import report_by_day
+from .case_status import case_status_prefetch
 
 from .types import (
     AdminCategoryQueryType,
@@ -159,7 +160,13 @@ class Query(graphene.ObjectType):
         query = (
             IncidentReport.objects.all()
             .order_by("-created_at")
-            .prefetch_related("images", "upload_files", "reported_by", "report_type")
+            .prefetch_related(
+                "images",
+                "upload_files",
+                "reported_by",
+                "report_type",
+                case_status_prefetch(),
+            )
         )
         user = info.context.user
         if user.is_authority_user:
@@ -179,7 +186,13 @@ class Query(graphene.ObjectType):
                 reported_by=user, relevant_authorities__in=[authority]
             )
             .order_by("-created_at")
-            .prefetch_related("images", "upload_files", "reported_by", "report_type")
+            .prefetch_related(
+                "images",
+                "upload_files",
+                "reported_by",
+                "report_type",
+                case_status_prefetch(),
+            )
         )
 
     @staticmethod
@@ -221,7 +234,13 @@ class Query(graphene.ObjectType):
         query = (
             IncidentReport.objects.all()
             .order_by("-created_at")
-            .prefetch_related("images", "upload_files", "reported_by", "report_type")
+            .prefetch_related(
+                "images",
+                "upload_files",
+                "reported_by",
+                "report_type",
+                case_status_prefetch(),
+            )
         )
         user = info.context.user
         if user.is_authority_user:
