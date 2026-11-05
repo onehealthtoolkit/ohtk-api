@@ -12,4 +12,4 @@ class Query(graphene.ObjectType):
     @login_required
     def resolve_comments(root, info, thread_id):
         thread = Thread.objects.get(pk=thread_id)
-        return Comment.objects.filter(thread=thread)
+        return Comment.objects.filter(thread=thread).order_by("-created_at", "-id")
