@@ -14,6 +14,7 @@ from integrations.services import get_current_risk_assessment
 
 from reports.models import ReportType, Category, IncidentReport, ReporterNotification
 from reports.models.report import Image, FollowUpReport, UploadFile
+from reports.followup_permissions import has_followup_permission
 from .case_status import get_report_case_status
 
 
@@ -222,6 +223,10 @@ class IncidentReportType(DjangoObjectType):
     authorities = graphene.List(AuthorityType)
     definition = GenericScalar()
     is_followable = graphene.Boolean()
+    has_followup_permission = graphene.Boolean(
+        required=True,
+        description="Whether the current user has followup permission for this village scope.",
+    )
     accumulated_metrics = GenericScalar()
     current_risk_assessment = graphene.Field(RiskAssessmentProjectionType)
     risk_assessment_history = graphene.List(
@@ -290,6 +295,9 @@ class IncidentReportType(DjangoObjectType):
 
     def resolve_is_followable(self, info):
         return self.report_type.followup_definition is not None
+
+    def resolve_has_followup_permission(self, info):
+        return has_followup_permission(info.context.user, self)
 
     def resolve_accumulated_metrics(self, info):
         from reports.metric_accumulation import accumulate_incident_metrics
