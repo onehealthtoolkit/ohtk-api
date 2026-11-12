@@ -123,6 +123,41 @@ class AccumulateMetricsPureTests(SimpleTestCase):
         by_id = {m["id"]: m for m in result["metrics"]}
         self.assertEqual(by_id["num_sick"]["value"], 3)
 
+    def test_positive_only_omits_unknown_or_nonpositive_total(self):
+        config = self._config()
+        config["metrics"][0]["positiveOnly"] = True
+        for value in (None, "", 0, -1, "invalid"):
+            with self.subTest(value=value):
+                result = accumulate_metrics({"num_sick": value}, [{}], config)
+                self.assertEqual([m["id"] for m in result["metrics"]], ["num_dead"])
+                self.assertEqual(result["metrics"][0]["value"], 0)
+
+    def test_positive_only_sum_keeps_positive_report_and_followups(self):
+        config = self._config()
+        config["metrics"][0]["positiveOnly"] = True
+        result = accumulate_metrics(
+            {"num_sick": 10},
+            [{"num_sick": None}, {"num_sick": 0}, {"num_sick": -2}, {"num_sick": 5}],
+            config,
+        )
+        self.assertEqual(result["metrics"][0]["value"], 15)
+        self.assertEqual(result["metrics"][0]["reportValue"], 10)
+        self.assertEqual(result["metrics"][0]["followupValues"], [0, 0, 0, 5])
+
+    def test_positive_only_latest_keeps_last_known_positive(self):
+        config = self._config("latest")
+        config["metrics"][0]["positiveOnly"] = True
+        result = accumulate_metrics(
+            {"num_sick": 10}, [{"num_sick": 20}, {"num_sick": 0}, {}], config
+        )
+        self.assertEqual(result["metrics"][0]["value"], 20)
+
+    def test_positive_only_can_start_from_a_followup(self):
+        config = self._config()
+        config["metrics"][0]["positiveOnly"] = True
+        result = accumulate_metrics({}, [{"num_sick": 12}], config)
+        self.assertEqual(result["metrics"][0]["value"], 12)
+
     def test_null_config_empty(self):
         result = accumulate_metrics({"num_sick": 1}, [{"num_sick": 1}], None)
         self.assertEqual(result["metrics"], [])

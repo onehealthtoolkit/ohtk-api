@@ -1,7 +1,9 @@
 """
 Configurable metric accumulation for incident reports + follow-ups.
 
-Config lives on ReportType.metric_accumulation. Totals are derived on read
+Config lives on ReportType.metric_accumulation. For positiveOnly=true metrics,
+nonpositive/unknown inputs are ignored and the metric is omitted when no positive value is known. Existing
+metrics retain zero-as-missing behavior. Totals are derived on read
 from IncidentReport.data and FollowUpReport.data (no write-time mutation).
 """
 from __future__ import annotations
@@ -79,6 +81,7 @@ def parse_metric_specs(config: Any) -> List[dict]:
                 "followupField": str(followup_field),
                 "op": op,
                 "type": item.get("type") or "integer",
+                "positiveOnly": item.get("positiveOnly") is True,
             }
         )
     return specs
@@ -104,6 +107,12 @@ def accumulate_metrics(
         followup_values: List[Optional[int]] = [
             extract_number(fu, spec["followupField"]) for fu in followup_data_list
         ]
+
+        if spec["positiveOnly"]:
+            report_value = report_value if report_value and report_value > 0 else None
+            followup_values = [v if v and v > 0 else None for v in followup_values]
+            if report_value is None and all(v is None for v in followup_values):
+                continue
 
         if spec["op"] == "sum":
             total = report_value if report_value is not None else 0
