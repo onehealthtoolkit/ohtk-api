@@ -131,6 +131,17 @@ class IncidentReportTypeFilter(EmptyListInsensitiveFilterSet):
     q = django_filters.CharFilter(method="q_filter")
     only_case = django_filters.BooleanFilter(method="only_case_filter")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Keep the generated ID-list filter's GraphQL type while deferring its
+        # exact match when the descendant filter will expand this authority.
+        self.filters["relevant_authorities__id__in"].method = "authorities_filter"
+
+    def authorities_filter(self, queryset, name, value):
+        if self.form.cleaned_data.get("include_child_authorities") and len(value) == 1:
+            return queryset
+        return queryset.filter(**{f"{name}__in": value}).distinct()
+
     class Meta:
         model = IncidentReport
         fields = {
@@ -148,7 +159,9 @@ class IncidentReportTypeFilter(EmptyListInsensitiveFilterSet):
         if value and relevant_authorities and len(relevant_authorities) == 1:
             authority = Authority.objects.get(pk=relevant_authorities[0])
             child_authorities = authority.all_inherits_down()
-            queryset = queryset.filter(relevant_authorities__in=child_authorities)
+            queryset = queryset.filter(
+                relevant_authorities__in=child_authorities
+            ).distinct()
 
         return queryset
 
