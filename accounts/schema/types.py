@@ -3,6 +3,7 @@ import graphene
 from django.db.models import Q
 from easy_thumbnails.files import get_thumbnailer
 from graphene_django import DjangoObjectType
+from graphene_django.filter.filters import ListFilter
 
 from django.contrib.gis.db import models
 from graphene_django.converter import convert_django_field
@@ -20,6 +21,7 @@ from accounts.models import (
     VillageReporterAssignment,
 )
 from common.converter import GeoJSON
+from common.filters import EmptyListInsensitiveFilterSet
 from common.types import AdminFieldValidationProblem, AdminValidationProblem
 
 
@@ -140,9 +142,15 @@ class NumberInFilter(django_filters.BaseInFilter, django_filters.NumberFilter):
     pass
 
 
-class AdminAuthorityUserQueryFilter(django_filters.FilterSet):
+class AdminAuthorityUserQueryFilter(EmptyListInsensitiveFilterSet):
     q = django_filters.CharFilter(method="filter_q")
-    authorities = NumberInFilter(field_name="authority__id", lookup_expr="in")
+    authorities = django_filters.NumberFilter(field_name="authority__id")
+    # Keep the legacy Decimal argument; multi-select clients use the typed list.
+    authority_ids = ListFilter(
+        field_name="authority__id",
+        lookup_expr="in",
+        input_type=graphene.List(graphene.ID),
+    )
     role = django_filters.CharFilter(lookup_expr="exact")
     date_joined_lte = django_filters.DateTimeFilter(
         field_name="date_joined", lookup_expr="lte"
