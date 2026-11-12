@@ -5,6 +5,8 @@ backports.zoneinfo==0.2.1;python_version<"3.9"
 black==21.12b0
 boto3==1.24.57
 celery==5.4.0
+# Kombu 5.7 requires redis-py >=6.1; retain the verified Redis 4 transport.
+kombu==5.6.2
 charset-normalizer==2.0.10
 channels==4.0.0
 channels-redis==4.0.0
