@@ -1,5 +1,6 @@
 # base image
-ARG PYTHON_GDAL_MAGIC_IMAGE=public.ecr.aws/g0x0v6d0/python-gdal-magic@sha256:4d49a8f812fdb470e2a5e318810f3cf93056573d35fbd29c9b5a47c76d7259ba
+# Python 3.12 matches CI and supports the pinned Pillow dependency.
+ARG PYTHON_GDAL_MAGIC_IMAGE=public.ecr.aws/g0x0v6d0/python-gdal-magic@sha256:0d44e3454c57748cad56a412849ffa0e68c1924128a41db3b83042a04a0f86d5
 FROM ${PYTHON_GDAL_MAGIC_IMAGE}
 
 ARG SOURCE_DIR=/usr/local/src/python-gdal

@@ -3,7 +3,7 @@
 ## Quick Start
 
 ### What you'll need
-- python 3.8 or higher
+- Python 3.12 (matches the supported local and CI runtime)
 - pip
 - [Laravel Valet](https://laravel.com/docs/9.x/valet) (if using a proxy over HTTP)
 
