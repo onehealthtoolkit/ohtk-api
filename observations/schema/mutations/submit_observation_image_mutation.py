@@ -4,6 +4,7 @@ from graphene_file_upload.scalars import Upload
 from graphql_jwt.decorators import login_required
 
 from observations.models import RecordImage, SubjectRecord, MonitoringRecord
+from common.submissions import submit_attachment
 
 
 class RecordType(graphene.Enum):
@@ -28,7 +29,7 @@ class SubmitRecordImage(graphene.Mutation):
 
     @staticmethod
     @login_required
-    def mutate(root, info, record_type, record_id, image, is_cover, image_id):
+    def mutate(root, info, record_type, record_id, image, is_cover=None, image_id=None):
         if record_type == RecordType.subject:
             record = SubjectRecord.objects.get(pk=record_id)
         elif record_type == RecordType.monitoring:
@@ -36,18 +37,17 @@ class SubmitRecordImage(graphene.Mutation):
         else:
             raise ValueError("Not found")
 
-        image = RecordImage.objects.create(
-            record=record,
-            file=image,
-            id=image_id,
+        stored = submit_attachment(
+            RecordImage,
+            record,
+            "record",
+            image,
+            image_id,
+            is_cover=is_cover,
         )
-
-        if is_cover:
-            record.cover_image_id = image.id
-            record.save(update_fields=("cover_image_id"))
         return SubmitRecordImage(
-            id=image.id,
-            file=image.file.url,
-            thumbnail=get_thumbnailer(image.file)["thumbnail"].url,
-            image_url=image.file.url,
+            id=stored.id,
+            file=stored.file.url,
+            thumbnail=get_thumbnailer(stored.file)["thumbnail"].url,
+            image_url=stored.file.url,
         )

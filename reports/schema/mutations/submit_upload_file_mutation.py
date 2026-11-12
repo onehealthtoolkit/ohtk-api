@@ -1,13 +1,11 @@
 import graphene
-from graphql import GraphQLError
-import magic
-import re
-from easy_thumbnails.files import get_thumbnailer
 from graphene_file_upload.scalars import Upload
 from graphql_jwt.decorators import login_required
-from podd_api import settings
 
 from reports.models.report import FollowUpReport, IncidentReport, UploadFile
+
+from common.submissions import submit_attachment
+from common.upload_validation import validate_upload_file
 
 
 class SubmitUploadFile(graphene.Mutation):
@@ -23,32 +21,22 @@ class SubmitUploadFile(graphene.Mutation):
 
     @staticmethod
     @login_required
-    def mutate(root, info, report_id, file, file_id):
-        # recommend using at least the first 2048 bytes, as less can produce incorrect identification
-        file_type = magic.from_buffer(file.read(2048), mime=True)
-        m = re.compile(r"(audio|video|application|text)")
-
-        if m.match(file_type):
-            if file.size > settings.UPLOAD_FILE_MAX_SIZE:
-                raise GraphQLError("File size has exceeded")
-        else:
-            raise GraphQLError("File type is not supported")
-
+    def mutate(root, info, report_id, file, file_id=None):
         try:
-            report = IncidentReport.objects.get(pk=report_id)
+            parent = IncidentReport.objects.get(pk=report_id)
         except IncidentReport.DoesNotExist:
-            report = FollowUpReport.objects.get(pk=report_id)
-
-        upload_file = UploadFile.objects.create(
-            report=report,
-            file=file,
-            id=file_id,
-            file_type=file_type,
+            parent = FollowUpReport.objects.get(pk=report_id)
+        upload_file = submit_attachment(
+            UploadFile,
+            parent,
+            "report",
+            file,
+            file_id,
+            validate=validate_upload_file,
         )
-
         return SubmitUploadFile(
             id=upload_file.id,
             file=upload_file.file.url,
-            file_type=file_type,
+            file_type=upload_file.file_type,
             file_url=upload_file.file.url,
         )

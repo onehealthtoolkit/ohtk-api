@@ -7,6 +7,8 @@ from accounts.models import AuthorityUser, Village, VillageReporterAssignment
 from accounts.report_restrict_to_assigned_scope import (
     is_report_restrict_to_assigned_scope_enabled,
 )
+from common.commit_tasks import after_commit
+from common.submissions import replay, submission_transaction
 from reports.models.report import IncidentReport
 from reports.models.report_type import ReportType
 from reports.report_location import resolve_incident_report_gps
@@ -45,73 +47,84 @@ class SubmitIncidentReport(graphene.Mutation):
         test_flag=False,
         village_id=None,
     ):
-        # check idempotent
-        if report_id and IncidentReport.objects.filter(id=report_id).exists():
-            return SubmitIncidentReport(result=IncidentReport.objects.get(id=report_id))
+        with submission_transaction(IncidentReport, report_id):
+            existing = replay(IncidentReport, report_id, report_type_id=report_type_id)
+            if existing is not None:
+                return SubmitIncidentReport(result=existing)
 
-        user = info.context.user
-        report_type = ReportType.objects.get(pk=report_type_id)
-        if incident_in_authority is None:
-            incident_in_authority = False
-        restrict_to_assigned_scope = is_report_restrict_to_assigned_scope_enabled()
+            user = info.context.user
+            report_type = ReportType.objects.get(pk=report_type_id)
+            if incident_in_authority is None:
+                incident_in_authority = False
+            restrict_to_assigned_scope = is_report_restrict_to_assigned_scope_enabled()
 
-        village = None
-        if village_id is not None:
-            try:
-                village = Village.objects.select_related("authority").get(pk=village_id)
-            except Village.DoesNotExist:
-                raise ValidationError("village not found")
-            if not village.active:
-                raise ValidationError("village is not active")
-            if not user.is_superuser:
-                if not getattr(user, "is_authority_user", False):
-                    raise PermissionDenied("not an authority user")
-                actor_authority = user.authorityuser.authority
-                # Under actor authority hierarchy (admin: down tree; officer: same auth)
-                if user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
-                    if village.authority_id != actor_authority.id:
-                        raise PermissionDenied("village not under officer authority")
-                elif user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
-                    if not actor_authority.is_in_inherits_down([village.authority_id]):
-                        raise PermissionDenied("village not under admin authority")
-                elif user.is_authority_role_in([AuthorityUser.Role.REPORTER]):
-                    if not VillageReporterAssignment.objects.filter(
-                        reporter=user.authorityuser,
-                        village=village,
-                    ).exists():
-                        raise PermissionDenied("village is not assigned to reporter")
+            village = None
+            if village_id is not None:
+                try:
+                    village = Village.objects.select_related("authority").get(
+                        pk=village_id
+                    )
+                except Village.DoesNotExist:
+                    raise ValidationError("village not found")
+                if not village.active:
+                    raise ValidationError("village is not active")
+                if not user.is_superuser:
+                    if not getattr(user, "is_authority_user", False):
+                        raise PermissionDenied("not an authority user")
+                    actor_authority = user.authorityuser.authority
+                    # Under actor authority hierarchy (admin: down tree; officer: same auth)
+                    if user.is_authority_role_in([AuthorityUser.Role.OFFICER]):
+                        if village.authority_id != actor_authority.id:
+                            raise PermissionDenied(
+                                "village not under officer authority"
+                            )
+                    elif user.is_authority_role_in([AuthorityUser.Role.ADMIN]):
+                        if not actor_authority.is_in_inherits_down(
+                            [village.authority_id]
+                        ):
+                            raise PermissionDenied("village not under admin authority")
+                    elif user.is_authority_role_in([AuthorityUser.Role.REPORTER]):
+                        if not VillageReporterAssignment.objects.filter(
+                            reporter=user.authorityuser,
+                            village=village,
+                        ).exists():
+                            raise PermissionDenied(
+                                "village is not assigned to reporter"
+                            )
 
-        location = resolve_incident_report_gps(
-            user, gps_location, preferred_village=village
-        )
+            location = resolve_incident_report_gps(
+                user, gps_location, preferred_village=village
+            )
 
-        thread = Thread.objects.create()
-        report = IncidentReport.objects.create(
-            reported_by=user,
-            report_type=report_type,
-            data=data,
-            id=report_id,
-            incident_date=incident_date,
-            gps_location=location,
-            relevant_authority_resolved=bool(
-                restrict_to_assigned_scope
-                or incident_in_authority
-                or village is not None
-            ),
-            thread=thread,
-            test_flag=test_flag,
-            village=village,
-        )
-        if village is not None:
-            report.relevant_authorities.add(village.authority)
-        elif restrict_to_assigned_scope:
-            if getattr(user, "is_authority_user", False):
+            thread = Thread.objects.create()
+            report = IncidentReport.objects.create(
+                reported_by=user,
+                report_type=report_type,
+                data=data,
+                id=report_id,
+                incident_date=incident_date,
+                gps_location=location,
+                relevant_authority_resolved=bool(
+                    restrict_to_assigned_scope
+                    or incident_in_authority
+                    or village is not None
+                ),
+                thread=thread,
+                test_flag=test_flag,
+                village=village,
+            )
+            if village is not None:
+                report.relevant_authorities.add(village.authority)
+            elif restrict_to_assigned_scope:
+                if getattr(user, "is_authority_user", False):
+                    report.relevant_authorities.add(user.authorityuser.authority)
+            elif incident_in_authority:
                 report.relevant_authorities.add(user.authorityuser.authority)
-        elif incident_in_authority:
-            report.relevant_authorities.add(user.authorityuser.authority)
-        else:
-            report.resolve_relevant_authorities_by_area()
+            else:
+                report.resolve_relevant_authorities_by_area()
 
-        incident_report_submitted.send(sender=IncidentReport, report=report)
+            after_commit(
+                incident_report_submitted.send, sender=IncidentReport, report=report
+            )
 
-        return SubmitIncidentReport(result=report)
+            return SubmitIncidentReport(result=report)
