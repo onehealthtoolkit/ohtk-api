@@ -1,12 +1,11 @@
 import graphene
-import magic
-import re
 from graphene_file_upload.scalars import Upload
-from graphql import GraphQLError
 from graphql_jwt.decorators import login_required
 
 from observations.models import MonitoringRecord, RecordUploadFile, SubjectRecord
-from podd_api import settings
+
+from common.submissions import submit_attachment
+from common.upload_validation import validate_upload_file
 
 
 class SubmitRecordUploadFile(graphene.Mutation):
@@ -22,32 +21,22 @@ class SubmitRecordUploadFile(graphene.Mutation):
 
     @staticmethod
     @login_required
-    def mutate(root, info, record_id, file, file_id):
-        # recommend using at least the first 2048 bytes, as less can produce incorrect identification
-        file_type = magic.from_buffer(file.read(2048), mime=True)
-        m = re.compile(r"(audio|video|application|text)")
-
-        if m.match(file_type):
-            if file.size > settings.UPLOAD_FILE_MAX_SIZE:
-                raise GraphQLError("File size has exceeded")
-        else:
-            raise GraphQLError("File type is not supported")
-
+    def mutate(root, info, record_id, file, file_id=None):
         try:
-            record = SubjectRecord.objects.get(pk=record_id)
+            parent = SubjectRecord.objects.get(pk=record_id)
         except SubjectRecord.DoesNotExist:
-            record = MonitoringRecord.objects.get(pk=record_id)
-
-        upload_file = RecordUploadFile.objects.create(
-            record=record,
-            file=file,
-            id=file_id,
-            file_type=file_type,
+            parent = MonitoringRecord.objects.get(pk=record_id)
+        upload_file = submit_attachment(
+            RecordUploadFile,
+            parent,
+            "record",
+            file,
+            file_id,
+            validate=validate_upload_file,
         )
-
         return SubmitRecordUploadFile(
             id=upload_file.id,
             file=upload_file.file.url,
-            file_type=file_type,
+            file_type=upload_file.file_type,
             file_url=upload_file.file.url,
         )

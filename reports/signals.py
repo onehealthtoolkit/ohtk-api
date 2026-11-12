@@ -1,8 +1,10 @@
 import json
+from functools import partial
 
 import channels
 import django.dispatch
 from asgiref.sync import async_to_sync
+from django.db import connection, transaction
 from django.db.models.signals import m2m_changed
 from django.dispatch import receiver
 from easy_thumbnails.signals import saved_file
@@ -10,7 +12,7 @@ from easy_thumbnails.signals import saved_file
 from accounts.models import Authority
 from reports.consumers import new_report_group_name
 from reports.models import IncidentReport, Image
-from django.db import connection
+from common.commit_tasks import enqueue_after_commit
 from . import tasks
 
 incident_report_submitted = django.dispatch.Signal()
@@ -29,12 +31,18 @@ def on_create_report(sender, instance, action, reverse, model, pk_set, **kwargs)
             for authority in Authority.objects.get(pk=authority_id).all_inherits_up():
                 group_name = new_report_group_name(schema_name, authority.id)
                 channel_layer = channels.layers.get_channel_layer()
-                async_to_sync(channel_layer.group_send)(
-                    group_name,
-                    {
-                        "type": "new.report",
-                        "text": json.dumps(instance.template_context(), default=str),
-                    },
+                transaction.on_commit(
+                    partial(
+                        async_to_sync(channel_layer.group_send),
+                        group_name,
+                        {
+                            "type": "new.report",
+                            "text": json.dumps(
+                                instance.template_context(), default=str
+                            ),
+                        },
+                    ),
+                    robust=True,
                 )
 
 
@@ -44,7 +52,7 @@ def on_create_report(sender, instance, action, reverse, model, pk_set, **kwargs)
     dispatch_uid="report_image_signal_to_generate_thumbnail",
 )
 def on_report_image_update(sender, fieldfile, **kwargs):
-    tasks.generate_report_image.delay(fieldfile.instance.id)
+    enqueue_after_commit(tasks.generate_report_image, fieldfile.instance.id)
 
 
 @receiver(

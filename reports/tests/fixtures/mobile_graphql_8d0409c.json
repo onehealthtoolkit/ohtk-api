@@ -1,0 +1,246 @@
+{
+  "repository": "onehealthtoolkit/ohtk-mobile",
+  "revision": "8d0409ce0625677a8aab280897984d9bf23491b3",
+  "operations": [
+    {
+      "path": "lib/services/api/auth_api.dart",
+      "line": 11,
+      "document": "mutation Login($username: String!, $password: String!) {\n            tokenAuth(username: $username, password: $password ) {\n              token,\n              refreshExpiresIn,\n              refreshToken\n            }\n          }"
+    },
+    {
+      "path": "lib/services/api/auth_api.dart",
+      "line": 37,
+      "document": "mutation RefreshToken($refreshToken: String!) {\n            refreshToken(refreshToken: $refreshToken) {\n              token,\n              refreshExpiresIn,\n              refreshToken\n            }\n          }"
+    },
+    {
+      "path": "lib/services/api/auth_api.dart",
+      "line": 63,
+      "document": "query {\n        me {\n          id\n          username\n          firstName\n          lastName\n          telephone\n          email\n          address\n          gender\n          age\n          authorityId\n          authorityName\n          role\n          consent\n          features\n          avatarUrl\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/auth_api.dart",
+      "line": 91,
+      "document": "query {\n        me {\n          assignedVillages {\n            id\n            code\n            name\n          }\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/auth_api.dart",
+      "line": 112,
+      "document": "mutation VerifyLoginQrToken($token: String!) {\n        verifyLoginQrToken(token: $token) {\n          me {\n            id\n            username\n            firstName\n            lastName\n            authorityId\n            authorityName\n            role\n          }\n          token,\n          refreshToken\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/census_api.dart",
+      "line": 12,
+      "document": "query ActiveCensusDefinitionVersion($kind: String!) {\n        activeCensusDefinitionVersion(kind: $kind) {\n          id\n          version\n          status\n          runtimeSchema\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/census_api.dart",
+      "line": 63,
+      "document": "query ActiveVillageCensusDefinitions($villageId: Int!) {\n        activeVillageCensusDefinitions(villageId: $villageId) {\n          kind\n          name\n          enabled\n          activeVersion {\n            id\n            version\n            status\n            runtimeSchema\n          }\n          latestSnapshot {\n            id\n            censusDate\n            submittedAt\n          }\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/census_api.dart",
+      "line": 127,
+      "document": "query LatestVillageCensusV2($villageId: Int!, $kind: String!) {\n        latestVillageCensusV2(villageId: $villageId, kind: $kind) {\n          id\n          censusDate\n          submittedAt\n          villageHouseholdQuantity\n          animalHouseholdQuantity\n          formData\n          definitionVersion {\n            id\n            version\n            definition {\n              kind\n            }\n          }\n          village {\n            id\n            code\n            name\n          }\n          facts {\n            rowKey\n            rowLabel\n            animalQuantity\n            householdQuantity\n          }\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/census_api.dart",
+      "line": 197,
+      "document": "query OpenVillageCensusRoundOccurrences(\n        $villageId: Int!,\n        $kind: String!,\n        $mode: String\n      ) {\n        openVillageCensusRoundOccurrences(\n          villageId: $villageId,\n          kind: $kind,\n          mode: $mode\n        ) {\n          id\n          occurrenceKey\n          kind\n          mode\n          censusPeriodStart\n          censusPeriodEnd\n          startDate\n          softFinishDate\n          hardFinishDate\n          status\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/census_api.dart",
+      "line": 272,
+      "document": "mutation SubmitVillageCensusSnapshotV2(\n        $villageId: Int!,\n        $definitionVersionId: Int!,\n        $occurrenceId: Int,\n        $censusDate: Date!,\n        $formData: GenericScalar!\n      ) {\n        submitVillageCensusSnapshotV2(\n          villageId: $villageId,\n          definitionVersionId: $definitionVersionId,\n          occurrenceId: $occurrenceId,\n          censusDate: $censusDate,\n          formData: $formData\n        ) {\n          result {\n            __typename\n            ... on VillageCensusSnapshotType {\n              id\n              censusDate\n              submittedAt\n              roundResolution\n              roundOccurrence {\n                id\n                occurrenceKey\n                mode\n              }\n              villageHouseholdQuantity\n              animalHouseholdQuantity\n              village {\n                id\n                code\n                name\n              }\n              facts {\n                rowKey\n                rowLabel\n                animalQuantity\n                householdQuantity\n              }\n            }\n            ... on VillageCensusSnapshotProblem {\n              fields {\n                name\n                message\n              }\n              message\n            }\n          }\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/comment_api.dart",
+      "line": 16,
+      "document": "query QueryComments($threadId: ID!) {\n        comments(threadId: $threadId) {\n          id\n          body\n          threadId\n          attachments {\n            id\n            file\n            thumbnail\n            createdAt\n          }\n          createdAt\n          createdBy {\n            id\n            username\n            firstName\n            lastName\n            avatarUrl\n          }\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/comment_api.dart",
+      "line": 54,
+      "document": "mutation MutationCommentCreate(\n        $body: String!\n        $threadId: Int!\n        $files: [Upload]\n      ) {\n        commentCreate(body: $body, threadId: $threadId, files: $files) {\n          result {\n            __typename\n            ... on CommentCreateSuccess {\n              id\n              body\n              threadId\n              attachments {\n                id\n                file\n                thumbnail\n                createdAt\n              }\n              createdAt\n              createdBy {\n                id\n                username\n                firstName\n                lastName\n                avatarUrl\n              }\n            }\n            ... on CommentCreateProblem {\n              message\n              fields {\n                name\n                message\n              }\n            }\n          }\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/configuration_api.dart",
+      "line": 10,
+      "document": "query configurations {\n        configurations {\n          key\n          value    \n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/feature_capability_api.dart",
+      "line": 8,
+      "document": "query VillageCapability {\n        villageCapabilityEnabled\n      }"
+    },
+    {
+      "path": "lib/services/api/file_api.dart",
+      "line": 13,
+      "document": "mutation submitUploadFile(\n        $file: Upload!,\n        $fileId: UUID,\n        $reportId: UUID\n      ) {\n        submitUploadFile(file: $file, fileId: $fileId, reportId: $reportId) {\n          id\n          file\n          fileType\n          fileUrl\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/file_api.dart",
+      "line": 58,
+      "document": "mutation submitRecordUploadFile(\n        $file: Upload!,\n        $fileId: UUID,\n        $recordId: UUID!\n      ) {\n        submitRecordUploadFile(\n          file: $file, \n          fileId: $fileId, \n          recordId: $recordId\n        ) {\n          id\n          file\n          fileType\n          fileUrl\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/forgot_password_api.dart",
+      "line": 11,
+      "document": "mutation ResetPasswordRequest($email: String!) {\n      resetPasswordRequest(email: $email) {\n        success\n      }\n    }"
+    },
+    {
+      "path": "lib/services/api/image_api.dart",
+      "line": 13,
+      "document": "mutation submitImage(\n        $image: Upload!,\n        $imageId: UUID,\n        $reportId: UUID\n      ) {\n        submitImage(image: $image, imageId: $imageId, reportId: $reportId) {\n          id\n          file\n          thumbnail\n          imageUrl\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/image_api.dart",
+      "line": 54,
+      "document": "mutation submitRecordImage(\n        $recordType: RecordType!,\n        $image: Upload!,\n        $imageId: UUID,\n        $recordId: UUID!\n      ) {\n        submitRecordImage(\n          recordType: $recordType,\n          image: $image, \n          imageId: $imageId, \n          recordId: $recordId\n        ) {\n          id\n          file\n          thumbnail\n          imageUrl\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/notification_api.dart",
+      "line": 11,
+      "document": "mutation registerFcm($userId: String!, $token: String!) {\n        registerFcmToken(userId: $userId, token: $token) {\n          success\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/notification_api.dart",
+      "line": 37,
+      "document": "query MyMessages($limit: Int, $offset: Int) {\n        myMessages(limit: $limit, offset: $offset) {\n          pageInfo {\n            hasNextPage\n          }\n          results {\n            id\n            message {\n              id\n              title\n              body\n              image              \n            }\n            user {\n              id\n              username\n              firstName\n              lastName\n            }\n            isSeen\n            createdAt\n          }                \n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/notification_api.dart",
+      "line": 75,
+      "document": "query MyMessage($id: String!) {\n        myMessage(id: $id) {\n          id\n          message {\n            id\n            title\n            body\n            image\n          }\n          user {\n            id\n            username\n            firstName\n            lastName\n          }\n          isSeen\n          createdAt\n        }                \n      }"
+    },
+    {
+      "path": "lib/services/api/observation_api.dart",
+      "line": 18,
+      "document": "query syncObservationDefinitions($data: [ObservationDefinitionSyncInputType!]!) {\n        syncObservationDefinitions(data: $data) {\n          updatedList {\n            id\n            name\n            description\n            isActive\n            registerFormDefinition\n            updatedAt\n            monitoringDefinitions {\n              id\n              name\n              description\n              isActive\n              formDefinition\n              updatedAt\n              definitionId\n            }\n          }\n          removedList {\n            id\n          }\t\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/observation_api.dart",
+      "line": 61,
+      "document": "query observationSubjects($limit: Int, $offset: Int, $definitionId: String, $q: String) {\n        observationSubjects(\n          limit: $limit, \n          offset: $offset, \n          definition_Id_In: [$definitionId], \n          q: $q,\n          ordering: \"created_at,desc\"\n        ) {\n          totalCount\n          results { \n            id\n            definitionId\n            title\n            description\n            identity\n            isActive\n            formData\n            monitoringRecords {\n              id\n              title\n              description\n              monitoringDefinitionId\n              subjectId\n              isActive\n              formData\n            }\n            images {\n              id\n              file\n              thumbnail\n              imageUrl\n            }\n            uploadFiles {\n              id\n              file \n              fileUrl\n              fileType\n            }  \n          }\n          pageInfo {\n            hasNextPage\n          }\n        }          \n      }"
+    },
+    {
+      "path": "lib/services/api/observation_api.dart",
+      "line": 121,
+      "document": "query observationSubject($id: ID!) {\n        observationSubject(id: $id) {\n          id\n          definitionId\n          title\n          description\n          definitionId\n          identity\n          isActive\n          formData\n          gpsLocation\n          monitoringRecords {\n            id\n            title\n            description\n            monitoringDefinitionId\n            subjectId\n            isActive\n            formData\n            images {\n              id\n              file\n              thumbnail\n              imageUrl\n            }\n            uploadFiles {\n              id\n              file \n              fileUrl\n              fileType\n            }  \n          }\n          images {\n            id\n            file\n            thumbnail\n            imageUrl\n          }\n          uploadFiles {\n            id\n            file \n            fileUrl\n            fileType\n          }  \n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/observation_api.dart",
+      "line": 178,
+      "document": "mutation submitObservationSubject($data: GenericScalar!, $definitionId: Int!, $gpsLocation: String) {\n        submitObservationSubject(data: $data, definitionId: $definitionId, gpsLocation: $gpsLocation) {\n          result {\n            id\n            definitionId\n            title\n            description\n            identity\n            isActive\n            formData\n            monitoringRecords {\n              id\n              title\n              description\n            }\n          }  \t\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/observation_api.dart",
+      "line": 217,
+      "document": "mutation submitObservationSubjectMonitoring($data: GenericScalar!, $monitoringDefinitionId: Int!, $subjectId: UUID!) {\n        submitObservationSubjectMonitoring(data: $data, monitoringDefinitionId: $monitoringDefinitionId, subjectId: $subjectId) {\n          result {\n            id\n            title\n            description\n            isActive\n            formData\n            monitoringDefinitionId\n            subjectId\n          }  \t\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/observation_api.dart",
+      "line": 255,
+      "document": "query observationSubjectMonitoringRecords($limit: Int, $offset: Int, $subjectId: UUID) {\n        observationSubjectMonitoringRecords(limit: $limit, offset: $offset, subject_Id_In: [$subjectId]) {\n          totalCount\n          results { \n            id\n            monitoringDefinitionId\n            subjectId\n            title\n            description\n            isActive\n            formData\n            images {\n              id\n              file\n              thumbnail\n              imageUrl\n            }\n            uploadFiles {\n              id\n              file \n              fileUrl\n              fileType\n            }  \n          }\n          pageInfo {\n            hasNextPage\n          }\n        }          \n      }"
+    },
+    {
+      "path": "lib/services/api/observation_api.dart",
+      "line": 299,
+      "document": "query observationSubjectMonitoringRecord($id: ID!) {\n        observationSubjectMonitoringRecord(id: $id) {\n          id\n          monitoringDefinitionId\n          subjectId\n          title\n          description\n          isActive\n          formData\n          images {\n            id\n            file\n            thumbnail\n            imageUrl\n          }\n          uploadFiles {\n            id\n            file \n            fileUrl\n            fileType\n          }\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/observation_api.dart",
+      "line": 333,
+      "document": "query observationSubjectsInBounded($definitionId: Int!, $topLeftX: Float!, $topLeftY: Float!, $bottomRightX: Float!, $bottomRightY: Float!) {\n        observationSubjectsInBounded(definitionId: $definitionId, topLeftX: $topLeftX, topLeftY: $topLeftY, bottomRightX: $bottomRightX, bottomRightY: $bottomRightY) {\n          id\n          definitionId\n          title\n          description\n          gpsLocation\n          identity\n          isActive\n          formData\n          monitoringRecords {\n            id\n            title\n            description\n            monitoringDefinitionId\n            subjectId\n            isActive\n            formData\n          }\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/profile_api.dart",
+      "line": 19,
+      "document": "mutation UserUpdate(\n      $firstName: String!,\n      $lastName: String!,\n      $telephone: String\n      $address: String\n      $gender: String\n      $age: Int\n    ) {\n      adminUserUpdateProfile(\n        firstName: $firstName,\n        lastName: $lastName,\n        telephone: $telephone,\n        address: $address,\n        gender: $gender,\n        age: $age,\n      ) {\n        success\n      }\n    }"
+    },
+    {
+      "path": "lib/services/api/profile_api.dart",
+      "line": 62,
+      "document": "mutation adminUserChangePassword($newPassword: String!) {\n      adminUserChangePassword(newPassword: $newPassword) {\n        success\n      }\n    }"
+    },
+    {
+      "path": "lib/services/api/profile_api.dart",
+      "line": 87,
+      "document": "mutation ConfirmConsent {\n        confirmConsent {\n          ok\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/profile_api.dart",
+      "line": 110,
+      "document": "mutation userUploadAvatar($image: Upload!) {\n      adminUserUploadAvatar(image: $image) {\n        success\n        avatarUrl\n      }\n    }"
+    },
+    {
+      "path": "lib/services/api/profile_api.dart",
+      "line": 140,
+      "document": "query LoginQrToken($userId: ID!) {\n      getLoginQrToken(userId: $userId) {\n        token\n      }\n    }"
+    },
+    {
+      "path": "lib/services/api/register_api.dart",
+      "line": 12,
+      "document": "query CheckCode($code: String!) {\n          checkInvitationCode(code: $code) {\n            code\n            generatedUsername\n            generatedEmail\n            authority {\n              code\n              name\n            }\n            villages {\n              id\n              code\n              name\n            }\n          }\n        }"
+    },
+    {
+      "path": "lib/services/api/register_api.dart",
+      "line": 64,
+      "document": "mutation UserRegister(\n        $email: String = \"\",\n        $firstName: String!,\n        $invitationCode: String!,\n        $lastName: String!,\n        $telephone: String = null,\n        $address: String = null,\n        $username: String!,\n        $gender: String = null,\n        $age: Int = null,\n        $consent: Boolean = false\n      ) {\n        authorityUserRegister(\n          email: $email, \n          firstName: $firstName,\n          invitationCode: $invitationCode,\n          lastName: $lastName,\n          telephone: $telephone,\n          address: $address,\n          username: $username,\n          gender: $gender,\n          age: $age,\n          consent: $consent\n        ) {\n          me {\n            id\n            username\n            firstName\n            lastName\n            authorityName\n            gender\n            age\n            consent\n          },\n          refreshToken,\n          token\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/report_api.dart",
+      "line": 64,
+      "document": "mutation submitIncidentReport(\n        $data: GenericScalar!,\n        $reportId: UUID!,\n        $reportTypeId: UUID!,\n        $incidentDate: Date!,\n        $gpsLocation: String,\n        $villageId: Int,\n        $incidentInAuthority: Boolean,\n        $testFlag: Boolean,\n      ){\n        submitIncidentReport(data: $data, reportId: $reportId, \n          reportTypeId: $reportTypeId, incidentDate: $incidentDate, \n          gpsLocation: $gpsLocation, incidentInAuthority: $incidentInAuthority, \n          testFlag: $testFlag, villageId: $villageId\n        ) {\n          result {\n            id\n            incidentDate\n            gpsLocation\n            rendererData\n            createdAt\n            updatedAt\n            reportType {\n              id\n              name\n              isFollowable\n            }\n            reportedBy {\n              id\n              username        \n            }\n            testFlag\n          }\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/report_api.dart",
+      "line": 125,
+      "document": "mutation submitZeroReport {\n        submitZeroReport {\n          id\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/report_api.dart",
+      "line": 150,
+      "document": "query incidentReports($limit: Int, $offset: Int, $testFlag: Boolean) {\n        incidentReports(limit: $limit, offset: $offset, testFlag: $testFlag) {\n          pageInfo {\n            hasNextPage\n          }\n          results {\n            id\n            incidentDate\n            gpsLocation\n            rendererData\n            createdAt\n            updatedAt\n            reportType {\n              id\n              name\n            }\n            reportedBy {\n              id\n              username        \n            } \n            images {\n              id\n              file \n              imageUrl\n              thumbnail\n            }    \n            uploadFiles {\n              id\n              file \n              fileUrl\n              fileType\n            }    \n            caseId\n            caseStatus { isFinished closeSource closeOutcome }\n            testFlag\n          }          \n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/report_api.dart",
+      "line": 210,
+      "document": "query incidentReport($id: ID!) {\n        incidentReport(id: $id) {\n          id\n          incidentDate\n          gpsLocation\n          rendererData\n          accumulatedMetrics\n          createdAt\n          updatedAt\n          authorities {\n            name\n          }\n          reportType {\n            id\n            name\n            isFollowable\n          }\n          reportedBy {\n            id\n            username        \n          } \n          images {\n            id\n            file\n            imageUrl \n            thumbnail\n          }\n          uploadFiles {\n            id\n            file \n            fileUrl\n            fileType\n          }\n          caseId\n          caseStatus { isFinished closeSource closeOutcome }\n          threadId\n          testFlag\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/report_api.dart",
+      "line": 262,
+      "document": "query myIncidentReports($limit: Int, $offset: Int, $testFlag: Boolean) {\n        myIncidentReports(limit: $limit, offset: $offset, testFlag: $testFlag) {\n          pageInfo {\n            hasNextPage\n          }\n          results {\n            id\n            incidentDate\n            gpsLocation\n            rendererData\n            createdAt\n            updatedAt\n            reportType {\n              id\n              name\n              isFollowable\n            }\n            reportedBy {\n              id\n              username        \n            } \n            images {\n              id\n              file \n              imageUrl\n              thumbnail\n            }\n            uploadFiles {\n              id\n              file \n              fileUrl\n              fileType\n            }   \n            caseId\n            caseStatus { isFinished closeSource closeOutcome }\n            testFlag            \n          }          \n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/report_api.dart",
+      "line": 322,
+      "document": "query QueryFollowups($incidentId: ID!) {\n        followups(incidentId: $incidentId) {\n          id\n          data\n          rendererData\n          testFlag\n          reportType{\n            id\n            name\n          }\n          incident{\n            id\n          }\n          images{\n            id\n\t\t\t\t\t\tfile\n            thumbnail\n            imageUrl\n          }\n          uploadFiles {\n            id\n            file \n            fileUrl\n            fileType\n          }  \n          reportedBy {\n            id\n            username\n            firstName\n            lastName\n            avatarUrl\n          }\n          createdAt\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/report_api.dart",
+      "line": 370,
+      "document": "query followupReport($id: ID!) {\n        followupReport(id: $id) {\n          id\n          data\n          testFlag\n          rendererData\n          createdAt\n          incident{\n            id\n          }\n          reportType {\n            id\n            name\n          }\n          reportedBy {\n            id\n            username        \n          } \n          images {\n            id\n            file \n            thumbnail\n            imageUrl\n          }   \n          uploadFiles {\n            id\n            file \n            fileUrl\n            fileType\n          }  \n          reportedBy {\n            id\n            username\n            firstName\n            lastName\n            avatarUrl\n          }   \n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/report_api.dart",
+      "line": 425,
+      "document": "query reportDataSummary(\n        $data: GenericScalar!, \n        $reportTypeId: UUID!, \n        $incidentDate: Date!\n        $gpsLocation: String,\n      ) {\n          reportDataSummary(\n            data: $data, \n            reportTypeId: $reportTypeId, \n            incidentDate: $incidentDate,\n            gpsLocation: $gpsLocation,\n          ) {\n            result\n          }\n      }"
+    },
+    {
+      "path": "lib/services/api/report_api.dart",
+      "line": 458,
+      "document": "query followupReportDataSummary(\n          $data: GenericScalar!, \n          $reportTypeId: UUID!, \n          $incidentReportId: UUID!\n      ) {\n          followupReportDataSummary(\n              data: $data, \n              reportTypeId: $reportTypeId, \n              incidentReportId: $incidentReportId\n          ) {\n              result\n          }\n      }"
+    },
+    {
+      "path": "lib/services/api/report_api.dart",
+      "line": 488,
+      "document": "mutation submitFollowupReport(\n        $data: GenericScalar!,\n        $followupId: UUID = null,\n        $incidentId: UUID!\n      ){\n        submitFollowupReport(\n          data: $data, \n          followupId: $followupId, \n          incidentId: $incidentId\n        ) {\n          result {\n            id\n            rendererData\n            testFlag\n            createdAt\n            reportType {\n              id\n              name\n            }\n            incident {\n              id\n            }\n          }\n        }\n      }"
+    },
+    {
+      "path": "lib/services/api/report_type_api.dart",
+      "line": 12,
+      "document": "query SyncReportTypes($data: [ReportTypeSyncInputType!]!) {\n        syncReportTypes(data: $data) {\n          updatedList {\n            id\n            name\n            definition\n            followupDefinition\n            updatedAt\n            ordering\n            category {\n              id\n            }\n          }\n          removedList {\n            id            \n          }\n          categoryList {\n            id\n            name\n            icon\n            ordering\n          }\n        }\n      }"
+    }
+  ]
+}
