@@ -1,5 +1,6 @@
-"""CO3 / D07 risk-tiered auto-close (DR-006 cases A–H)."""
+"""Risk-tiered auto-close: D07 as amended by D17–D20 after field training."""
 from datetime import timedelta
+from types import SimpleNamespace
 
 from django.db import connection
 from django.utils import timezone
@@ -117,11 +118,13 @@ class CaseAutoCloseD07TestCase(TenantTestCase):
         self.case.refresh_from_db()
         return n
 
-    def test_band_low_is_lr_others_mrhr(self):
+    def test_band_low_medium_is_14_days_others_21(self):
         self.assertEqual(BAND_MRHR, case_auto_close_band(self.case))
         self._set_risk(RiskAssessment.Level.LOW)
         self.assertEqual(BAND_LR, case_auto_close_band(self.case))
         self._set_risk(RiskAssessment.Level.MEDIUM)
+        self.assertEqual(BAND_LR, case_auto_close_band(self.case))
+        self._set_risk(RiskAssessment.Level.HIGH)
         self.assertEqual(BAND_MRHR, case_auto_close_band(self.case))
         self._set_risk(RiskAssessment.Level.CRITICAL)
         self.assertEqual(BAND_MRHR, case_auto_close_band(self.case))
@@ -139,18 +142,153 @@ class CaseAutoCloseD07TestCase(TenantTestCase):
         self.assertEqual("", self.case.close_outcome or "")
         self.assertEqual({}, self.case.close_payload or {})
 
-    def test_case_b_low_followup_resets_silence(self):
+    def test_case_b_low_zero_sick_followup_does_not_restart_clock(self):
         self._set_risk(RiskAssessment.Level.LOW)
-        self._set_report_counts(days_ago=24)
-        self._add_followup(days_ago=10)
+        self._set_report_counts(sick=5, days_ago=14)
+        self._add_followup(days_ago=1, dead=1, recover=1)
+        self.assertEqual(1, self._run())
+        self.assertTrue(self.case.is_finished)
+
+    def test_exact_deadline_for_all_current_risk_levels(self):
+        start = self._set_report_counts(sick=5, days_ago=30)
+        self._add_followup(days_ago=1, recover=1)
+        for level, days in [
+            (None, 21),
+            (RiskAssessment.Level.LOW, 14),
+            (RiskAssessment.Level.MEDIUM, 14),
+            (RiskAssessment.Level.HIGH, 21),
+            (RiskAssessment.Level.CRITICAL, 21),
+        ]:
+            with self.subTest(level=level):
+                if level is not None:
+                    self._set_risk(level)
+                deadline = start + timedelta(days=days)
+                self.assertFalse(
+                    should_system_auto_close(
+                        self.case, now=deadline - timedelta(microseconds=1)
+                    )
+                )
+                self.assertTrue(should_system_auto_close(self.case, now=deadline))
+
+    def test_new_sick_followup_restarts_clock_for_every_risk_level(self):
+        self._set_report_counts(sick=5, days_ago=40)
+        followup = self._add_followup(days_ago=10, sick=2)
+        followup.refresh_from_db()
+        self._add_followup(days_ago=1, recover=1)
+        for level, days in [
+            (None, 21),
+            (RiskAssessment.Level.LOW, 14),
+            (RiskAssessment.Level.MEDIUM, 14),
+            (RiskAssessment.Level.HIGH, 21),
+            (RiskAssessment.Level.CRITICAL, 21),
+        ]:
+            with self.subTest(level=level):
+                if level is not None:
+                    self._set_risk(level)
+                self.assertEqual(
+                    followup.created_at,
+                    case_auto_close_clock(self.case)["last_sick_increase_at"],
+                )
+                deadline = followup.created_at + timedelta(days=days)
+                self.assertFalse(
+                    should_system_auto_close(
+                        self.case, now=deadline - timedelta(microseconds=1)
+                    )
+                )
+                self.assertTrue(should_system_auto_close(self.case, now=deadline))
+
+    def test_existing_medium_case_closes_without_deployment_clock_reset(self):
+        self._set_risk(RiskAssessment.Level.MEDIUM)
+        self._set_report_counts(sick=5, days_ago=18)
+        self._add_followup(days_ago=1, recover=1)
+        self.assertEqual(1, self._run())
+        self.assertTrue(self.case.is_finished)
+        self.assertEqual(Case.CloseSource.SYSTEM, self.case.close_source)
+        self.assertEqual("", self.case.close_outcome or "")
+        self.assertEqual({}, self.case.close_payload)
+        stopped = self.case.stopped_at
+        comments = self.case.thread.comments.count()
+        self.assertEqual(0, self._run())
+        self.assertEqual(stopped, self.case.stopped_at)
+        self.assertEqual(comments, self.case.thread.comments.count())
+
+    def test_recent_medium_new_sick_stays_open(self):
+        self._set_risk(RiskAssessment.Level.MEDIUM)
+        self._set_report_counts(sick=5, days_ago=30)
+        self._add_followup(days_ago=13, sick=1)
         self.assertEqual(0, self._run())
         self.assertFalse(self.case.is_finished)
 
-        FollowUpReport.objects.filter(incident=self.case.report).update(
-            created_at=timezone.now() - timedelta(days=14)
+    def test_latest_risk_changes_duration_without_restarting_clock(self):
+        start = self._set_report_counts(sick=5, days_ago=18)
+        now = start + timedelta(days=18)
+        self._set_risk(RiskAssessment.Level.HIGH)
+        self.assertFalse(should_system_auto_close(self.case, now=now))
+        self._set_risk(RiskAssessment.Level.MEDIUM)
+        self.assertTrue(should_system_auto_close(self.case, now=now))
+        self._set_risk(RiskAssessment.Level.CRITICAL)
+        self.assertFalse(should_system_auto_close(self.case, now=now))
+        self.assertEqual(
+            start, case_auto_close_clock(self.case)["last_sick_increase_at"]
         )
-        self.assertEqual(1, self._run())
-        self.assertTrue(self.case.is_finished)
+
+    def test_clock_uses_server_created_at_not_incident_or_update_date(self):
+        self._set_risk(RiskAssessment.Level.MEDIUM)
+        self._set_report_counts(sick=5, days_ago=25)
+        IncidentReport.objects.filter(pk=self.case.report_id).update(
+            incident_date=(timezone.now() - timedelta(days=100)).date()
+        )
+        followup = self._add_followup(days_ago=7, sick=2)
+        followup.refresh_from_db()
+        # Later edits/attachment retries do not create a new sick event.
+        followup.save(update_fields=["updated_at"])
+        self.case.report.refresh_from_db()
+        clock = case_auto_close_clock(self.case)
+        self.assertEqual(followup.created_at, clock["last_sick_increase_at"])
+        self.assertFalse(should_system_auto_close(self.case))
+        self.assertTrue(
+            should_system_auto_close(
+                self.case, now=followup.created_at + timedelta(days=14)
+            )
+        )
+
+    def test_missing_sick_counts_retain_initial_report_clock_fallback(self):
+        start = self._set_report_counts(days_ago=30)
+        report = self.case.report
+        report.data = {"symptom": "fever"}
+        report.save(update_fields=["data"])
+        for level, days in [(None, 21), (RiskAssessment.Level.LOW, 14)]:
+            with self.subTest(level=level):
+                if level is not None:
+                    self._set_risk(level)
+                self.assertEqual(
+                    start, case_auto_close_clock(self.case)["last_sick_increase_at"]
+                )
+                self.assertTrue(
+                    should_system_auto_close(
+                        self.case, now=start + timedelta(days=days)
+                    )
+                )
+
+    def test_reportless_case_falls_back_to_case_created_at_and_21_days(self):
+        start = timezone.now() - timedelta(days=30)
+        case = SimpleNamespace(report=None, created_at=start)
+        self.assertFalse(
+            should_system_auto_close(
+                case, now=start + timedelta(days=21) - timedelta(microseconds=1)
+            )
+        )
+        self.assertTrue(should_system_auto_close(case, now=start + timedelta(days=21)))
+        case.created_at = None
+        self.assertFalse(should_system_auto_close(case))
+
+    def test_either_finished_marker_prevents_auto_close(self):
+        self._set_report_counts(sick=5, days_ago=30)
+        self.case.is_finished = True
+        self.assertFalse(should_system_auto_close(self.case))
+        self.case.is_finished = False
+        self.case.stopped_at = timezone.now()
+        self.assertFalse(should_system_auto_close(self.case))
 
     def test_case_c_high_plateau_from_report_closes_day_21(self):
         self._set_risk(RiskAssessment.Level.HIGH)
@@ -221,9 +359,7 @@ class CaseAutoCloseD07TestCase(TenantTestCase):
         self._set_report_counts(sick=5, days_ago=21)
         self._add_followup(days_ago=1, sick=0, recover=1)
         clock = case_auto_close_clock(self.case)
-        self.assertEqual(
-            self.case.report.created_at, clock["last_sick_increase_at"]
-        )
+        self.assertEqual(self.case.report.created_at, clock["last_sick_increase_at"])
         self.assertEqual(1, self._run())
         self.assertTrue(self.case.is_finished)
 
