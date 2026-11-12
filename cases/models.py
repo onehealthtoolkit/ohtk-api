@@ -3,7 +3,7 @@ from typing import List, Union
 import re
 
 from django.core.exceptions import ValidationError
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models import QuerySet
 from django.template import Template, Context
 from django.template.defaultfilters import striptags
@@ -88,6 +88,13 @@ class CaseStateMapping(BaseModel):
         ]
 
 
+class CaseNumberCounter(models.Model):
+    """One annual sequence in the active tenant schema."""
+
+    year = models.PositiveSmallIntegerField(primary_key=True)
+    last_number = models.PositiveBigIntegerField(default=0)
+
+
 class Case(BaseModel):
     class CloseSource(models.TextChoices):
         OFFICER = "officer", "Officer"
@@ -102,6 +109,8 @@ class Case(BaseModel):
     objects = BaseModelManager()
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    number_year = models.PositiveSmallIntegerField(null=True, blank=True, editable=False)
+    number_sequence = models.PositiveBigIntegerField(null=True, blank=True, editable=False)
     report = models.ForeignKey(
         IncidentReport,
         on_delete=models.PROTECT,
@@ -146,6 +155,89 @@ class Case(BaseModel):
     close_payload = models.JSONField(default=dict, blank=True)
     close_payload_schema_version = models.PositiveIntegerField(null=True, blank=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["number_year", "number_sequence"], name="case_number_unique"
+            ),
+            models.CheckConstraint(
+                check=(
+                    models.Q(number_year__isnull=True, number_sequence__isnull=True)
+                    | models.Q(
+                        number_year__isnull=False,
+                        number_sequence__isnull=False,
+                        number_year__gte=1,
+                        number_year__lte=9999,
+                        number_sequence__gte=1,
+                    )
+                ),
+                name="case_number_valid_pair",
+            ),
+        ]
+
+    @property
+    def case_number(self):
+        if self.number_year is None or self.number_sequence is None:
+            return None
+        return f"{self.number_year:04d}-{self.number_sequence:06d}"
+
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        using = using or router.db_for_write(type(self), instance=self)
+        number_fields = {"number_year", "number_sequence"}
+        if not self._state.adding:
+            if update_fields is None or number_fields.intersection(update_fields):
+                stored = (
+                    type(self)
+                    ._base_manager.using(using)
+                    .values_list("number_year", "number_sequence")
+                    .get(pk=self.pk)
+                )
+                current = (self.number_year, self.number_sequence)
+                if current != stored:
+                    if current == (None, None) and update_fields is None:
+                        # A stale instance loaded before backfill must not erase its ID.
+                        self.number_year, self.number_sequence = stored
+                    else:
+                        raise ValidationError("Case number cannot be changed")
+            if update_fields is None and not force_insert:
+                # Never overwrite numbering committed by a concurrent backfill.
+                deferred = self.get_deferred_fields()
+                update_fields = {
+                    field.attname
+                    for field in self._meta.concrete_fields
+                    if not field.primary_key
+                    and field.name not in number_fields
+                    and field.attname not in deferred
+                }
+            return super().save(
+                force_insert=force_insert,
+                force_update=force_update,
+                using=using,
+                update_fields=update_fields,
+            )
+
+        if self.number_year is not None or self.number_sequence is not None:
+            raise ValidationError("Case number is allocated automatically")
+        from cases.services.case_number import backfill_case_numbers, lock_case_numbers
+
+        with transaction.atomic(using=using):
+            lock_case_numbers(using=using)
+            result = super().save(
+                force_insert=force_insert,
+                force_update=force_update,
+                using=using,
+                update_fields=update_fields,
+            )
+            # Drain historical rows first so new Cases cannot take their numbers.
+            backfill_case_numbers(using=using)
+            self.number_year, self.number_sequence = (
+                type(self)
+                ._base_manager.using(using)
+                .values_list("number_year", "number_sequence")
+                .get(pk=self.pk)
+            )
+            return result
+
     @property
     def current_states(self):
         return self.casestate_set.filter(transition__isnull=True)
@@ -162,8 +254,9 @@ class Case(BaseModel):
         self.close_payload = payload
 
     @classmethod
+    @transaction.atomic
     def promote_from_incident_report(cls, report_id):
-        report = IncidentReport.objects.get(pk=report_id)
+        report = IncidentReport.objects.select_for_update().get(pk=report_id)
         if report.case_id:
             return Case.objects.get(pk=report.case_id)
 
