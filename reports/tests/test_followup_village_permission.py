@@ -198,3 +198,35 @@ class FollowupVillagePermissionTestCase(BaseTestCase):
         )
         self.assertTrue(result.errors)
         self.assertFalse(FollowUpReport.objects.exists())
+
+    def test_assigned_reporter_can_replay_an_accepted_followup(self):
+        self.assert_submit_permission(True)
+        accepted = FollowUpReport.objects.get()
+        result = self.client.execute(
+            """mutation submit($id: UUID!, $followupId: UUID!, $data: GenericScalar!) {
+                submitFollowupReport(incidentId: $id, followupId: $followupId,
+                    data: $data) { result { id } }
+            }""",
+            {"id": str(self.report.id), "followupId": str(accepted.id),
+             "data": {"condition": "changed retry"}},
+        )
+        self.assertIsNone(result.errors, msg=result.errors)
+        self.assertEqual(FollowUpReport.objects.count(), 1)
+        accepted.refresh_from_db()
+        self.assertEqual(accepted.data, {"condition": "better"})
+
+    def test_revoked_assignment_cannot_replay_an_accepted_followup(self):
+        self.assert_submit_permission(True)
+        accepted = FollowUpReport.objects.get()
+        self.assignment.delete()
+        result = self.client.execute(
+            """mutation submit($id: UUID!, $followupId: UUID!, $data: GenericScalar!) {
+                submitFollowupReport(incidentId: $id, followupId: $followupId,
+                    data: $data) { result { id } }
+            }""",
+            {"id": str(self.report.id), "followupId": str(accepted.id),
+             "data": {"condition": "changed retry"}},
+        )
+        self.assertTrue(result.errors)
+        self.assertIn("village is not assigned to reporter", str(result.errors))
+        self.assertEqual(FollowUpReport.objects.count(), 1)

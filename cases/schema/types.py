@@ -21,6 +21,7 @@ from common.types import AdminValidationProblem
 from common.filters import EmptyListInsensitiveFilterSet
 from reports.models.report import IncidentReport
 from reports.schema.types import IncidentReportType
+from cases.services.case_number import parse_case_number
 
 
 class StateDefinitionType(DjangoObjectType):
@@ -296,11 +297,15 @@ class CaseTypeFilter(EmptyListInsensitiveFilterSet):
         text = (value or "").strip()
         if not text:
             return queryset
-        return queryset.filter(
+        search = (
             Q(report__renderer_data__icontains=text)
             | Q(report__ai_suspected__icontains=text)
             | Q(description__icontains=text)
         )
+        number = parse_case_number(text)
+        if number:
+            search |= Q(number_year=number[0], number_sequence=number[1])
+        return queryset.filter(search)
 
     def case_statuses_filter(self, queryset, name, value):
         raw_values = value.split(",") if isinstance(value, str) else value or []
@@ -325,6 +330,7 @@ class CaseTypeFilter(EmptyListInsensitiveFilterSet):
 
 
 class CaseType(DjangoObjectType):
+    case_number = graphene.String()
     state_definition = graphene.Field(DeepStateDefinitionType)
     report = graphene.Field(IncidentReportType)
     authorities = graphene.List(AuthorityType)

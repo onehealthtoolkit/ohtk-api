@@ -1,6 +1,6 @@
-"""D07 risk-tiered CO3 auto-close eligibility.
+"""Risk-tiered CO3 auto-close eligibility (D07 amended by D17–D20).
 
-See wiki/decision-D07-risk-tiered-auto-close.md.
+All levels count from the latest accepted newly-sick event, not other activity.
 """
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from reports.metric_accumulation import extract_number
 
+# Retain the existing internal band keys; Medium now uses the 14-day window.
 BAND_LR = "lr"
 BAND_MRHR = "mrhr"
 
@@ -30,7 +31,7 @@ def _count(data: Optional[dict], field: str) -> int:
 
 
 def case_auto_close_band(case) -> str:
-    """LOW → LR. MEDIUM/HIGH/CRITICAL/none → MR/HR."""
+    """LOW/MEDIUM → 14-day band; HIGH/CRITICAL/none → 21-day band."""
     from integrations.models import RiskAssessment
     from integrations.services import get_current_risk_assessment
 
@@ -40,7 +41,7 @@ def case_auto_close_band(case) -> str:
     assessment = get_current_risk_assessment(report=report)
     if assessment is None:
         return BAND_MRHR
-    if assessment.level == RiskAssessment.Level.LOW:
+    if assessment.level in (RiskAssessment.Level.LOW, RiskAssessment.Level.MEDIUM):
         return BAND_LR
     return BAND_MRHR
 
@@ -67,7 +68,11 @@ def _events(case) -> List[Tuple[Any, dict]]:
 
 
 def case_auto_close_clock(case) -> Optional[Dict[str, Any]]:
-    """Running sick series + D07 timestamps. None if the case has no clock."""
+    """Event timestamps with the existing initial-event fallback for missing counts.
+
+    Activity/cleared timestamps remain metadata; eligibility uses last new sick.
+    None if neither the report nor the case supplies a clock.
+    """
     events = _events(case)
     if not events:
         return None
@@ -121,13 +126,6 @@ def should_system_auto_close(
     if clock is None:
         return False
     as_of = now or timezone.now()
-    if clock["band"] == BAND_LR:
-        last = clock["last_activity_at"]
-        return last is not None and as_of - last >= timedelta(days=lr_days)
-
-    mrhr = timedelta(days=mrhr_days)
-    cleared_at = clock["first_cleared_at"]
-    cleared = cleared_at is not None and as_of - cleared_at >= mrhr
+    days = lr_days if clock["band"] == BAND_LR else mrhr_days
     increase_at = clock["last_sick_increase_at"]
-    plateau = increase_at is not None and as_of - increase_at >= mrhr
-    return cleared or plateau
+    return increase_at is not None and as_of - increase_at >= timedelta(days=days)
