@@ -27,11 +27,11 @@ class SubmitFollowupReport(graphene.Mutation):
         followup_id=None,
     ):
         with submission_transaction(FollowUpReport, followup_id):
+            existing = replay(FollowUpReport, followup_id, incident_id=incident_id)
             user = info.context.user
             incident = IncidentReport.objects.get(pk=incident_id)
             if not has_followup_permission(user, incident):
                 raise PermissionDenied("village is not assigned to reporter")
-            existing = replay(FollowUpReport, followup_id, incident_id=incident_id)
             if existing is not None:
                 return SubmitFollowupReport(result=existing)
 
