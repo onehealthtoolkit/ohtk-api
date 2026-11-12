@@ -231,6 +231,8 @@ class IncidentReportType(DjangoObjectType):
     ai_suspected = graphene.String(required=True)
     village = graphene.Field(IncidentReportVillageType)
     case_status = graphene.Field(ReportCaseStatus)
+    # Reference of the linked Case; case_id remains the existing UUID.
+    case_number = graphene.String()
 
     class Meta:
         model = IncidentReport
@@ -264,6 +266,17 @@ class IncidentReportType(DjangoObjectType):
 
     def resolve_case_status(self, info):
         return get_report_case_status(self)
+
+    def resolve_case_number(self, info):
+        if not self.case_id:
+            return None
+        from cases.models import Case
+        from cases.schema.types import CaseType
+
+        case = CaseType.get_queryset(
+            Case.objects.filter(pk=self.case_id, report_id=self.pk), info
+        ).first()
+        return case.case_number if case else None
 
     def resolve_village(self, info):
         village = getattr(self, "village", None)
