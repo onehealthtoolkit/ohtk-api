@@ -631,10 +631,11 @@ def case_last_activity_at(case):
 
 def auto_close_stale_open_cases(*, days: Optional[int] = None) -> int:
     """
-    CO3 / D07: system-finish open cases that meet the risk-tiered clock.
+    CO3 / D17–D20: system-finish all open cases meeting the risk-tiered clock.
 
-    Default windows: LOW = 14 days silence; MEDIUM/HIGH/CRITICAL/none = 21 days
-    after derived ongoing=0 or no new sick.
+    Default windows: LOW/MEDIUM = 14 days; HIGH/CRITICAL/none = 21 days
+    since the last newly-sick event's server created_at. Existing open cases use
+    their original event timestamps, without a deployment-date cutoff or reset.
 
     days: optional override of **both** windows (ops one-shot / tests).
     Tenant `cases.auto_close_days` is not the D07 rule.
